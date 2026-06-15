@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+    <application
+        android:name=".MainApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.PluralApp001"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".TimelineActivity"
+            android:label="Tijdlijn"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ProfileActivity"
+            android:label="Profiel"
+            android:parentActivityName=".MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:label="Instellingen"
+            android:parentActivityName=".MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".DiaryActivity"
+            android:label="Dagboek"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SysmediaActivity"
+            android:label="@string/sysmedia"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SysmediaPostDetailActivity"
+            android:label="Post"
+            android:parentActivityName=".SysmediaActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".SysmediaProfileActivity"
+            android:label="Profile"
+            android:parentActivityName=".SysmediaActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SysmediaSwitchAccountActivity"
+            android:label="Switch Account"
+            android:parentActivityName=".SysmediaActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SysmediaMemberListActivity"
+            android:label="Ledenlijst"
+            android:parentActivityName=".SysmediaActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".CreatePostActivity"
+            android:label="@string/action_post"
+            android:parentActivityName=".SysmediaActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ChatActivity"
+            android:label="Chat"
+            android:parentActivityName=".SysmediaActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".SysmediaScheduledPostsActivity"
+            android:label="@string/action_scheduled_posts"
+            android:parentActivityName=".SysmediaActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".SysmediaGhostActivity"
+            android:label="@string/title_orphaned_posts"
+            android:parentActivityName=".SysmediaActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".EditNoteActivity"
+            android:label="Notitie"
+            android:parentActivityName=".DiaryActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".StatisticsActivity"
+            android:label="Statistieken"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".TimelineVisualActivity"
+            android:label="Visuele Tijdlijn"
+            android:parentActivityName=".TimelineActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MemberNotesActivity"
+            android:label="Notities"
+            android:parentActivityName=".ProfileActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MemberMoodActivity"
+            android:label="Stemmingen"
+            android:parentActivityName=".ProfileActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MoodActivity"
+            android:label="@string/mood_tracker"
+            android:parentActivityName=".MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".MoodStatsActivity"
+            android:label="@string/mood_stats"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MoodMonthActivity"
+            android:label="@string/mood_month_stats"
+            android:parentActivityName=".MoodStatsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MoodTimelineActivity"
+            android:label="@string/mood_timeline"
+            android:parentActivityName=".MoodStatsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ExtensiveMoodStatsActivity"
+            android:label="@string/extensive_mood_stats"
+            android:parentActivityName=".MoodStatsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MemberMoodStatsActivity"
+            android:label="@string/mood_stats"
+            android:parentActivityName=".MemberMoodActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".TodoActivity"
+            android:label="@string/todo"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MemberTodoActivity"
+            android:label="@string/todo"
+            android:parentActivityName=".ProfileActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".EditTodoListActivity"
+            android:label="@string/todo"
+            android:parentActivityName=".TodoActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".SendMessageActivity"
+            android:label="@string/dialog_send_message_title"
+            android:parentActivityName=".MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".CustomFieldsActivity"
+            android:label="@string/custom_fields_title"
+            android:parentActivityName=".SettingsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ThemesActivity"
+            android:label="@string/action_manage_themes"
+            android:parentActivityName=".SettingsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MemberPreferencesActivity"
+            android:label="@string/identity_prefs"
+            android:parentActivityName=".ProfileActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".WhoAmIActivity"
+            android:label="@string/who_am_i"
+            android:parentActivityName=".MainActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".MemberFrontHistoryActivity"
+            android:label="@string/action_view_front"
+            android:parentActivityName=".ProfileActivity"
+            android:exported="false" />
+
+        <receiver
+            android:name=".NotificationReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+    </application>
+
+</manifest>

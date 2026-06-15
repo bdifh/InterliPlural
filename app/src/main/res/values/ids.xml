@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="color_tag" type="id" />
+    <item name="ivPostImagePreview" type="id" />
+    <item name="action_add_person" type="id" />
+    <item name="action_add_group" type="id" />
+</resources>

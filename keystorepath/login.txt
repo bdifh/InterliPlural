@@ -1,0 +1,5 @@
+key store path:	F:\Software\PluralApp001.2\keystorepath\keystore
+password:	bdifh1
+
+alias:		key0
+password:	bdifh1
