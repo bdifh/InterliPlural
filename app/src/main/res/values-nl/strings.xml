@@ -152,6 +152,7 @@
     <string name="action_export">Exporteren</string>
     <string name="action_import">Importeren</string>
     <string name="diary">Notities</string>
+    <string name="calendar">Agenda</string>
     <string name="sysmedia">Sysmedia</string>
     <string name="tab_timeline">Tijdlijn</string>
     <string name="tab_all">Alles</string>
@@ -337,6 +338,7 @@
     <string name="module_mood">Mood Tracker</string>
     <string name="module_notes">Notities</string>
     <string name="module_todo">To Do</string>
+    <string name="module_calendar">Agenda</string>
     <string name="version_label">Versie: %1$s</string>
     <string name="module_disabled_message">Deze module is uitgeschakeld in de instellingen.</string>
     <string name="settings_section_notifications">Notificaties</string>
@@ -443,6 +445,23 @@
     <string name="no_backups_found">Geen backups gevonden</string>
     <string name="dialog_add_time">Tijd toevoegen?</string>
     <string name="action_add_notification">+ Melding toevoegen</string>
+
+    <string name="label_color">Kleur</string>
+    <string name="label_recurrence">Herhaling</string>
+    <string name="agenda">Agenda</string>
+    <string name="day">Dag</string>
+    <string name="week">Week</string>
+    <string name="month">Maand</string>
+    <string name="year">Jaar</string>
+    <string name="event_title">Titel</string>
+    <string name="event_description">Beschrijving</string>
+    <string name="event_all_day">Hele dag</string>
+    <string name="event_location">Locatie</string>
+    <string name="add_event">Afspraak toevoegen</string>
+    <string name="edit_event">Afspraak bewerken</string>
+    <string name="delete_event_8x">Afspraak verwijderen (%1$d)</string>
+    <string name="label_hide_in">Verbergen in:</string>
+
     <string name="action_remove_notification">Verwijder</string>
     <string name="notification_times_label">Meldingstijden:</string>
     <string name="poll_add_option">+ Optie toevoegen</string>
@@ -478,4 +497,5 @@
     <string name="total_sessions">Totaal aantal sessies</string>
     <string name="front_history_timeline">Front Geschiedenis Tijdlijn</string>
     <string name="no_active_member">Geen actief lid geselecteerd</string>
+    <string name="no_events_today">Geen afspraken vandaag</string>
 </resources>

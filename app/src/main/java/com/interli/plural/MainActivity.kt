@@ -69,7 +69,8 @@ data class FrontSession(
     var personName: String,
     var startTime: Long,
     var endTime: Long? = null,
-    var personId: String? = null
+    var personId: String? = null,
+    var note: String? = null
 )
 
 data class AppTheme(
@@ -148,6 +149,27 @@ data class TodoList(
     var reminderTime: Long? = null,
     var bundleId: String? = null,
     var manualOrder: Int = 0
+)
+
+data class CalendarEvent(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    var title: String,
+    var description: String? = null,
+    var startTime: Long,
+    var endTime: Long,
+    var linkedMemberIds: MutableList<String> = mutableListOf(),
+    var color: Int? = null,
+    var location: String? = null,
+    var isAllDay: Boolean = false,
+    var recurrence: String? = null, // "DAILY", "WEEKLY", "MONTHLY", "YEARLY"
+    var recurrenceDays: List<Int>? = null,
+    var linkedNoteId: String? = null,
+    var linkedTodoListId: String? = null,
+    var hideInOverview: Boolean = false,
+    var hideInDay: Boolean = false,
+    var hideInWeek: Boolean = false,
+    var hideInMonth: Boolean = false,
+    var hideInYear: Boolean = false
 )
 
 data class SysmediaPost(
@@ -246,6 +268,7 @@ class MainActivity : BaseActivity() {
                     if (master && sub) android.content.Intent(this, MoodActivity::class.java) else null
                 }
                 "diary" -> if (settingsPref.getBoolean("module_notes_enabled", true)) android.content.Intent(this, DiaryActivity::class.java) else null
+                "calendar" -> if (settingsPref.getBoolean("module_calendar_enabled", true)) android.content.Intent(this, CalendarActivity::class.java) else null
                 "sysmedia" -> {
                     val master = settingsPref.getBoolean("module_fronting_enabled", true)
                     val sub = settingsPref.getBoolean("module_sysmedia_enabled", true)
@@ -461,6 +484,7 @@ class MainActivity : BaseActivity() {
         val moodMaster = sharedPref.getBoolean("module_mood_enabled", true)
         val notesEnabled = sharedPref.getBoolean("module_notes_enabled", true)
         val todoEnabled = sharedPref.getBoolean("module_todo_enabled", true)
+        val calendarEnabled = sharedPref.getBoolean("module_calendar_enabled", true)
 
         // Sub switches
         val frontSub = sharedPref.getBoolean("sub_front_page", true) && pluralMaster
@@ -481,6 +505,7 @@ class MainActivity : BaseActivity() {
         menu.findItem(R.id.action_diary)?.isVisible = notesEnabled
         menu.findItem(R.id.action_sysmedia)?.isVisible = sysmediaSub
         menu.findItem(R.id.action_todo)?.isVisible = todoEnabled
+        menu.findItem(R.id.action_calendar)?.isVisible = calendarEnabled
 
         val header = navigationView.getHeaderView(0)
         header?.findViewById<View>(R.id.btnNavAddMember)?.visibility = if (frontSub) View.VISIBLE else View.GONE
@@ -758,12 +783,16 @@ class MainActivity : BaseActivity() {
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }
 
+    private var quickUnfrontDialog: androidx.appcompat.app.AlertDialog? = null
+
     private fun toggleFront(person: Person) {
         if (person.isArchived) return
         person.isFront = !person.isFront
 
         if (person.isFront) {
             sessions.add(FrontSession(person.name, System.currentTimeMillis(), personId = person.id))
+            savePeople()
+            updateUI()
             
             if (!person.frontMessage.isNullOrBlank() && !person.messageRead) {
                 showFrontMessageNotification(person)
@@ -772,15 +801,21 @@ class MainActivity : BaseActivity() {
         } else {
             sessions.filter { (it.personId == person.id || (it.personId == null && it.personName == person.name)) && it.endTime == null }
                 .forEach { it.endTime = System.currentTimeMillis() }
+            savePeople()
+            updateUI()
         }
-
-        savePeople()
-        updateUI()
     }
 
     private fun showQuickUnfrontDialog() {
-        val frontPeople = MemberHelper.getSortedPeople(people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }, groups)
-        if (frontPeople.isEmpty()) return
+        val frontPeople = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
+            .distinctBy { it.id }
+            .let { MemberHelper.getSortedPeople(it, groups) }
+
+        if (frontPeople.isEmpty()) {
+            quickUnfrontDialog?.dismiss()
+            quickUnfrontDialog = null
+            return
+        }
 
         val names = frontPeople.map { it.name }.toMutableList()
         val filteredNames = names.toMutableList()
@@ -794,12 +829,62 @@ class MainActivity : BaseActivity() {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val v = super.getView(position, convertView, parent)
                 val nameTxt = v.findViewById<TextView>(R.id.textName)
+                val noteTxt = v.findViewById<TextView>(R.id.textNote)
+                val llNameContainer = v.findViewById<LinearLayout>(R.id.llNameContainer)
                 val arrowTxt = v.findViewById<TextView>(R.id.textArrow)
+                val ivNote = v.findViewById<ImageView>(R.id.ivNote)
                 
+                val currentName = filteredNames[position]
+                val person = frontPeople.find { it.name == currentName }
+                val session = sessions.find { (it.personId == person?.id || (it.personId == null && it.personName == currentName)) && it.endTime == null }
+
                 nameTxt.setTextColor(textColor)
+                noteTxt.setTextColor(textColor)
                 arrowTxt.setTextColor(btnTextColor)
                 arrowTxt.setBackgroundColor(btnColor)
                 v.setBackgroundColor(bgColor)
+                
+                if (session?.note.isNullOrBlank()) {
+                    noteTxt.visibility = View.GONE
+                } else {
+                    noteTxt.visibility = View.VISIBLE
+                    noteTxt.text = session?.note
+                }
+
+                val editNoteAction = View.OnClickListener {
+                    if (person != null && session != null) {
+                        val input = EditText(this@MainActivity).apply {
+                            setText(session.note ?: "")
+                            hint = getString(R.string.note)
+                            setTextColor(textColor)
+                        }
+                        val d = androidx.appcompat.app.AlertDialog.Builder(this@MainActivity)
+                            .setTitle(person.name)
+                            .setMessage(getString(R.string.note))
+                            .setView(input)
+                            .setPositiveButton(R.string.save) { _, _ ->
+                                session.note = input.text.toString().ifBlank { null }
+                                savePeople()
+                                notifyDataSetChanged()
+                            }
+                            .setNegativeButton(R.string.cancel, null)
+                            .create()
+                        d.show()
+                        ColorHelper.styleSupportAlertDialog(d, this@MainActivity)
+                    }
+                }
+
+                ivNote.setColorFilter(textColor)
+                ivNote.setOnClickListener(editNoteAction)
+                llNameContainer.setOnClickListener(editNoteAction)
+                
+                arrowTxt.setOnClickListener {
+                    if (person != null) {
+                        toggleFront(person)
+                        showQuickUnfrontDialog()
+                    }
+                }
+
                 return v
             }
         }
@@ -834,24 +919,16 @@ class MainActivity : BaseActivity() {
         val listView = ListView(this)
         listView.adapter = adapter
         listView.divider = null
-        listView.setOnItemClickListener { _, _, position, _ ->
-            val selectedName = filteredNames[position]
-            val person = frontPeople.find { it.name == selectedName }
-            if (person != null) {
-                toggleFront(person)
-                if (people.any { it.isFront }) {
-                    showQuickUnfrontDialog()
-                }
-            }
-        }
         container.addView(listView)
 
+        quickUnfrontDialog?.dismiss()
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(getString(R.string.dialog_quick_unfront_title))
             .setView(container)
             .setNegativeButton(getString(R.string.cancel), null)
             .create()
             
+        quickUnfrontDialog = dialog
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }

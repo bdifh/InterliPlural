@@ -26,6 +26,10 @@
             android:id="@+id/action_todo"
             android:title="@string/todo"
             app:showAsAction="never" />
+        <item
+            android:id="@+id/action_calendar"
+            android:title="@string/calendar"
+            app:showAsAction="never" />
     </group>
 
     <group android:id="@+id/group_mood">

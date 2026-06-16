@@ -101,6 +101,7 @@ class SettingsActivity : BaseActivity() {
             "DIARY" -> "diary"
             "TODO" -> "todo"
             "MOOD" -> "mood"
+            "CALENDAR" -> "calendar"
             else -> rawStartPage.lowercase()
         }
         
@@ -417,6 +418,7 @@ class SettingsActivity : BaseActivity() {
 
         val notesEnabled = sp.getBoolean("module_notes_enabled", true)
         val todoEnabled = sp.getBoolean("module_todo_enabled", true)
+        val calendarEnabled = sp.getBoolean("module_calendar_enabled", true)
 
         if (frontSub) {
             options.add(getString(R.string.front_page))
@@ -438,6 +440,11 @@ class SettingsActivity : BaseActivity() {
         if (todoEnabled) {
             options.add(getString(R.string.todo))
             codes.add("todo")
+        }
+
+        if (calendarEnabled) {
+            options.add(getString(R.string.calendar))
+            codes.add("calendar")
         }
         
         if (sysmediaSub) {
@@ -470,6 +477,7 @@ class SettingsActivity : BaseActivity() {
             )),
             ModuleGroup("module_notes_enabled", getString(R.string.module_notes)),
             ModuleGroup("module_todo_enabled", getString(R.string.module_todo)),
+            ModuleGroup("module_calendar_enabled", getString(R.string.module_calendar)),
             ModuleGroup("module_mood_enabled", getString(R.string.module_mood), listOf(
                 ModuleSub("sub_mood_log_enabled", getString(R.string.mood_tracker)),
                 ModuleSub("sub_mood_stats_enabled", getString(R.string.mood_stats))

@@ -328,7 +328,7 @@
                     android:layout_width="18dp"
                     android:layout_height="18dp"
                     android:layout_weight="0"
-                    android:src="@android:drawable/ic_menu_upload"
+                    android:src="@android:drawable/ic_menu_share"
                     app:tint="#536471"
                     android:contentDescription="Share" />
 

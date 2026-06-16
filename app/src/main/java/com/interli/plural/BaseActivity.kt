@@ -78,6 +78,7 @@ abstract class BaseActivity : AppCompatActivity() {
                 R.id.action_who_am_i to 1,
                 R.id.action_diary to 2,
                 R.id.action_todo to 2,
+                R.id.action_calendar to 2,
                 R.id.action_mood_tracker to 3,
                 R.id.action_mood_stats to 3,
                 R.id.action_sysmedia to 4,
@@ -162,6 +163,12 @@ abstract class BaseActivity : AppCompatActivity() {
                             startActivity(intent)
                         }
                     }
+                    R.id.action_calendar -> {
+                        if (this !is CalendarActivity) {
+                            val intent = android.content.Intent(this, CalendarActivity::class.java)
+                            startActivity(intent)
+                        }
+                    }
                     R.id.action_settings -> {
                         if (this !is SettingsActivity) {
                             val intent = android.content.Intent(this, SettingsActivity::class.java)
@@ -183,6 +190,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val moodMaster = sharedPref.getBoolean("module_mood_enabled", true)
         val notesEnabled = sharedPref.getBoolean("module_notes_enabled", true)
         val todoEnabled = sharedPref.getBoolean("module_todo_enabled", true)
+        val calendarEnabled = sharedPref.getBoolean("module_calendar_enabled", true)
 
         val frontSub = sharedPref.getBoolean("sub_front_page", true) && pluralMaster
         val statsSub = sharedPref.getBoolean("sub_statistics", true) && pluralMaster
@@ -204,6 +212,7 @@ abstract class BaseActivity : AppCompatActivity() {
 
         menu.findItem(R.id.action_diary)?.isVisible = notesEnabled
         menu.findItem(R.id.action_todo)?.isVisible = todoEnabled
+        menu.findItem(R.id.action_calendar)?.isVisible = calendarEnabled
 
         menu.findItem(R.id.action_sysmedia)?.isVisible = sysmediaSub
 
@@ -260,6 +269,7 @@ abstract class BaseActivity : AppCompatActivity() {
                 if (master && sub) MoodActivity::class.java else MainActivity::class.java
             }
             "diary" -> if (settingsPref.getBoolean("module_notes_enabled", true)) DiaryActivity::class.java else MainActivity::class.java
+            "calendar" -> if (settingsPref.getBoolean("module_calendar_enabled", true)) CalendarActivity::class.java else MainActivity::class.java
             "sysmedia" -> {
                 val master = settingsPref.getBoolean("module_fronting_enabled", true)
                 val sub = settingsPref.getBoolean("module_sysmedia_enabled", true)

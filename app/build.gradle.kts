@@ -3,7 +3,7 @@ plugins {
 }
 
 // ------- VERSION DISPLAY !!!! --------
-val versionDisplayed = "V002-1d" // CHANGE THIS ONE WITH MAKING UPDATES
+val versionDisplayed = "V002-2b" // CHANGE THIS ONE WHEN MAKING UPDATES
 // ------- VERSION DISPLAY !!!! --------
 
 android {
@@ -14,8 +14,8 @@ android {
         applicationId = "com.interli.plural"
         minSdk = 24
         targetSdk = 35
-        versionCode = 24
-        versionName = "V002-1a" // DO NOT TOUCH
+        versionCode = 24 // DO NOT TOUCH
+        versionName = "V002-1a" // DO NOT TOUCH, lowest easy downgrade version.
 
         buildConfigField("String", "VERSION_DISPLAYED", "\"$versionDisplayed\"")
 

@@ -155,6 +155,7 @@
     <string name="action_export">Export</string>
     <string name="action_import">Import</string>
     <string name="diary">Notes</string>
+    <string name="calendar">Calendar</string>
     <string name="sysmedia">Sysmedia</string>
     <string name="tab_timeline">Timeline</string>
     <string name="tab_all">All</string>
@@ -347,6 +348,7 @@
     <string name="module_mood">Mood Tracker</string>
     <string name="module_notes">Notes</string>
     <string name="module_todo">To Do</string>
+    <string name="module_calendar">Calendar</string>
     <string name="version_label">Version: %1$s</string>
     <string name="module_disabled_message">This module is disabled in settings.</string>
     <string name="settings_section_notifications">Notifications</string>
@@ -453,6 +455,23 @@
     <string name="no_backups_found">No backups found</string>
     <string name="dialog_add_time">Add time?</string>
     <string name="action_add_notification">+ Add Notification</string>
+
+    <string name="label_color">Color</string>
+    <string name="label_recurrence">Recurrence</string>
+    <string name="agenda">Agenda</string>
+    <string name="day">Day</string>
+    <string name="week">Week</string>
+    <string name="month">Month</string>
+    <string name="year">Year</string>
+    <string name="event_title">Title</string>
+    <string name="event_description">Description</string>
+    <string name="event_all_day">All Day</string>
+    <string name="event_location">Location</string>
+    <string name="add_event">Add Event</string>
+    <string name="edit_event">Edit Event</string>
+    <string name="delete_event_8x">Delete Event (%1$d)</string>
+    <string name="label_hide_in">Hide in:</string>
+
     <string name="action_remove_notification">Remove</string>
     <string name="notification_times_label">Notification Times:</string>
     <string name="poll_add_option">+ Add option</string>
@@ -488,4 +507,5 @@
     <string name="total_sessions">Total sessions</string>
     <string name="front_history_timeline">Front History Timeline</string>
     <string name="no_active_member">No active member selected</string>
+    <string name="no_events_today">No events today</string>
 </resources>

@@ -498,6 +498,8 @@ object DialogHelper {
         val etSearch = view.findViewById<EditText>(R.id.etSearch)
         val rvItems = view.findViewById<RecyclerView>(R.id.rvMembers)
         
+        var currentDialog: AlertDialog? = null
+
         val adapter = object : RecyclerView.Adapter<SearchableItemViewHolder>() {
             var filteredItems = items
             val textColor = ColorHelper.getTextColor(context)
@@ -513,6 +515,7 @@ object DialogHelper {
                 holder.checkBox.visibility = View.GONE
                 holder.itemView.setOnClickListener {
                     onSelected(filteredItems[position])
+                    currentDialog?.dismiss()
                 }
             }
 
@@ -529,9 +532,12 @@ object DialogHelper {
 
         val dialog = AlertDialog.Builder(context)
             .setTitle(title)
-            .setView(view)
+            .setPositiveButton(R.string.done, null)
             .setNegativeButton(R.string.cancel, null)
+            .setView(view)
             .create()
+        
+        currentDialog = dialog
 
         etSearch.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -547,9 +553,6 @@ object DialogHelper {
         val textColor = ColorHelper.getTextColor(context)
         etSearch.setTextColor(textColor)
         etSearch.setHintTextColor(textColor and 0x88FFFFFF.toInt())
-        etSearch.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_search, 0, 0, 0)
-        etSearch.compoundDrawablePadding = (8 * context.resources.displayMetrics.density).toInt()
-        etSearch.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(textColor)
         etSearch.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_search, 0, 0, 0)
         etSearch.compoundDrawablePadding = (8 * context.resources.displayMetrics.density).toInt()
         etSearch.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(textColor)

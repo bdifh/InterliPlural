@@ -234,6 +234,13 @@
             android:exported="false" />
 
         <activity
+            android:name=".CalendarActivity"
+            android:label="@string/calendar"
+            android:parentActivityName=".MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".MemberFrontHistoryActivity"
             android:label="@string/action_view_front"
             android:parentActivityName=".ProfileActivity"
