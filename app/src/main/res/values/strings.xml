@@ -212,8 +212,9 @@
     <string name="action_link_members">Link members</string>
     <string name="action_link_note">Link Note</string>
     <string name="action_link_todo">Link To Do</string>
-    <string name="label_linked_note">Linked Note: %1$s</string>
-    <string name="label_linked_todo">Linked To Do: %1$s</string>
+    <string name="action_link_todo_list">Link To Do List</string>
+    <string name="label_linked_note">Linked Note</string>
+    <string name="label_linked_todo">Linked To Do</string>
     <string name="hint_field_title">Field Title</string>
     <string name="hint_field_template">Template (Optional)</string>
     <string name="action_reset">Reset</string>

@@ -22,10 +22,12 @@ class EditTodoListActivity : BaseActivity() {
     private lateinit var todoLists: MutableList<TodoList>
     private lateinit var todoBundles: List<TodoBundle>
     private lateinit var people: List<Person>
+    private lateinit var allNotes: List<DiaryNote>
     private val gson = Gson()
     
     private lateinit var editTitle: EditText
     private lateinit var linkedMembersText: TextView
+    private lateinit var linkedNoteText: TextView
     private lateinit var btnSelectBundle: Button
     private lateinit var rvTasks: RecyclerView
     private lateinit var tasksAdapter: TasksAdapter
@@ -35,6 +37,7 @@ class EditTodoListActivity : BaseActivity() {
     private var listDeadline: Long? = null
     private var reminderTime: Long? = null
     private var selectedBundleId: String? = null
+    private var selectedNoteId: String? = null
     
     private var deleteClickCount = 0
     private var lastDeleteClickTime = 0L
@@ -48,9 +51,15 @@ class EditTodoListActivity : BaseActivity() {
 
         editTitle = findViewById(R.id.editTodoTitle)
         linkedMembersText = findViewById(R.id.linkedMembersListText)
+        linkedNoteText = findViewById(R.id.linkedNoteText)
         rvTasks = findViewById(R.id.rvTasksEdit)
 
         val btnLinkMembers = findViewById<Button>(R.id.btnLinkMembersList)
+        val btnLinkNote = findViewById<Button>(R.id.btnLinkNote)
+
+        btnLinkNote.setOnClickListener {
+            showNoteSelectionDialog()
+        }
         val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val frontEnabled = sp.getBoolean("module_fronting_enabled", true) && sp.getBoolean("sub_fronting_enabled", true)
         if (!frontEnabled) {
@@ -103,8 +112,10 @@ class EditTodoListActivity : BaseActivity() {
             listDeadline = existingList.deadline
             reminderTime = existingList.reminderTime
             selectedBundleId = existingList.bundleId
+            selectedNoteId = existingList.linkedNoteId
             btnDelete.visibility = View.VISIBLE
             btnDelete.text = getString(R.string.delete_todo_8x, 8)
+            updateNoteLinkText()
         } else {
             val preLink = intent.getStringExtra("pre_link_member_id")
             if (!preLink.isNullOrEmpty()) selectedMemberIds.add(preLink)
@@ -244,6 +255,11 @@ class EditTodoListActivity : BaseActivity() {
         people = try {
             gson.fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
         } catch (_: Exception) { emptyList() }
+
+        val notesJson = sharedPref.getString("diary_notes", "[]") ?: "[]"
+        allNotes = try {
+            gson.fromJson(notesJson, object : TypeToken<List<DiaryNote>>() {}.type) ?: emptyList()
+        } catch (_: Exception) { emptyList() }
     }
 
     private fun updateLinkedMembersText() {
@@ -325,7 +341,8 @@ class EditTodoListActivity : BaseActivity() {
             deadline = listDeadline,
             reminderTime = reminderTime,
             bundleId = selectedBundleId,
-            manualOrder = existing?.manualOrder ?: (todoLists.size + 100)
+            manualOrder = existing?.manualOrder ?: (todoLists.size + 100),
+            linkedNoteId = selectedNoteId
         )
 
         if (listId == null) {
@@ -623,6 +640,22 @@ class EditTodoListActivity : BaseActivity() {
             .create()
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, this)
+    }
+
+    private fun showNoteSelectionDialog() {
+        val noteTitles = allNotes.map { it.title.ifEmpty { getString(R.string.unnamed_note) } }
+        DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_note), noteTitles) { selectedTitle ->
+            selectedNoteId = allNotes.find { it.title == selectedTitle }?.id
+            updateNoteLinkText()
+        }
+    }
+
+    private fun updateNoteLinkText() {
+        val note = allNotes.find { it.id == selectedNoteId }
+        linkedNoteText.text = note?.title ?: ""
+        findViewById<TextView>(R.id.labelLinkedNote).visibility = if (selectedNoteId == null) View.GONE else View.VISIBLE
+        linkedNoteText.visibility = if (selectedNoteId == null) View.GONE else View.VISIBLE
+        findViewById<Button>(R.id.btnLinkNote).visibility = View.VISIBLE
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()

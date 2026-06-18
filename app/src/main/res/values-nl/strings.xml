@@ -209,8 +209,9 @@
     <string name="action_link_members">Leden koppelen</string>
     <string name="action_link_note">Notitie koppelen</string>
     <string name="action_link_todo">To Do koppelen</string>
-    <string name="label_linked_note">Gekoppelde notitie: %1$s</string>
-    <string name="label_linked_todo">Gekoppelde To Do: %1$s</string>
+    <string name="action_link_todo_list">To Do lijst koppelen</string>
+    <string name="label_linked_note">Gekoppelde notitie</string>
+    <string name="label_linked_todo">Gekoppelde To Do</string>
     <string name="hint_field_title">Titel Veld</string>
     <string name="hint_field_template">Sjabloon (Optioneel)</string>
     <string name="action_reset">Reset</string>

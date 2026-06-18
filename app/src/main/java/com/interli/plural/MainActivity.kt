@@ -115,12 +115,13 @@ data class DiaryNote(
     var linkedMemberIds: MutableList<String> = mutableListOf(),
     var senderId: String? = null,
     var bundleId: String? = null,
-    var bundleName: String? = null
+    var bundleName: String? = null,
+    var linkedTodoListId: String? = null
 )
 
 data class TodoTask(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    var title: String,
+    var id: String = java.util.UUID.randomUUID().toString(),
+    var title: String = "",
     var status: String = "EMPTY",
     var linkedMemberIds: MutableList<String> = mutableListOf(),
     var deadline: Long? = null,
@@ -133,22 +134,23 @@ data class TodoTask(
 )
 
 data class TodoBundle(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    var name: String,
+    var id: String = java.util.UUID.randomUUID().toString(),
+    var name: String = "",
     var isExpanded: Boolean = true,
     var manualOrder: Int = 0
 )
 
 data class TodoList(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    var title: String,
+    var id: String = java.util.UUID.randomUUID().toString(),
+    var title: String = "",
     var tasks: MutableList<TodoTask> = mutableListOf(),
     var linkedMemberIds: MutableList<String> = mutableListOf(),
-    val timestamp: Long = System.currentTimeMillis(),
+    var timestamp: Long = System.currentTimeMillis(),
     var deadline: Long? = null,
     var reminderTime: Long? = null,
     var bundleId: String? = null,
-    var manualOrder: Int = 0
+    var manualOrder: Int = 0,
+    var linkedNoteId: String? = null
 )
 
 data class CalendarEvent(
@@ -169,7 +171,8 @@ data class CalendarEvent(
     var hideInDay: Boolean = false,
     var hideInWeek: Boolean = false,
     var hideInMonth: Boolean = false,
-    var hideInYear: Boolean = false
+    var hideInYear: Boolean = false,
+    var excludedDates: MutableList<Long>? = null
 )
 
 data class SysmediaPost(

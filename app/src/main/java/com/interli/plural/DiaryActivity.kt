@@ -30,6 +30,7 @@ class DiaryActivity : BaseActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: DiaryAdapter
     private lateinit var markwon: Markwon
+    private lateinit var allTodoLists: List<TodoList>
     private var currentTab = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -129,7 +130,12 @@ class DiaryActivity : BaseActivity() {
                 filterNotes()
             }
             .setNeutralButton(R.string.delete) { _, _ ->
-                allNotes.forEach { if (it.bundleId == bundle.id) it.bundleId = null }
+                allNotes.forEach {
+                    if (it.bundleId == bundle.id) {
+                        it.bundleId = null
+                        it.bundleName = null
+                    }
+                }
                 allBundles.remove(bundle)
                 saveNotes()
                 filterNotes()
@@ -154,14 +160,12 @@ class DiaryActivity : BaseActivity() {
             displayedItems.add(DiaryItem.Header(emptyText))
         } else {
             if (currentTab == 1) {
-                // Berichten tab blijft voor nu simpel gegroepeerd
                 val grouped = filtered.sortedByDescending { it.timestamp }.groupBy { it.bundleName }
                 grouped.forEach { (bundleTitle, bundleNotes) ->
                     if (bundleTitle != null) displayedItems.add(DiaryItem.Header(bundleTitle))
                     bundleNotes.forEach { displayedItems.add(DiaryItem.Note(it)) }
                 }
             } else {
-                // Notities tab gebruikt de nieuwe Todo-stijl met bundels
                 val bundlesMap = allBundles.associateBy { it.id }
                 val topLevelNotes = filtered.filter { it.bundleId == null || !bundlesMap.containsKey(it.bundleId) }
 
@@ -217,7 +221,9 @@ class DiaryActivity : BaseActivity() {
         val bundleJson = sharedPref.getString("diary_bundles", "[]")
         allBundles = Gson().fromJson(bundleJson, object : TypeToken<MutableList<NoteBundle>>() {}.type) ?: mutableListOf()
 
-        // MIGRATIE: Zet oude namen om naar bundel-objecten
+        val todoJson = sharedPref.getString("todo_lists", "[]")
+        allTodoLists = Gson().fromJson(todoJson, object : TypeToken<List<TodoList>>() {}.type) ?: emptyList()
+
         var migrationDone = false
         allNotes.forEach { note ->
             if (note.bundleId == null && !note.bundleName.isNullOrEmpty()) {
@@ -275,6 +281,7 @@ class DiaryActivity : BaseActivity() {
             val title: TextView = view.findViewById(R.id.noteTitle)
             val date: TextView = view.findViewById(R.id.noteDate)
             val preview: TextView = view.findViewById(R.id.notePreview)
+            val linkedTodo: TextView = view.findViewById(R.id.linkedTodoLabel)
             val card: com.google.android.material.card.MaterialCardView = view as com.google.android.material.card.MaterialCardView
             val embedContainer: LinearLayout = view.findViewById(R.id.mediaEmbedContainerNoteItem)
         }
@@ -358,6 +365,16 @@ class DiaryActivity : BaseActivity() {
                     holder.date.setTextColor(textColor)
                     markwon.setMarkdown(holder.preview, note.content.replace("\r\n", "\n").replace("\n", "  \n"))
                     holder.preview.setTextColor(textColor)
+
+                    val todo = allTodoLists.find { it.id == note.linkedTodoListId }
+                    if (todo != null) {
+                        holder.linkedTodo.visibility = View.VISIBLE
+                        holder.linkedTodo.text = "${getString(R.string.label_linked_todo)}: ${todo.title}"
+                        holder.linkedTodo.setTextColor(textColor)
+                    } else {
+                        holder.linkedTodo.visibility = View.GONE
+                    }
+
                     MediaEmbedHelper.addEmbedsToContainer(holder.embedContainer, note.content)
                     holder.itemView.setOnClickListener { onClick(note) }
                 }

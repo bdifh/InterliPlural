@@ -43,6 +43,16 @@
             android:ellipsize="end"
             android:textColor="@color/black" />
 
+        <TextView
+            android:id="@+id/linkedTodoLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:layout_marginTop="8dp"
+            android:textStyle="italic"
+            android:visibility="gone"
+            android:textColor="@color/black" />
+
         <!-- Media Embed Container -->
         <LinearLayout
             android:id="@+id/mediaEmbedContainerNoteItem"

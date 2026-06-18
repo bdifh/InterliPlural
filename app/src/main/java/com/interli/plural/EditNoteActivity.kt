@@ -42,6 +42,10 @@ class EditNoteActivity : BaseActivity() {
     private lateinit var linkedMembersText: TextView
     private lateinit var selectedBundleText: TextView
     private lateinit var markwon: Markwon
+
+    private lateinit var allTodoLists: List<TodoList>
+    private var selectedTodoId: String? = null
+    private lateinit var linkedTodoText: TextView
     private var selectedMemberIds = mutableListOf<String>()
     private var isEditMode = false
     private var deleteClicks = 0
@@ -101,6 +105,13 @@ class EditNoteActivity : BaseActivity() {
         val btnExportPopup = findViewById<Button>(R.id.btnExportNotePopup)
         val btnImp = findViewById<Button>(R.id.btnImportNote)
 
+        linkedTodoText = findViewById(R.id.linkedTodoText)
+        val btnLinkTodo = findViewById<Button>(R.id.btnLinkTodo)
+
+        btnLinkTodo.setOnClickListener {
+            showTodoSelectionDialog()
+        }
+
         val existingNote = notes.find { it.id == noteId }
         if (existingNote != null) {
             isEditMode = false
@@ -114,6 +125,9 @@ class EditNoteActivity : BaseActivity() {
 
             btnExportPopup.visibility = View.VISIBLE
             btnImp.visibility = View.GONE
+
+            selectedTodoId = existingNote.linkedTodoListId
+            updateTodoLinkText()
             
             btnExportPopup.setOnClickListener { showExportPopup() }
 
@@ -354,6 +368,8 @@ class EditNoteActivity : BaseActivity() {
             MediaEmbedHelper.addEmbedsToContainer(embedContainer, content)
         }
 
+        updateTodoLinkText()
+
         val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val frontEnabled = sp.getBoolean("module_fronting_enabled", true) && sp.getBoolean("sub_fronting_enabled", true)
         if (!frontEnabled) {
@@ -408,7 +424,10 @@ class EditNoteActivity : BaseActivity() {
             @Suppress("SENSELESS_COMPARISON")
             if (it.linkedMemberIds == null) it.linkedMemberIds = mutableListOf()
         }
-        
+
+        val todoJson = sharedPref.getString("todo_lists", "[]")
+        allTodoLists = Gson().fromJson(todoJson, object : TypeToken<List<TodoList>>() {}.type) ?: emptyList()
+
         people = MemberHelper.loadAllPeople(this)
     }
 
@@ -448,13 +467,14 @@ class EditNoteActivity : BaseActivity() {
         }
 
         if (noteId == null) {
-            notes.add(DiaryNote(title = title, content = content, linkedMemberIds = selectedMemberIds, bundleName = selectedBundleName))
+            notes.add(DiaryNote(title = title, content = content, linkedMemberIds = selectedMemberIds, bundleName = selectedBundleName, linkedTodoListId = selectedTodoId))
         } else {
             val note = notes.find { it.id == noteId }
             if (note != null) {
                 note.title = title
                 note.content = content
                 note.linkedMemberIds = selectedMemberIds
+                note.linkedTodoListId = selectedTodoId
                 if (note.bundleName != selectedBundleName) {
                     note.bundleName = selectedBundleName
                     note.bundleId = null
@@ -531,5 +551,21 @@ class EditNoteActivity : BaseActivity() {
                 runOnUiThread { Toast.makeText(this, "Import failed: ${e.message}", Toast.LENGTH_LONG).show() }
             }
         }.start()
+    }
+
+    private fun showTodoSelectionDialog() {
+        val todoTitles = allTodoLists.map { it.title.ifEmpty { getString(R.string.unnamed_note) } }
+        DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_todo_list), todoTitles) { selectedTitle ->
+            selectedTodoId = allTodoLists.find { it.title == selectedTitle }?.id
+            updateTodoLinkText()
+        }
+    }
+
+    private fun updateTodoLinkText() {
+        val todo = allTodoLists.find { it.id == selectedTodoId }
+        linkedTodoText.text = todo?.title ?: ""
+        findViewById<TextView>(R.id.labelLinkedTodo).visibility = if (selectedTodoId == null && !isEditMode) View.GONE else View.VISIBLE
+        linkedTodoText.visibility = if (selectedTodoId == null && !isEditMode) View.GONE else View.VISIBLE
+        findViewById<Button>(R.id.btnLinkTodo).visibility = if (isEditMode) View.VISIBLE else View.GONE
     }
 }

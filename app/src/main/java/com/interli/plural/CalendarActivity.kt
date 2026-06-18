@@ -284,7 +284,7 @@ class CalendarActivity : BaseActivity() {
         calView.setEvents(yearEvents, people, selectedDate.get(Calendar.YEAR))
         calView.onDayClicked = { date: Date ->
             selectedDate.time = date
-            currentViewMode = 1 // Switch to Day view
+            currentViewMode = 1
             val tabLayout = findViewById<TabLayout>(R.id.calendarTabLayout)
             tabLayout.getTabAt(1)?.select()
             updateCalendarView()
@@ -301,12 +301,12 @@ class CalendarActivity : BaseActivity() {
         val etTitle = view.findViewById<EditText>(R.id.etEventTitle)
         val etLocation = view.findViewById<EditText>(R.id.etEventLocation)
         val etDesc = view.findViewById<EditText>(R.id.etEventDescription)
-        
+
         val btnStartDate = view.findViewById<Button>(R.id.btnEventStartDate)
         val btnStartTime = view.findViewById<Button>(R.id.btnEventStartTime)
         val btnEndDate = view.findViewById<Button>(R.id.btnEventEndDate)
         val btnEndTime = view.findViewById<Button>(R.id.btnEventEndTime)
-        
+
         val btnLinkMember = view.findViewById<Button>(R.id.btnLinkMemberEvent)
         val tvLinkedMember = view.findViewById<TextView>(R.id.tvLinkedMemberName)
         val btnLinkNote = view.findViewById<Button>(R.id.btnLinkNoteEvent)
@@ -316,7 +316,7 @@ class CalendarActivity : BaseActivity() {
 
         var startTime = event?.startTime ?: System.currentTimeMillis()
         var endTime = event?.endTime ?: (System.currentTimeMillis() + 3600000)
-        var selectedMemberIds = event?.linkedMemberIds?.toMutableList() ?: mutableListOf()
+        val selectedMemberIds = event?.linkedMemberIds?.toMutableList() ?: mutableListOf()
         var selectedNoteId = event?.linkedNoteId
         var selectedTodoId = event?.linkedTodoListId
 
@@ -333,45 +333,44 @@ class CalendarActivity : BaseActivity() {
 
         var selectedColor = event?.color
         val colorLayout = view.findViewById<LinearLayout>(R.id.layoutEventColors)
-        val colors = listOf(null, -0xbbcca, -0x123456, -0x654321, -0xabcdef, -0x1, -0xff0000, -0x00ff00, -0x0000ff) 
-        // Example colors, let's use something more standard or from ColorHelper if possible
-        val eventColors = listOf(null, 
-            0xFFF44336.toInt(), 0xFFE91E63.toInt(), 0xFF9C27B0.toInt(), 
+        val eventColors = listOf(null,
+            0xFFF44336.toInt(), 0xFFE91E63.toInt(), 0xFF9C27B0.toInt(),
             0xFF673AB7.toInt(), 0xFF3F51B5.toInt(), 0xFF2196F3.toInt(),
             0xFF03A9F4.toInt(), 0xFF00BCD4.toInt(), 0xFF009688.toInt(),
             0xFF4CAF50.toInt(), 0xFF8BC34A.toInt(), 0xFFCDDC39.toInt(),
             0xFFFFEB3B.toInt(), 0xFFFFC107.toInt(), 0xFFFF9800.toInt(),
             0xFFFF5722.toInt())
 
-        lateinit var colorUIRef: Runnable
-        colorUIRef = Runnable {
-            colorLayout.removeAllViews()
-            eventColors.forEach { color ->
-                val colorView = View(this).apply {
-                    layoutParams = LinearLayout.LayoutParams((32 * resources.displayMetrics.density).toInt(), (32 * resources.displayMetrics.density).toInt()).apply {
-                        setMargins(8, 0, 8, 0)
+        val colorUIRef = object : Runnable {
+            override fun run() {
+                colorLayout.removeAllViews()
+                eventColors.forEach { color ->
+                    val colorView = View(this@CalendarActivity).apply {
+                        layoutParams = LinearLayout.LayoutParams((32 * resources.displayMetrics.density).toInt(), (32 * resources.displayMetrics.density).toInt()).apply {
+                            setMargins(8, 0, 8, 0)
+                        }
+                        val drawable = android.graphics.drawable.GradientDrawable()
+                        drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
+                        drawable.setColor(color ?: ColorHelper.getBtnColor(this@CalendarActivity))
+                        if (selectedColor == color) {
+                            drawable.setStroke(4, ColorHelper.getTextColor(this@CalendarActivity))
+                        }
+                        background = drawable
+                        setOnClickListener {
+                            selectedColor = color
+                            run()
+                        }
                     }
-                    val drawable = android.graphics.drawable.GradientDrawable()
-                    drawable.shape = android.graphics.drawable.GradientDrawable.OVAL
-                    drawable.setColor(color ?: ColorHelper.getBtnColor(this@CalendarActivity))
-                    if (selectedColor == color) {
-                        drawable.setStroke(4, ColorHelper.getTextColor(this@CalendarActivity))
-                    }
-                    background = drawable
-                    setOnClickListener {
-                        selectedColor = color
-                        colorUIRef.run()
-                    }
+                    colorLayout.addView(colorView)
                 }
-                colorLayout.addView(colorView)
             }
         }
         colorUIRef.run()
 
         var selectedRecurrence = event?.recurrence
-        var selectedRecurrenceDays = event?.recurrenceDays?.toMutableList() ?: mutableListOf()
+        val selectedRecurrenceDays = event?.recurrenceDays?.toMutableList() ?: mutableListOf()
         val btnRecurrence = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnEventRecurrence)
-        
+
         val cbHideAgenda = view.findViewById<CheckBox>(R.id.cbHideAgenda)
         val cbHideDay = view.findViewById<CheckBox>(R.id.cbHideDay)
         val cbHideWeek = view.findViewById<CheckBox>(R.id.cbHideWeek)
@@ -385,8 +384,6 @@ class CalendarActivity : BaseActivity() {
             cbHideMonth.isChecked = event.hideInMonth
             cbHideYear.isChecked = event.hideInYear
         }
-
-        ColorHelper.applyTextColorToAllViews(view.findViewById(R.id.layoutHideIn), ColorHelper.getTextColor(this))
 
         val updateRecurrenceText = {
             btnRecurrence.text = when (selectedRecurrence) {
@@ -416,7 +413,6 @@ class CalendarActivity : BaseActivity() {
                         1 -> { selectedRecurrence = "DAILY"; selectedRecurrenceDays.clear() }
                         2 -> {
                             selectedRecurrence = "WEEKLY"
-                            // Show day selection
                             val days = arrayOf(getString(R.string.monday), getString(R.string.tuesday), getString(R.string.wednesday), getString(R.string.thursday), getString(R.string.friday), getString(R.string.saturday), getString(R.string.sunday))
                             val checked = BooleanArray(7) { i -> selectedRecurrenceDays.contains(i + 1) }
                             androidx.appcompat.app.AlertDialog.Builder(this)
@@ -444,14 +440,12 @@ class CalendarActivity : BaseActivity() {
             } else {
                 tvLinkedMember.visibility = View.GONE
             }
-            
             if (selectedNoteId != null) {
                 tvLinkedNote.text = allNotes.find { it.id == selectedNoteId }?.title ?: "Unknown Note"
                 tvLinkedNote.visibility = View.VISIBLE
             } else {
                 tvLinkedNote.visibility = View.GONE
             }
-            
             if (selectedTodoId != null) {
                 tvLinkedTodo.text = allTodoLists.find { it.id == selectedTodoId }?.title ?: "Unknown To-Do"
                 tvLinkedTodo.visibility = View.VISIBLE
@@ -468,44 +462,16 @@ class CalendarActivity : BaseActivity() {
         }
 
         btnStartDate.setOnClickListener {
-            val cal = Calendar.getInstance().apply { timeInMillis = startTime }
-            android.app.DatePickerDialog(this, { _, y, m, d ->
-                cal.set(y, m, d)
-                startTime = cal.timeInMillis
-                if (endTime < startTime) {
-                    endTime = startTime + 3600000
-                }
-                updateTimes()
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+            showDatePicker(startTime) { startTime = it; updateTimes() }
         }
         btnStartTime.setOnClickListener {
-            val cal = Calendar.getInstance().apply { timeInMillis = startTime }
-            android.app.TimePickerDialog(this, { _, h, min ->
-                cal.set(Calendar.HOUR_OF_DAY, h)
-                cal.set(Calendar.MINUTE, min)
-                startTime = cal.timeInMillis
-                if (endTime < startTime) {
-                    endTime = startTime + 3600000
-                }
-                updateTimes()
-            }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
+            showTimePicker(startTime) { startTime = it; updateTimes() }
         }
         btnEndDate.setOnClickListener {
-            val cal = Calendar.getInstance().apply { timeInMillis = endTime }
-            android.app.DatePickerDialog(this, { _, y, m, d ->
-                cal.set(y, m, d)
-                endTime = cal.timeInMillis
-                updateTimes()
-            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+            showDatePicker(endTime) { endTime = it; updateTimes() }
         }
         btnEndTime.setOnClickListener {
-            val cal = Calendar.getInstance().apply { timeInMillis = endTime }
-            android.app.TimePickerDialog(this, { _, h, min ->
-                cal.set(Calendar.HOUR_OF_DAY, h)
-                cal.set(Calendar.MINUTE, min)
-                endTime = cal.timeInMillis
-                updateTimes()
-            }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
+            showTimePicker(endTime) { endTime = it; updateTimes() }
         }
 
         btnLinkMember.setOnClickListener {
@@ -513,25 +479,21 @@ class CalendarActivity : BaseActivity() {
             val groupsJson = sharedPref.getString("groups_list", "[]") ?: "[]"
             val groups: List<Group> = Gson().fromJson(groupsJson, object : TypeToken<List<Group>>() {}.type)
             DialogHelper.showMemberSelectionDialog(this, getString(R.string.action_link_members), people, groups, selectedMemberIds) { newList ->
-                selectedMemberIds.clear()
-                selectedMemberIds.addAll(newList)
-                updateLinks()
+                selectedMemberIds.clear(); selectedMemberIds.addAll(newList); updateLinks()
             }
         }
 
         btnLinkNote.setOnClickListener {
             val noteTitles = allNotes.map { it.title.ifEmpty { "Unnamed Note" } }
             DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_note), noteTitles) { selectedTitle ->
-                selectedNoteId = allNotes.find { it.title == selectedTitle }?.id
-                updateLinks()
+                selectedNoteId = allNotes.find { it.title == selectedTitle }?.id; updateLinks()
             }
         }
 
         btnLinkTodo.setOnClickListener {
             val todoTitles = allTodoLists.map { it.title.ifEmpty { "Unnamed To-Do" } }
             DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_todo), todoTitles) { selectedTitle ->
-                selectedTodoId = allTodoLists.find { it.title == selectedTitle }?.id
-                updateLinks()
+                selectedTodoId = allTodoLists.find { it.title == selectedTitle }?.id; updateLinks()
             }
         }
 
@@ -541,49 +503,102 @@ class CalendarActivity : BaseActivity() {
             .setPositiveButton(R.string.save) { _, _ ->
                 val title = etTitle.text.toString().trim()
                 if (title.isNotEmpty()) {
-                    val e = event ?: CalendarEvent(title = title, startTime = startTime, endTime = endTime)
+                    val e = if (event == null) {
+                        val newEvent = CalendarEvent(title = title, startTime = startTime, endTime = endTime)
+                        events.add(newEvent)
+                        newEvent
+                    } else {
+                        events.find { it.id == event.id } ?: event
+                    }
+
                     e.title = title
                     e.description = etDesc.text.toString()
                     e.location = etLocation.text.toString()
-                    e.startTime = startTime
-                    e.endTime = endTime
                     e.color = selectedColor
                     e.recurrence = selectedRecurrence
                     e.recurrenceDays = if (selectedRecurrenceDays.isEmpty()) null else selectedRecurrenceDays
                     e.linkedMemberIds = selectedMemberIds
                     e.linkedNoteId = selectedNoteId
                     e.linkedTodoListId = selectedTodoId
-                    
                     e.hideInOverview = cbHideAgenda.isChecked
                     e.hideInDay = cbHideDay.isChecked
                     e.hideInWeek = cbHideWeek.isChecked
                     e.hideInMonth = cbHideMonth.isChecked
                     e.hideInYear = cbHideYear.isChecked
 
-                    if (event == null) events.add(e)
+                    if (event == null || event.recurrence == null) {
+                        e.startTime = startTime
+                        e.endTime = endTime
+                    }
+
                     saveData()
                     updateCalendarView()
                 }
             }
             .setNegativeButton(R.string.cancel, null)
-        
+
         if (event != null) {
             dialog.setNeutralButton(R.string.delete) { _, _ ->
-                showDeleteConfirm(event)
+                showDeleteConfirmDialog(event)
             }
         }
 
         val d = dialog.create()
         d.show()
         ColorHelper.styleSupportAlertDialog(d, this)
-        etTitle.setTextColor(ColorHelper.getTextColor(this))
-        etDesc.setTextColor(ColorHelper.getTextColor(this))
-        etLocation.setTextColor(ColorHelper.getTextColor(this))
+    }
+
+    private fun showDeleteConfirmDialog(event: CalendarEvent) {
+        if (event.recurrence != null) {
+            val options = arrayOf("Alleen deze instantie", "De hele serie verwijderen")
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.delete)
+                .setItems(options) { _, which ->
+                    if (which == 0) {
+                        events.find { it.id == event.id }?.let { original ->
+                            if (original.excludedDates == null) original.excludedDates = mutableListOf()
+                            original.excludedDates?.add(event.startTime)
+                            saveData()
+                            updateCalendarView()
+                        }
+                    } else {
+                        performFinalDelete(event)
+                    }
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show().let { ColorHelper.styleSupportAlertDialog(it, this) }
+        } else {
+            performFinalDelete(event)
+        }
+    }
+
+    private fun performFinalDelete(event: CalendarEvent) {
+        var clicks = 0
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.delete)
+            .setMessage(getString(R.string.delete_event_8x, 8))
+            .setPositiveButton("${getString(R.string.delete)} (8)", null)
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleSupportAlertDialog(dialog, this)
+
+        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            clicks++
+            if (clicks >= 8) {
+                events.removeAll { it.id == event.id }
+                saveData()
+                updateCalendarView()
+                dialog.dismiss()
+            } else {
+                dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).text = "${getString(R.string.delete)} (${8 - clicks})"
+            }
+        }
     }
 
     private fun showDateTimePicker(initialTime: Long, onTimeSelected: (Long) -> Unit) {
-        val cal = Calendar.getInstance()
-        cal.timeInMillis = initialTime
+        val cal = Calendar.getInstance().apply { timeInMillis = initialTime }
         android.app.DatePickerDialog(this, { _, y, m, d ->
             cal.set(y, m, d)
             android.app.TimePickerDialog(this, { _, h, min ->
@@ -594,30 +609,6 @@ class CalendarActivity : BaseActivity() {
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 
-    private fun showDeleteConfirm(event: CalendarEvent) {
-        var clicks = 0
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(R.string.delete)
-            .setMessage(getString(R.string.delete_event_8x, 8))
-            .setPositiveButton(getString(R.string.delete) + " (8)", null)
-            .setNegativeButton(R.string.cancel, null)
-            .create()
-        
-        dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
-        
-        dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            clicks++
-            if (clicks >= 8) {
-                events.remove(event)
-                saveData()
-                updateCalendarView()
-                dialog.dismiss()
-            } else {
-                dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).text = "${getString(R.string.delete)} (${8 - clicks})"
-            }
-        }
-    }
 
     private fun getExpandedEvents(startTime: Long, endTime: Long): List<CalendarEvent> {
         val result = mutableListOf<CalendarEvent>()
@@ -639,8 +630,7 @@ class CalendarActivity : BaseActivity() {
         cal.timeInMillis = event.startTime
         
         val duration = event.endTime - event.startTime
-        
-        // Safety break to prevent infinite loops if misconfigured
+
         var count = 0
         while (cal.timeInMillis <= rangeEnd && count < 1000) {
             count++
@@ -648,7 +638,6 @@ class CalendarActivity : BaseActivity() {
             val currentEnd = currentStart + duration
             
             if (currentEnd >= rangeStart && currentStart <= rangeEnd) {
-                // Check recurrence type
                 var shouldAdd = false
                 when (event.recurrence) {
                     "DAILY" -> shouldAdd = true
@@ -660,13 +649,14 @@ class CalendarActivity : BaseActivity() {
                     "MONTHLY" -> shouldAdd = true
                     "YEARLY" -> shouldAdd = true
                 }
-                
+
                 if (shouldAdd) {
-                    expanded.add(event.copy(startTime = currentStart, endTime = currentEnd))
+                    if (event.excludedDates?.contains(currentStart) != true) {
+                        expanded.add(event.copy(startTime = currentStart, endTime = currentEnd))
+                    }
                 }
             }
-            
-            // Increment cal based on recurrence
+
             when (event.recurrence) {
                 "DAILY" -> cal.add(Calendar.DAY_OF_YEAR, 1)
                 "WEEKLY" -> cal.add(Calendar.DAY_OF_YEAR, 1) // Check every day for weekly
@@ -674,8 +664,7 @@ class CalendarActivity : BaseActivity() {
                 "YEARLY" -> cal.add(Calendar.YEAR, 1)
                 else -> break
             }
-            
-            // Optimization: if we are far before the range, jump closer
+
             if (cal.timeInMillis < rangeStart - (31L * 24 * 3600 * 1000)) {
                 when (event.recurrence) {
                     "YEARLY" -> {
@@ -694,5 +683,21 @@ class CalendarActivity : BaseActivity() {
             }
         }
         return expanded
+    }
+    private fun showDatePicker(initialTime: Long, onDateSelected: (Long) -> Unit) {
+        val cal = Calendar.getInstance().apply { timeInMillis = initialTime }
+        android.app.DatePickerDialog(this, { _, y, m, d ->
+            cal.set(y, m, d)
+            onDateSelected(cal.timeInMillis)
+        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+    }
+
+    private fun showTimePicker(initialTime: Long, onTimeSelected: (Long) -> Unit) {
+        val cal = Calendar.getInstance().apply { timeInMillis = initialTime }
+        android.app.TimePickerDialog(this, { _, h, min ->
+            cal.set(Calendar.HOUR_OF_DAY, h)
+            cal.set(Calendar.MINUTE, min)
+            onTimeSelected(cal.timeInMillis)
+        }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
     }
 }

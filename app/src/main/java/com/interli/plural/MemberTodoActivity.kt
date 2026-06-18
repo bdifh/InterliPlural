@@ -179,7 +179,8 @@ class MemberTodoActivity : BaseActivity() {
                 val taskRow = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setPadding(0, 4.dpToPx(), 0, 4.dpToPx())
+                    val indent = task.indentLevel * 12
+                    setPadding(indent.dpToPx(), 4.dpToPx(), 0, 4.dpToPx())
                 }
 
                 val statusTv = TextView(this).apply {

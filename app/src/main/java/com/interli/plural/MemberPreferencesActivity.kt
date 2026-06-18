@@ -26,6 +26,10 @@ class MemberPreferencesActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_member_preferences)
 
+        ColorHelper.applySettings(this)
+        val controller = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+        controller.isAppearanceLightStatusBars = true
+
         personId = intent.getStringExtra("person_id") ?: run { finish(); return }
         people = MemberHelper.loadAllPeople(this)
         person = people.find { it.id == personId } ?: run { finish(); return }

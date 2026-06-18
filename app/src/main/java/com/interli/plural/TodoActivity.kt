@@ -25,6 +25,7 @@ class TodoActivity : BaseActivity() {
     private lateinit var todoLists: MutableList<TodoList>
     private lateinit var todoBundles: MutableList<TodoBundle>
     private lateinit var people: List<Person>
+    private lateinit var allNotes: List<DiaryNote>
     private val gson = Gson()
     private lateinit var rvTodoMain: RecyclerView
     private lateinit var todoAdapter: TodoMainAdapter
@@ -73,8 +74,11 @@ class TodoActivity : BaseActivity() {
                 val fromPos = viewHolder.bindingAdapterPosition
                 val toPos = target.bindingAdapterPosition
                 
-                todoAdapter.moveItem(fromPos, toPos)
-                return true
+                if (fromPos != RecyclerView.NO_POSITION && toPos != RecyclerView.NO_POSITION) {
+                    todoAdapter.moveItem(fromPos, toPos)
+                    return true
+                }
+                return false
             }
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
             
@@ -87,7 +91,9 @@ class TodoActivity : BaseActivity() {
         itemTouchHelper.attachToRecyclerView(rvTodoMain)
         
         todoAdapter.onDragStart = { viewHolder ->
-            itemTouchHelper.startDrag(viewHolder)
+            if (viewHolder.bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                itemTouchHelper.startDrag(viewHolder)
+            }
         }
     }
 
@@ -183,6 +189,13 @@ class TodoActivity : BaseActivity() {
         } catch (_: Exception) {
             emptyList()
         }
+
+        val notesJson = sharedPref.getString("diary_notes", "[]") ?: "[]"
+        allNotes = try {
+            gson.fromJson(notesJson, object : TypeToken<List<DiaryNote>>() {}.type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private fun saveData() {
@@ -196,8 +209,7 @@ class TodoActivity : BaseActivity() {
     private fun renderLists() {
         val items = mutableListOf<TodoItem>()
 
-        // Combine bundles and loose lists, sorted by manualOrder
-        val bundlesMap = todoBundles.associateBy { it.id }
+        val bundlesMap = todoBundles.filter { it.id != null }.associateBy { it.id }
         val topLevelLists = todoLists.filter { it.bundleId == null || !bundlesMap.containsKey(it.bundleId) }
 
         val allContainers = mutableListOf<Any>()
@@ -216,7 +228,7 @@ class TodoActivity : BaseActivity() {
             if (container is TodoBundle) {
                 items.add(TodoItem.BundleHeader(container))
                 if (container.isExpanded) {
-                    val childLists = todoLists.filter { it.bundleId == container.id }.sortedBy { it.manualOrder }
+                    val childLists = todoLists.filter { it.bundleId != null && it.bundleId == container.id }.sortedBy { it.manualOrder }
                     childLists.forEach { items.add(TodoItem.ListCard(it)) }
                 }
             } else if (container is TodoList) {
@@ -290,11 +302,13 @@ class TodoActivity : BaseActivity() {
                     setImageResource(android.R.drawable.ic_menu_sort_by_size)
                     setColorFilter(ColorHelper.getBtnTextColor(this@TodoActivity))
                     setPadding(0, 0, 8.dpToPx(), 0)
+                    isClickable = false
+                    isFocusable = false
                     setOnTouchListener { _, event ->
                         if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
                             onDragStart?.invoke(this@BundleViewHolder)
                         }
-                        false
+                        true
                     }
                 }
                 content.addView(ivDrag)
@@ -356,11 +370,13 @@ class TodoActivity : BaseActivity() {
                     setColorFilter(textColor)
                     alpha = 0.3f
                     setPadding(0, 0, 12.dpToPx(), 0)
+                    isClickable = false
+                    isFocusable = false
                     setOnTouchListener { _, event ->
                         if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
                             onDragStart?.invoke(this@ListViewHolder)
                         }
-                        false
+                        true
                     }
                 }
                 titleRow.addView(ivDrag)
@@ -415,6 +431,18 @@ class TodoActivity : BaseActivity() {
                     }
                     addMemberBadges(badgesRow, list.linkedMemberIds)
                     content.addView(badgesRow)
+                }
+
+                val note = allNotes.find { it.id == list.linkedNoteId }
+                if (note != null) {
+                    content.addView(TextView(this@TodoActivity).apply {
+                        text = "${getString(R.string.label_linked_note)}: ${note.title}"
+                        textSize = 12f
+                        alpha = 0.8f
+                        setTextColor(textColor)
+                        setTypeface(null, android.graphics.Typeface.ITALIC)
+                        setPadding(0, 0, 0, 8.dpToPx())
+                    })
                 }
 
                 list.tasks.forEach { task ->

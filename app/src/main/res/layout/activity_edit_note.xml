@@ -211,6 +211,32 @@
                     android:textSize="12sp"
                     android:alpha="0.7" />
 
+                <TextView
+                    android:id="@+id/labelLinkedTodo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/label_linked_todo"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/btnLinkTodo"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/action_link_todo_list"
+                    android:textAlignment="viewStart" />
+
+                <TextView
+                    android:id="@+id/linkedTodoText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="12sp"
+                    android:alpha="0.7" />
+
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/layoutNoteContent"
                     android:layout_width="match_parent"

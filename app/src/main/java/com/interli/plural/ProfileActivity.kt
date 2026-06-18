@@ -612,6 +612,11 @@ class ProfileActivity : BaseActivity() {
                 try {
                     selectedColor = input.text.toString().trim().toColorInt()
                     preview.setBackgroundColor(selectedColor)
+                    if (!isEditMode) {
+                        isEditMode = true
+                        updateUiMode(findViewById(R.id.editProfileName))
+                        renderCustomFields(findViewById(R.id.customFieldsProfileContainer), people[personIndex])
+                    }
                 } catch (_: Exception) {
                     Toast.makeText(this, getString(R.string.invalid_color_code), Toast.LENGTH_SHORT).show()
                 }
