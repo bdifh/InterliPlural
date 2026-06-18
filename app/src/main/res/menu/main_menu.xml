@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <group android:id="@+id/group_front">
+        <item
+            android:id="@+id/action_front_page"
+            android:title="@string/front_page"
+            app:showAsAction="never" />
+        <item
+            android:id="@+id/action_statistics"
+            android:title="@string/statistics"
+            app:showAsAction="never" />
+        <item
+            android:id="@+id/action_who_am_i"
+            android:title="@string/who_am_i"
+            app:showAsAction="never" />
+    </group>
+
+    <group android:id="@+id/group_plural">
+        <item
+            android:id="@+id/action_diary"
+            android:title="@string/diary"
+            app:showAsAction="never" />
+        <item
+            android:id="@+id/action_todo"
+            android:title="@string/todo"
+            app:showAsAction="never" />
+        <item
+            android:id="@+id/action_calendar"
+            android:title="@string/calendar"
+            app:showAsAction="never" />
+    </group>
+
+    <group android:id="@+id/group_mood">
+        <item
+            android:id="@+id/action_mood_tracker"
+            android:title="@string/mood_tracker"
+            app:showAsAction="never" />
+        <item
+            android:id="@+id/action_mood_stats"
+            android:title="@string/mood_stats"
+            app:showAsAction="never" />
+    </group>
+
+    <group android:id="@+id/group_sysmedia">
+        <item
+            android:id="@+id/action_sysmedia"
+            android:title="@string/sysmedia"
+            app:showAsAction="never" />
+    </group>
+
+    <group android:id="@+id/group_settings">
+        <item
+            android:id="@+id/action_settings"
+            android:title="@string/settings"
+            app:showAsAction="never" />
+    </group>
+</menu>

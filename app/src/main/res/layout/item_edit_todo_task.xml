@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/taskCard"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0.5dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="#15000000">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <LinearLayout
+            android:id="@+id/indentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/dragHandle"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@android:drawable/ic_menu_sort_by_size"
+                android:alpha="0.3"
+                android:padding="4dp"
+                android:scaleType="centerInside" />
+
+            <EditText
+                android:id="@+id/editTaskTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="@string/hint_task_title"
+                android:textSize="15sp"
+                android:background="@null"
+                android:paddingVertical="6dp"
+                android:layout_marginStart="4dp" />
+
+            <ImageButton
+                android:id="@+id/btnRemoveTask"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:alpha="0.4"
+                android:scaleType="centerInside" />
+        </LinearLayout>
+
+        <!-- Knoppen rij: We gebruiken een ChipGroup omdat deze automatisch wrapt (naar de volgende regel gaat)
+             als de knoppen niet meer op het scherm passen door de inspringing. -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/actionGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            app:chipSpacingHorizontal="4dp"
+            app:chipSpacingVertical="4dp">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLinkTaskMembers"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:paddingHorizontal="6dp"
+                app:icon="@android:drawable/ic_menu_myplaces"
+                android:text="@string/action_link_members"
+                android:textSize="10sp"
+                app:iconSize="14dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSetTaskDate"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:paddingHorizontal="6dp"
+                app:icon="@android:drawable/ic_menu_today"
+                android:text="@string/date"
+                android:textSize="10sp"
+                app:iconSize="14dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSetTaskRecurrence"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:paddingHorizontal="6dp"
+                app:icon="@android:drawable/ic_popup_sync"
+                android:text="@string/action_repeat"
+                android:textSize="10sp"
+                app:iconSize="14dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp" />
+
+            <!-- Nieuwe, aparte Reset knop -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSetTaskReset"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:paddingHorizontal="6dp"
+                app:icon="@android:drawable/ic_menu_recent_history"
+                android:text="@string/reset_type"
+                android:textSize="10sp"
+                app:iconSize="14dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:visibility="gone" />
+
+        </com.google.android.material.chip.ChipGroup>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

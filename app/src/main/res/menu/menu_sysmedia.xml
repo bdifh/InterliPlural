@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_sysmedia_new_account"
+        android:title="@string/action_create_sysmedia_account"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sysmedia_view_profile"
+        android:title="@string/action_view_profile"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sysmedia_member_list"
+        android:title="@string/label_member_list"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sysmedia_scheduled_posts"
+        android:title="@string/action_scheduled_posts"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sysmedia_recover_orphaned"
+        android:title="@string/action_recover_orphaned_posts"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sysmedia_delete_accounts"
+        android:title="@string/action_delete_sysmedia_accounts"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_sysmedia_switch"
+        android:title="@string/action_switch_account"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/ic_switch_arrows" />
+</menu>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <!-- Simply Plural Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_import_sp"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etSpToken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/hint_sp_token"
+            android:inputType="textNoSuggestions|textVisiblePassword"
+            android:scrollHorizontally="true"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportSp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_import"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportSpJson"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Simply Plural JSON"
+            android:layout_marginBottom="24dp" />
+
+        <!-- PluralKit Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_import_pk"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/etPkToken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/hint_pk_token"
+            android:inputType="textNoSuggestions|textVisiblePassword"
+            android:scrollHorizontally="true"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportPk"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_import"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportPkJson"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PluralKit JSON"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Daylio Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_import_daylio"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportDaylio"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_import" />
+
+    </LinearLayout>
+</ScrollView>
