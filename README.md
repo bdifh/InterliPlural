@@ -28,8 +28,6 @@ The app is built **for plurals, by plurals**.
 If you miss a feature or notice a bug, report them in the Discord Server:
  [Interli Plural App Discord](https://discord.gg/kkUf7zjTYr)
 
-Be the first to discover new features in our unstable releases, or stick to the Play Store for the stable experience.
-
 ##  Privacy Policy
 You can find our privacy policy here:
 [Privacy Policy Link](https://docs.google.com/document/d/1I2Xy3uAtgcglE0lrm2DefWeCRhU-VTgICdXgL0hm9hs/edit?usp=sharing)
