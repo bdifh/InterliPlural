@@ -18,7 +18,7 @@ The app is built **for plurals, by plurals**.
 <img src="https://64.media.tumblr.com/e4c1dd28074432af72cf16e1aa48550e/2003b247878f255f-53/s1280x1920/cbe9745de8d30e5bf14997a398b9314b38da491b.pnj" width="20%" alt="Main Screen"> <img src="https://64.media.tumblr.com/98308f29f9706cfa97a6b7f937e69552/2003b247878f255f-d3/s1280x1920/754a429e37e0eb3fb8645379629d92d76aaadda3.pnj" width="20%" alt="Main Screen"> <img src="https://64.media.tumblr.com/9e2c39da1649e896ff05f702f7342883/2003b247878f255f-8d/s1280x1920/83d86b6bec4dc98cfe3ead0ac59fcf9206aa67bd.pnj" width="20%" alt="Main Screen">
 <img src="https://64.media.tumblr.com/faa6444896fa1ce1e118df2f2f590140/2003b247878f255f-31/s1280x1920/e5fd39824caf964e6d200826870183f1fc7930e8.pnj" width="20%" alt="Main Screen"> <img src="https://64.media.tumblr.com/6c2ff378b8b9787b9c7e932c6a43d359/2003b247878f255f-0f/s1280x1920/5f20902767a646720ce75ed14a6eab8690a8eeb8.pnj" width="20%" alt="Main Screen"> <img src="https://64.media.tumblr.com/00126106af8930e5b3f328ba9f166d94/2003b247878f255f-31/s1280x1920/44339ebdaec91a7558fe91d38918accc104cf29b.pnj" width="20%" alt="Main Screen">
 <img src="https://64.media.tumblr.com/bd5822396fa7adbc85de4654a7f4313c/2003b247878f255f-e2/s1280x1920/c67b802ce6dced7045c0943c2e0f6ebe0c11507a.pnj" width="20%" alt="Main Screen"> <img src="https://64.media.tumblr.com/c78004e11e7c6c525d449ec8fa7f7e70/2003b247878f255f-ae/s1280x1920/856fd5bcc2536f03f26526c8ce3333222e50ef37.pnj" width="20%" alt="Main Screen">
-
+(there is more than is shown)
 
 ##  Technical Details
 - **Platform**: Android (Min SDK 24)
