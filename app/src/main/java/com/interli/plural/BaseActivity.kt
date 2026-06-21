@@ -16,7 +16,27 @@ import com.google.gson.reflect.TypeToken
 abstract class BaseActivity : AppCompatActivity() {
 
     override fun attachBaseContext(newBase: android.content.Context) {
+        applyFixedDisplayScale(newBase)
         super.attachBaseContext(LocaleHelper.wrapContext(newBase))
+    }
+
+    private fun applyFixedDisplayScale(context: android.content.Context) {
+        val res = context.resources
+        val config = res.configuration
+        val dm = res.displayMetrics
+
+        val targetWidthDp = 446f
+
+        val targetDensity = dm.widthPixels / targetWidthDp
+        val targetScaledDensity = targetDensity * (config.fontScale)
+        val targetDensityDpi = (160 * targetDensity).toInt()
+
+        dm.density = targetDensity
+        dm.scaledDensity = targetScaledDensity
+        dm.densityDpi = targetDensityDpi
+
+        config.densityDpi = targetDensityDpi
+        res.updateConfiguration(config, dm)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,16 +58,16 @@ abstract class BaseActivity : AppCompatActivity() {
             ColorHelper.styleNavigationView(navigationView)
             toolbar.setTitleTextColor(ColorHelper.getTextColor(this))
             toolbar.setNavigationIconTint(ColorHelper.getTextColor(this))
-            
+
             toolbar.setNavigationIcon(android.R.drawable.ic_menu_sort_by_size)
-            
+
             toolbar.setNavigationOnClickListener {
                 drawerLayout.openDrawer(androidx.core.view.GravityCompat.START)
             }
 
             // 1. Zorg dat de header er is (moet VOORDAT updateMenuVisibility wordt aangeroepen)
             val header = if (navigationView.headerCount > 0) navigationView.getHeaderView(0) else navigationView.inflateHeaderView(R.layout.nav_header)
-            
+
             // 2. Stel klik listeners in
             header?.findViewById<View>(R.id.btnNavAddMember)?.setOnClickListener {
                 drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START)
@@ -245,7 +265,7 @@ abstract class BaseActivity : AppCompatActivity() {
             .setPositiveButton(getString(R.string.yes)) { _, _ -> onConfirm() }
             .setNegativeButton(getString(R.string.no), null)
             .create()
-        
+
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }

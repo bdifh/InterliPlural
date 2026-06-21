@@ -59,7 +59,7 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
         } catch (_: Exception) {
             emptyList()
         }
-        people = allPeople.filter { !it.isArchived && !it.isSysmediaOnly }
+        people = allPeople.filter { !it.isArchived && !it.isSysmediaOnly && !it.excludeFromStats }
         val groups: List<Group> = try {
             gson.fromJson(groupsJson, object : TypeToken<List<Group>>() {}.type) ?: emptyList()
         } catch (_: Exception) {

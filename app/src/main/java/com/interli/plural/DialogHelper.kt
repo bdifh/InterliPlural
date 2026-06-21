@@ -27,7 +27,12 @@ object DialogHelper {
         val startStr = sdf.format(Date(session.startTime))
         val endStr = session.endTime?.let { sdf.format(Date(it)) } ?: context.getString(R.string.currently_active)
 
-        val message = context.getString(R.string.session_details_format, startStr, endStr)
+        val baseMessage = context.getString(R.string.session_details_format, startStr, endStr)
+        val message = if (!session.note.isNullOrBlank()) {
+            "$baseMessage\n\n${context.getString(R.string.note)}: ${session.note}"
+        } else {
+            baseMessage
+        }
 
         val dialog = AlertDialog.Builder(context)
             .setTitle(session.personName)
@@ -38,10 +43,10 @@ object DialogHelper {
 
         dialog.setOnShowListener {
             SilentUi.disableSoundEffects(dialog.window?.decorView)
-            
+
             val btnClose = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
             val btnEdit = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
-            
+
             val originalButtonColor = btnClose.currentTextColor
 
             if (btnEdit is com.google.android.material.button.MaterialButton) {
@@ -125,14 +130,14 @@ object DialogHelper {
         val btnStartRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val btnStartDate = com.google.android.material.button.MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
         val btnStartTime = com.google.android.material.button.MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
-        
+
         val sdfDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         val sdfTime = SimpleDateFormat("HH:mm", Locale.getDefault())
         val startCal = Calendar.getInstance().apply { timeInMillis = session.startTime }
-        
+
         btnStartDate.text = sdfDate.format(startCal.time)
         btnStartTime.text = sdfTime.format(startCal.time)
-        
+
         btnStartDate.setOnClickListener {
             showDatePicker(context, startCal) {
                 btnStartDate.text = sdfDate.format(it.time)
@@ -156,14 +161,14 @@ object DialogHelper {
         val btnEndRow = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         val btnEndDate = com.google.android.material.button.MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
         val btnEndTime = com.google.android.material.button.MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle)
-        
+
         val endCal = Calendar.getInstance()
         session.endTime?.let { endCal.timeInMillis = it }
         val activeText = context.getString(R.string.active_click_to_set)
-        
+
         btnEndDate.text = session.endTime?.let { sdfDate.format(it) } ?: activeText
         btnEndTime.text = session.endTime?.let { sdfTime.format(it) } ?: activeText
-        
+
         btnEndDate.setOnClickListener {
             showDatePicker(context, endCal) {
                 btnEndDate.text = sdfDate.format(it.time)
@@ -180,6 +185,19 @@ object DialogHelper {
         btnEndRow.addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(16, 0) })
         btnEndRow.addView(btnEndTime, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         container.addView(btnEndRow)
+
+        val noteLabel = TextView(context).apply {
+            text = "\n" + context.getString(R.string.note)
+            setTextColor(ColorHelper.getTextColor(context))
+        }
+        container.addView(noteLabel)
+
+        val etNote = EditText(context).apply {
+            setText(session.note)
+            hint = context.getString(R.string.note)
+            setTextColor(ColorHelper.getTextColor(context))
+        }
+        container.addView(etNote)
 
         SilentUi.disableSoundEffects(container)
 
@@ -232,6 +250,9 @@ object DialogHelper {
                 } else {
                     session.endTime = null
                 }
+
+                session.note = etNote.text.toString().ifBlank { null }
+
                 saveData(context, allSessions, people)
                 onUpdate()
                 dialog.dismiss()
@@ -257,7 +278,7 @@ object DialogHelper {
             cal.set(Calendar.YEAR, year)
             cal.set(Calendar.MONTH, month)
             cal.set(Calendar.DAY_OF_MONTH, day)
-            
+
             cal.set(Calendar.HOUR_OF_DAY, 0)
             cal.set(Calendar.MINUTE, 0)
             cal.set(Calendar.SECOND, 0)
@@ -288,10 +309,10 @@ object DialogHelper {
     private fun saveData(context: Context, sessions: List<FrontSession>, people: List<Person>) {
         val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val gson = Gson()
-        
+
         val activeIds = sessions.filter { it.endTime == null }.mapNotNull { it.personId }.toSet()
         val activeNames = sessions.filter { it.endTime == null && it.personId == null }.map { it.personName }.toSet()
-        
+
         people.forEach { person ->
             person.isFront = activeIds.contains(person.id) || activeNames.contains(person.name)
         }
@@ -307,7 +328,7 @@ object DialogHelper {
         val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val gson = com.google.gson.Gson()
         val people = MemberHelper.loadAllPeople(context)
-        
+
         val archived = people.filter { it.isArchived }
         if (archived.isEmpty()) {
             Toast.makeText(context, context.getString(R.string.no_archived_members), Toast.LENGTH_SHORT).show()
@@ -327,7 +348,7 @@ object DialogHelper {
                         val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
                         val sessions: List<FrontSession> = gson.fromJson(sessionsJson, object : com.google.gson.reflect.TypeToken<List<FrontSession>>() {}.type)
                         saveData(context, sessions, people)
-                        
+
                         Toast.makeText(context, context.getString(R.string.member_unarchived), Toast.LENGTH_SHORT).show()
                         onDataChanged()
                     }
@@ -352,15 +373,15 @@ object DialogHelper {
     ) {
         val sortedPeople = MemberHelper.getSortedPeople(allPeople, groups, includeArchived)
         val selectedIds = initiallySelectedIds.toMutableList()
-        
+
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_member_selection, null)
         val etSearch = view.findViewById<EditText>(R.id.etSearch)
         val rvMembers = view.findViewById<RecyclerView>(R.id.rvMembers)
-        
+
         val adapter = MemberSelectionAdapter(context, sortedPeople, selectedIds, isMultiSelect)
         rvMembers.layoutManager = LinearLayoutManager(context)
         rvMembers.adapter = adapter
-        
+
         val dialog = AlertDialog.Builder(context)
             .setTitle(title)
             .setView(view)
@@ -374,7 +395,7 @@ object DialogHelper {
             onSelectionConfirmed(selectedIds)
             dialog.dismiss()
         }
-        
+
         etSearch.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -382,19 +403,13 @@ object DialogHelper {
             }
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
-        
+
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, context)
-        
+
         val textColor = ColorHelper.getTextColor(context)
         etSearch.setTextColor(textColor)
         etSearch.setHintTextColor(textColor and 0x88FFFFFF.toInt())
-        etSearch.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_search, 0, 0, 0)
-        etSearch.compoundDrawablePadding = (8 * context.resources.displayMetrics.density).toInt()
-        etSearch.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(textColor)
-        etSearch.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_search, 0, 0, 0)
-        etSearch.compoundDrawablePadding = (8 * context.resources.displayMetrics.density).toInt()
-        etSearch.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(textColor)
         etSearch.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_search, 0, 0, 0)
         etSearch.compoundDrawablePadding = (8 * context.resources.displayMetrics.density).toInt()
         etSearch.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(textColor)
@@ -411,7 +426,7 @@ object DialogHelper {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_member_selection, null)
         val etSearch = view.findViewById<EditText>(R.id.etSearch)
         val rvItems = view.findViewById<RecyclerView>(R.id.rvMembers)
-        
+
         val adapter = object : RecyclerView.Adapter<SearchableItemViewHolder>() {
             var filteredItems = items
             val textColor = ColorHelper.getTextColor(context)
@@ -427,7 +442,7 @@ object DialogHelper {
                 holder.tvName.setTextColor(textColor)
                 holder.checkBox.visibility = View.VISIBLE
                 holder.checkBox.isChecked = selectedItems.contains(item)
-                
+
                 holder.itemView.setOnClickListener {
                     if (selectedItems.contains(item)) {
                         selectedItems.remove(item)
@@ -483,9 +498,6 @@ object DialogHelper {
         etSearch.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_search, 0, 0, 0)
         etSearch.compoundDrawablePadding = (8 * context.resources.displayMetrics.density).toInt()
         etSearch.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(textColor)
-        etSearch.setCompoundDrawablesWithIntrinsicBounds(android.R.drawable.ic_menu_search, 0, 0, 0)
-        etSearch.compoundDrawablePadding = (8 * context.resources.displayMetrics.density).toInt()
-        etSearch.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(textColor)
     }
 
     fun showSearchableListDialog(
@@ -497,7 +509,7 @@ object DialogHelper {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_member_selection, null)
         val etSearch = view.findViewById<EditText>(R.id.etSearch)
         val rvItems = view.findViewById<RecyclerView>(R.id.rvMembers)
-        
+
         var currentDialog: AlertDialog? = null
 
         val adapter = object : RecyclerView.Adapter<SearchableItemViewHolder>() {
@@ -536,7 +548,7 @@ object DialogHelper {
             .setNegativeButton(R.string.cancel, null)
             .setView(view)
             .create()
-        
+
         currentDialog = dialog
 
         etSearch.addTextChangedListener(object : android.text.TextWatcher {
@@ -549,7 +561,7 @@ object DialogHelper {
 
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, context)
-        
+
         val textColor = ColorHelper.getTextColor(context)
         etSearch.setTextColor(textColor)
         etSearch.setHintTextColor(textColor and 0x88FFFFFF.toInt())
@@ -569,7 +581,7 @@ object DialogHelper {
         private val selectedIds: MutableList<String>,
         private val isMultiSelect: Boolean
     ) : RecyclerView.Adapter<MemberSelectionAdapter.ViewHolder>() {
-        
+
         private var filteredPeople = allPeople.toList()
         private val textColor = ColorHelper.getTextColor(context)
         var onSingleSelect: () -> Unit = {}
@@ -592,9 +604,9 @@ object DialogHelper {
             val person = filteredPeople[position]
             holder.tvName.text = person.name
             holder.tvName.setTextColor(textColor)
-            
+
             holder.checkBox.isChecked = selectedIds.contains(person.id)
-            
+
             if (!isMultiSelect) {
                 holder.checkBox.visibility = View.GONE
             } else {

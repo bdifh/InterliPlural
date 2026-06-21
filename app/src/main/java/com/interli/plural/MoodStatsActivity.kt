@@ -341,7 +341,7 @@ class MoodStatsActivity : BaseActivity() {
 
             val activityEntries = recentEntries.filter { it.activities.contains(activity) }
             val memberIdsInActivity = activityEntries.flatMap { it.memberIds }
-                .filter { mId -> people.any { it.id == mId && !it.isArchived && !it.isSysmediaOnly } }
+                .filter { mId -> people.any { it.id == mId && !it.isArchived && !it.isSysmediaOnly && !it.excludeFromStats } }
             val memberCounts = memberIdsInActivity.groupingBy { it }.eachCount()
             val totalInActivity = memberIdsInActivity.size.toFloat()
 
@@ -539,7 +539,7 @@ class MoodStatsActivity : BaseActivity() {
         for (entry in entries) {
             for (memberId in entry.memberIds) {
                 val person = memberMap[memberId]
-                if (person != null && !person.isArchived && !person.isSysmediaOnly) {
+                if (person != null && !person.isArchived && !person.isSysmediaOnly && !person.excludeFromStats) {
                     memberEntries.getOrPut(memberId) { mutableListOf() }.add(entry)
                 }
             }
@@ -704,7 +704,7 @@ class MoodStatsActivity : BaseActivity() {
             }
             if (entry.memberIds.isNotEmpty()) {
                 val names = entry.memberIds
-                    .mapNotNull { id -> people.find { it.id == id && !it.isArchived && !it.isSysmediaOnly }?.name }
+                    .mapNotNull { id -> people.find { it.id == id && !it.isArchived && !it.isSysmediaOnly && !it.excludeFromStats }?.name }
                 if (names.isNotEmpty()) {
                     message.append(getString(R.string.stats_members, names.joinToString(", "))).append("\n")
                 }

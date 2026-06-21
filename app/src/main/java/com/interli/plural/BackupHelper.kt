@@ -48,7 +48,7 @@ object BackupHelper {
         val stringWriter = StringWriter()
         val writer = JsonWriter(stringWriter)
         writer.setIndent("  ")
-        
+
         val dataPrefs = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val settingsPrefs = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
 
@@ -104,7 +104,7 @@ object BackupHelper {
                         val file = if (uriStr.startsWith("file://")) File(uri.path!!) else File(uriStr)
                         if (file.exists()) FileInputStream(file) else null
                     }
-                    
+
                     inputStream?.use { input ->
                         val bytes = input.readBytes()
                         val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
@@ -155,7 +155,7 @@ object BackupHelper {
     fun restoreBackup(context: Context, inputStream: InputStream) {
         val reader = JsonReader(InputStreamReader(inputStream))
         val gson = Gson()
-        
+
         var dataMap: Map<String, Any>? = null
         var settingsMap: Map<String, Any>? = null
         var imagesMap: Map<String, String>? = null
@@ -176,49 +176,47 @@ object BackupHelper {
         val settingsPrefs = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
 
         dataMap?.let { map ->
-            dataPrefs.edit().apply {
-                clear()
-                map.forEach { (k, v) ->
-                    when (v) {
-                        is String -> putString(k, v)
-                        is Boolean -> putBoolean(k, v)
-                        is Double -> {
-                            if (v == v.toLong().toDouble()) {
-                                val l = v.toLong()
-                                if (l in Int.MIN_VALUE..Int.MAX_VALUE) putInt(k, l.toInt())
-                                else putLong(k, l)
-                            } else putFloat(k, v.toFloat())
-                        }
-                        is List<*> -> {
-                            putStringSet(k, v.filterIsInstance<String>().toSet())
-                        }
+            val editor = dataPrefs.edit()
+            editor.clear()
+            map.forEach { (k, v) ->
+                when (v) {
+                    is String -> editor.putString(k, v)
+                    is Boolean -> editor.putBoolean(k, v)
+                    is Double -> {
+                        if (v == v.toLong().toDouble()) {
+                            val l = v.toLong()
+                            if (l in Int.MIN_VALUE..Int.MAX_VALUE) editor.putInt(k, l.toInt())
+                            else editor.putLong(k, l)
+                        } else editor.putFloat(k, v.toFloat())
+                    }
+                    is List<*> -> {
+                        editor.putStringSet(k, v.filterIsInstance<String>().toSet())
                     }
                 }
-                apply()
             }
+            editor.commit()
         }
 
         settingsMap?.let { map ->
-            settingsPrefs.edit().apply {
-                clear()
-                map.forEach { (k, v) ->
-                    when (v) {
-                        is String -> putString(k, v)
-                        is Boolean -> putBoolean(k, v)
-                        is Double -> {
-                            if (v == v.toLong().toDouble()) {
-                                val l = v.toLong()
-                                if (l in Int.MIN_VALUE..Int.MAX_VALUE) putInt(k, l.toInt())
-                                else putLong(k, l)
-                            } else putFloat(k, v.toFloat())
-                        }
-                        is List<*> -> {
-                            putStringSet(k, v.filterIsInstance<String>().toSet())
-                        }
+            val editor = settingsPrefs.edit()
+            editor.clear()
+            map.forEach { (k, v) ->
+                when (v) {
+                    is String -> editor.putString(k, v)
+                    is Boolean -> editor.putBoolean(k, v)
+                    is Double -> {
+                        if (v == v.toLong().toDouble()) {
+                            val l = v.toLong()
+                            if (l in Int.MIN_VALUE..Int.MAX_VALUE) editor.putInt(k, l.toInt())
+                            else editor.putLong(k, l)
+                        } else editor.putFloat(k, v.toFloat())
+                    }
+                    is List<*> -> {
+                        editor.putStringSet(k, v.filterIsInstance<String>().toSet())
                     }
                 }
-                apply()
             }
+            editor.commit()
         }
 
         if (imagesMap != null && imagesMap.isNotEmpty()) {
@@ -231,7 +229,7 @@ object BackupHelper {
                     val file = File(context.filesDir, "profile_${personId}_${System.currentTimeMillis()}.jpg")
                     context.filesDir.listFiles { f -> f.name.startsWith("profile_${personId}_") }?.forEach { it.delete() }
                     FileOutputStream(file).use { it.write(bytes) }
-                    
+
                     people.find { it.id == personId }?.let { person ->
                         val newUri = Uri.fromFile(file).toString()
                         if (person.isSysmediaOnly || person.sysmediaProfile?.handle != null) {
@@ -244,7 +242,7 @@ object BackupHelper {
                     }
                 } catch (e: Exception) { e.printStackTrace() }
             }
-            
+
             if (peopleChanged) {
                 MemberHelper.savePeople(context, people)
             }

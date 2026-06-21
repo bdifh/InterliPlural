@@ -20,6 +20,7 @@ class TimelineAdapter(
         val card: com.google.android.material.card.MaterialCardView = view as com.google.android.material.card.MaterialCardView
         val name: TextView = view.findViewById(R.id.sessionName)
         val time: TextView = view.findViewById(R.id.sessionTime)
+        val note: TextView = view.findViewById(R.id.sessionNote)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -42,6 +43,10 @@ class TimelineAdapter(
         holder.time.setTextColor(textColor)
 
         holder.name.text = session.personName
+
+        holder.note.text = session.note
+        holder.note.setTextColor(textColor)
+        holder.note.visibility = if (session.note.isNullOrBlank()) View.GONE else View.VISIBLE
         
         val start = sdf.format(Date(session.startTime))
         val end = if (session.endTime != null) sdf.format(Date(session.endTime!!)) else context.getString(R.string.session_time_active)

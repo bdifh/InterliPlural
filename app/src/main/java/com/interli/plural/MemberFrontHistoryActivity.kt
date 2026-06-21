@@ -128,7 +128,11 @@ class MemberFrontHistoryActivity : BaseActivity() {
             val start = dateFormatDetail.format(Date(session.startTime))
             val end = session.endTime?.let { dateFormatDetail.format(Date(it)) } ?: getString(R.string.currently_active)
             
-            message.append("▶ $start\n◀ $end\n\n")
+            message.append("▶ $start\n◀ $end\n")
+            if (!session.note.isNullOrBlank()) {
+                message.append("📝 ${session.note}\n")
+            }
+            message.append("\n")
         }
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)

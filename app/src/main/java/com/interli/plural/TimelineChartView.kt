@@ -12,15 +12,16 @@ import coil.request.ImageRequest
 import androidx.core.graphics.drawable.toBitmap
 import java.text.SimpleDateFormat
 import java.util.*
+
 class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
 
     private var sessions: List<FrontSession> = listOf()
     private var people: List<Person> = listOf()
     private var uniqueMembers: List<Person> = listOf()
-    
+
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
-        color = Color.LTGRAY 
+    private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.LTGRAY
         strokeWidth = 2f
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -42,7 +43,7 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
     private val barHeight = 56f
 
     private var offsetX = 0f
-    private var scaleFactor = 1.0f 
+    private var scaleFactor = 1.0f
     private val minScale = 0.5f
     private val maxScale = 48.0f
     private var isInteractive = true
@@ -79,7 +80,7 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
                 val relX = focusX - leftColumnWidth - offsetX
                 offsetX -= relX * (scaleFactor / oldScale - 1)
             }
-            
+
             invalidate()
             return true
         }
@@ -92,7 +93,7 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
         val sessionsByPerson = sessions.groupBy { it.personId ?: it.personName }
         val idsInSessions = sessions.mapNotNull { it.personId }.toSet()
         val namesInSessions = sessions.map { it.personName }.toSet()
-        
+
         val activeMembers = mutableListOf<Person>()
 
         people.forEach { p ->
@@ -111,7 +112,7 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
         val lastActiveMap = sessionsByPerson.mapValues { (_, sList) -> sList.maxOfOrNull { it.startTime } ?: 0L }
 
         this.uniqueMembers = activeMembers.sortedByDescending { lastActiveMap[it.id] ?: lastActiveMap[it.name] ?: 0L }
-        
+
         loadBitmaps()
         invalidate()
     }
@@ -159,15 +160,15 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
         val currentHeaderHeight = if (isExportMode) 180f else headerHeight
         val currentTextSize = if (isExportMode) 8f else 16f
         val currentHeaderTextSize = if (isExportMode) 9f else 20f
-        
+
         textPaint.textSize = currentTextSize
         headerPaint.textSize = currentHeaderTextSize
 
         val chartWidth = width - leftColumnWidth
         val msPerDay = 24 * 60 * 60 * 1000L
-        
+
         val now = System.currentTimeMillis()
-        
+
         val effectiveTodayStart: Long
         val effectiveScale: Float
         val effectiveOffset: Float
@@ -196,7 +197,7 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
 
         val firstDayOffset: Int
         val lastDayOffset: Int
-        
+
         if (exportStartTime != null && exportEndTime != null) {
             firstDayOffset = 0
             lastDayOffset = ((exportEndTime!! - exportStartTime!!) / msPerDay).toInt() + 1
@@ -222,28 +223,40 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
                 val x = dayX + (i.toFloat() / stepsPerDay) * dayWidth
                 canvas.drawLine(x, currentHeaderHeight, x, height.toFloat(), linePaint)
             }
-            
+
             uniqueMembers.forEachIndexed { rowIndex, person ->
                 val rowTop = currentHeaderHeight + rowIndex * currentRowHeight
-                
-                val personSessions = sessions.filter { 
+
+                val personSessions = sessions.filter {
                     val matches = if (it.personId != null) it.personId == person.id else it.personName == person.name
                     matches &&
-                    it.startTime < dayStart + msPerDay &&
-                    (it.endTime ?: now) > dayStart
+                            it.startTime < dayStart + msPerDay &&
+                            (it.endTime ?: now) > dayStart
                 }
 
                 personSessions.forEach { session ->
                     val s = Math.max(session.startTime, dayStart)
                     val e = Math.min(session.endTime ?: now, dayStart + msPerDay)
-                    
+
                     val left = dayX + ((s - dayStart).toFloat() / msPerDay) * dayWidth
                     val right = dayX + ((e - dayStart).toFloat() / msPerDay) * dayWidth
-                    
+
                     paint.color = person.profileColor
                     val top = rowTop + (currentRowHeight - currentBarHeight) / 2f
                     val bottom = top + currentBarHeight
                     canvas.drawRoundRect(left, top, right, bottom, if(isExportMode) 2f else barCornerRadius, if(isExportMode) 2f else barCornerRadius, paint)
+
+                    if (!session.note.isNullOrBlank()) {
+                        val indicatorRadius = if (isExportMode) 2f else 5f
+                        val centerX = (left + right) / 2f
+                        val centerY = (top + bottom) / 2f
+                        if (right - left > indicatorRadius * 2.5f) {
+                            paint.color = Color.WHITE
+                            paint.alpha = 180
+                            canvas.drawCircle(centerX, centerY, indicatorRadius, paint)
+                            paint.alpha = 255
+                        }
+                    }
                 }
             }
         }
@@ -258,7 +271,7 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
         uniqueMembers.forEachIndexed { rowIndex, person ->
             val rowTop = currentHeaderHeight + rowIndex * currentRowHeight
             val centerY = rowTop + currentRowHeight / 2
-            
+
             if (!isExportMode) {
                 val bitmap = memberBitmaps[person.id]
                 if (bitmap != null) {
@@ -318,7 +331,7 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
                 effectiveScale >= 16f -> 15
                 effectiveScale >= 10f -> 30
                 effectiveScale >= 6f -> 60
-                else -> if (isExportMode) 120 else 360 
+                else -> if (isExportMode) 120 else 360
             }
             val labelSteps = 24 * 60 / minutesStep
             val cal = Calendar.getInstance()
@@ -328,7 +341,7 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
                 cal.timeInMillis = dayStart + minutes * 60_000L
                 textPaint.textAlign = Paint.Align.CENTER
                 val label = if (minutesStep >= 60) "${cal.get(Calendar.HOUR_OF_DAY)}h" else sdfHour.format(Date(cal.timeInMillis))
-                
+
                 if (isExportMode) {
                     canvas.save()
                     canvas.rotate(-90f, x, currentHeaderHeight - 15f)
@@ -367,12 +380,12 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
 
     private fun handleTap(x: Float, y: Float) {
         if (x < leftColumnWidth || y < headerHeight) return
-        
+
         val now = System.currentTimeMillis()
         val chartWidth = width - leftColumnWidth
         val dayWidth = chartWidth * scaleFactor
         val msPerDay = 24 * 60 * 60 * 1000L
-        
+
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
@@ -386,12 +399,12 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
         val rowIndex = ((y - headerHeight) / rowHeight).toInt()
         val person = uniqueMembers.getOrNull(rowIndex) ?: return
 
-        val hit = sessions.find { 
+        val hit = sessions.find {
             val matches = if (it.personId != null) it.personId == person.id else it.personName == person.name
             matches &&
-            it.startTime <= timeAtX && (it.endTime ?: now) >= timeAtX
+                    it.startTime <= timeAtX && (it.endTime ?: now) >= timeAtX
         }
-        
+
         if (hit != null) {
             onSessionClicked?.invoke(hit)
         }

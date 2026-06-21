@@ -858,18 +858,17 @@ class SettingsActivity : BaseActivity() {
 
         Thread {
             try {
-                // Eerst User ID ophalen (nodig voor de nieuwe API endpoint)
                 val meUrl = URL("https://api.apparyllis.com/v1/me")
                 val meConn = meUrl.openConnection() as HttpURLConnection
                 meConn.requestMethod = "GET"
                 meConn.setRequestProperty("Authorization", token)
                 meConn.setRequestProperty("User-Agent", "InterliPlural-Android")
-                
+
                 if (meConn.responseCode == 200) {
                     val meJson = meConn.inputStream.bufferedReader().use { it.readText() }
                     val meData = Gson().fromJson<Map<String, Any>>(meJson, object : TypeToken<Map<String, Any>>() {}.type)
                     val userId = meData["id"] as? String
-                    
+
                     if (userId != null) {
                         val url = URL("https://api.apparyllis.com/v1/members/$userId")
                         val conn = url.openConnection() as HttpURLConnection
@@ -877,20 +876,17 @@ class SettingsActivity : BaseActivity() {
                         conn.setRequestProperty("Authorization", token)
                         conn.setRequestProperty("User-Agent", "InterliPlural-Android")
 
-                        val code = conn.responseCode
-                        if (code == 200) {
+                        if (conn.responseCode == 200) {
                             val json = conn.inputStream.bufferedReader().use { it.readText() }
                             val type = object : TypeToken<List<Map<String, Any>>>() {}.type
                             val spMembers: List<Map<String, Any>> = Gson().fromJson(json, type)
                             processSpMembers(spMembers)
                         } else {
-                            runOnUiThread { Toast.makeText(this, "SP Error: $code. Check your token.", Toast.LENGTH_LONG).show() }
+                            runOnUiThread { Toast.makeText(this, "SP Error: ${conn.responseCode}", Toast.LENGTH_LONG).show() }
                         }
-                    } else {
-                        runOnUiThread { Toast.makeText(this, "SP Error: User ID not found.", Toast.LENGTH_LONG).show() }
                     }
                 } else {
-                    runOnUiThread { Toast.makeText(this, "SP Auth Error: ${meConn.responseCode}. Check your token.", Toast.LENGTH_LONG).show() }
+                    runOnUiThread { Toast.makeText(this, "SP Auth Error: ${meConn.responseCode}", Toast.LENGTH_LONG).show() }
                 }
             } catch (e: Exception) {
                 runOnUiThread { Toast.makeText(this, "Connection error: ${e.message}", Toast.LENGTH_LONG).show() }
@@ -912,13 +908,31 @@ class SettingsActivity : BaseActivity() {
                     runOnUiThread {
                         val people = loadPeopleList()
                         pkMembers.forEach { pkm ->
-                            val id = pkm["id"] as? String ?: ""
+                            val pkId = pkm["id"] as? String ?: ""
                             val name = pkm["name"] as? String ?: "PK Member"
                             val desc = pkm["description"] as? String ?: ""
                             val avatar = pkm["avatar_url"] as? String
-                            
-                            if (people.none { it.manualId == id }) {
-                                people.add(Person(name = name, manualId = id, profileInfo = desc, profilePictureUri = avatar))
+
+                            val colorHex = pkm["color"] as? String
+                            var profileColor = -6934396
+                            if (!colorHex.isNullOrBlank()) {
+                                try {
+                                    val formattedHex = if (colorHex.startsWith("#")) colorHex else "#$colorHex"
+                                    profileColor = android.graphics.Color.parseColor(formattedHex)
+                                } catch (_: Exception) {}
+                            }
+
+                            if (pkId.isNotEmpty() && people.none { it.manualId == pkId }) {
+                                val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+
+                                people.add(Person(
+                                    name = name,
+                                    manualId = pkId,
+                                    profileInfo = desc,
+                                    profilePictureUri = avatar,
+                                    profileColor = profileColor,
+                                    sysmediaProfile = SysmediaProfile(handle = initialHandle)
+                                ))
                             }
                         }
                         MemberHelper.savePeople(this@SettingsActivity, people)
@@ -957,14 +971,12 @@ class SettingsActivity : BaseActivity() {
                             membersToProcess.add(mutableMember)
                         }
                     } else if (root.containsKey("content") && (root.containsKey("id") || root.containsKey("uid"))) {
-                        // Enkel lid object op root niveau
                         @Suppress("UNCHECKED_CAST")
                         membersToProcess.add(root as Map<String, Any>)
                     }
                 }
 
                 if (membersToProcess.isEmpty()) {
-                    // Laatste poging: probeer direct als lijst te parsen
                     try {
                         val directList = Gson().fromJson<List<Map<String, Any>>>(json, object : TypeToken<List<Map<String, Any>>>() {}.type)
                         processSpMembers(directList)
@@ -986,13 +998,13 @@ class SettingsActivity : BaseActivity() {
             spMembers.forEach { spm ->
                 val id = spm["id"] as? String ?: spm["uid"] as? String ?: ""
                 val content = spm["content"] as? Map<*, *>
+
                 val name = content?.get("name") as? String ?: spm["name"] as? String ?: "SP Member"
                 val desc = content?.get("desc") as? String ?: spm["description"] as? String ?: ""
                 val avatar = content?.get("avatarUrl") as? String ?: spm["avatar_url"] as? String
-                
-                // Kleur extraheren
+
                 val colorHex = content?.get("color") as? String ?: spm["color"] as? String
-                var profileColor = -6934396 // Standaard kleur
+                var profileColor = -6934396
                 if (!colorHex.isNullOrBlank()) {
                     try {
                         val formattedHex = if (colorHex.startsWith("#")) colorHex else "#$colorHex"
@@ -1003,9 +1015,9 @@ class SettingsActivity : BaseActivity() {
                 if (id.isNotEmpty() && people.none { it.manualId == id }) {
                     val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
                     people.add(Person(
-                        name = name, 
-                        manualId = id, 
-                        profileInfo = desc, 
+                        name = name,
+                        manualId = id,
+                        profileInfo = desc,
                         profilePictureUri = avatar,
                         profileColor = profileColor,
                         sysmediaProfile = SysmediaProfile(handle = initialHandle)
@@ -1014,7 +1026,7 @@ class SettingsActivity : BaseActivity() {
                 }
             }
             MemberHelper.savePeople(this, people)
-            Toast.makeText(this, "Imported $count members from Simply Plural JSON", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Imported $count members from Simply Plural", Toast.LENGTH_SHORT).show()
         }
     }
 
