@@ -509,4 +509,8 @@
     <string name="front_history_timeline">Front History Timeline</string>
     <string name="no_active_member">No active member selected</string>
     <string name="no_events_today">No events today</string>
+
+    <string name="delete_instance">Delete this instance</string>
+    <string name="delete_future">Delete this and all future</string>
+    <string name="delete_series">Delete entire series</string>
 </resources>

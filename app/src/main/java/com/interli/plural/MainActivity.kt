@@ -16,6 +16,7 @@ import com.google.gson.reflect.TypeToken
 import com.google.android.material.navigation.NavigationView
 import android.os.Build.VERSION.SDK_INT
 import androidx.lifecycle.lifecycleScope
+import com.google.gson.annotations.Until
 import kotlinx.coroutines.launch
 
 data class IdentityGroup(
@@ -172,7 +173,8 @@ data class CalendarEvent(
     var hideInWeek: Boolean = false,
     var hideInMonth: Boolean = false,
     var hideInYear: Boolean = false,
-    var excludedDates: MutableList<Long>? = null
+    var excludedDates: MutableList<Long>? = null,
+    var recurrenceUntil: Long? = null
 )
 
 data class SysmediaPost(

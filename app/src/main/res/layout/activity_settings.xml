@@ -274,6 +274,14 @@
             android:text="@string/action_change_language" />
 
         <Button
+            android:id="@+id/btnChangeFontSize"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Change Font Size" />
+
+        <Button
             android:id="@+id/btnManagePages"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"

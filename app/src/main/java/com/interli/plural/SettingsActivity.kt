@@ -131,6 +131,7 @@ class SettingsActivity : BaseActivity() {
         findViewById<MaterialCardView>(R.id.cardMood5).setOnClickListener { showColorDialog("Mood 5 (Awful)", moodColors[4], "#3a3a47") { moodColors[4] = it; updatePreviews() } }
 
         findViewById<Button>(R.id.btnChangeLanguage).setOnClickListener { showLanguageDialog() }
+        findViewById<Button>(R.id.btnChangeFontSize).setOnClickListener { showFontSizeDialog() }
         findViewById<Button>(R.id.btnChangeStartPage).setOnClickListener { showStartPageDialog() }
         findViewById<Button>(R.id.btnManagePages).setOnClickListener { showManagePagesDialog() }
         findViewById<Button>(R.id.btnManageNotifications).setOnClickListener { showNotificationSettingsDialog() }
@@ -183,6 +184,15 @@ class SettingsActivity : BaseActivity() {
                 putString("app_language", selectedLangCode)
                 putString("start_page", selectedStartPage)
             }
+
+            getSharedPreferences("my_app", MODE_PRIVATE).edit(commit = true) {
+                putString("mood_color_1", moodColors[0])
+                putString("mood_color_2", moodColors[1])
+                putString("mood_color_3", moodColors[2])
+                putString("mood_color_4", moodColors[3])
+                putString("mood_color_5", moodColors[4])
+            }
+
             BackupHelper.updateAutoBackupSchedule(this)
             Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
             if (langChanged) {
@@ -1345,6 +1355,61 @@ class SettingsActivity : BaseActivity() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = sharedPref.getString("groups_list", "[]") ?: "[]"
         return Gson().fromJson(json, object : TypeToken<List<Group>>() {}.type)
+    }
+
+    private fun showFontSizeDialog() {
+        val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        val currentMult = sharedPref.getFloat("font_size_multiplier", 1.0f)
+
+        val container = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val p = (24 * resources.displayMetrics.density).toInt()
+            setPadding(p, p / 2, p, p)
+        }
+
+        val tvPreview = android.widget.TextView(this).apply {
+            text = "Preview Text Size"
+            textSize = 16f
+            setTextColor(ColorHelper.getTextColor(this@SettingsActivity))
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 0, 0, (24 * resources.displayMetrics.density).toInt())
+        }
+        container.addView(tvPreview)
+
+        val seekBar = android.widget.SeekBar(this).apply {
+            max = 100
+            progress = ((currentMult - 0.75f) * 100).toInt().coerceIn(0, 100)
+        }
+
+        fun updatePreview(progress: Int) {
+            val mult = 0.75f + (progress / 100f)
+            tvPreview.textSize = 16f * mult
+            tvPreview.text = "Preview: ${(mult * 100).toInt()}%"
+        }
+
+        updatePreview(seekBar.progress)
+
+        seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: android.widget.SeekBar?, p: Int, fromUser: Boolean) {
+                updatePreview(p)
+            }
+            override fun onStartTrackingTouch(s: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(s: android.widget.SeekBar?) {}
+        })
+        container.addView(seekBar)
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Font Size")
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val finalMult = 0.75f + (seekBar.progress / 100f)
+                sharedPref.edit(commit = true) { putFloat("font_size_multiplier", finalMult) }
+                recreate()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+        dialog.show()
+        ColorHelper.styleSupportAlertDialog(dialog, this)
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()

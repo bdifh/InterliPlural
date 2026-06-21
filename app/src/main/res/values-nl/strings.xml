@@ -499,4 +499,8 @@
     <string name="front_history_timeline">Front Geschiedenis Tijdlijn</string>
     <string name="no_active_member">Geen actief lid geselecteerd</string>
     <string name="no_events_today">Geen afspraken vandaag</string>
+
+    <string name="delete_instance">Alleen deze instantie</string>
+    <string name="delete_future">Deze en volgende</string>
+    <string name="delete_series">De hele serie</string>
 </resources>

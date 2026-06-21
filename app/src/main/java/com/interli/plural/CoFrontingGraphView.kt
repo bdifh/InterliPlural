@@ -162,9 +162,16 @@ class CoFrontingGraphView(context: Context, attrs: AttributeSet?) : View(context
                 }
                 canvas.save()
                 canvas.clipPath(path)
+                val size = minOf(bitmap.width, bitmap.height)
+                val srcRect = Rect(
+                    (bitmap.width - size) / 2,
+                    (bitmap.height - size) / 2,
+                    (bitmap.width + size) / 2,
+                    (bitmap.height + size) / 2
+                )
                 val destRect = RectF(pos.x - nodeRadius, pos.y - nodeRadius, pos.x + nodeRadius, pos.y + nodeRadius)
                 imagePaint.alpha = nodeAlpha
-                canvas.drawBitmap(bitmap, null, destRect, imagePaint)
+                canvas.drawBitmap(bitmap, srcRect, destRect, imagePaint)
                 canvas.restore()
                 
                 nodePaint.style = Paint.Style.STROKE

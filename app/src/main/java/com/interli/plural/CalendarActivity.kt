@@ -376,6 +376,7 @@ class CalendarActivity : BaseActivity() {
         val cbHideWeek = view.findViewById<CheckBox>(R.id.cbHideWeek)
         val cbHideMonth = view.findViewById<CheckBox>(R.id.cbHideMonth)
         val cbHideYear = view.findViewById<CheckBox>(R.id.cbHideYear)
+        val cbAllDay = view.findViewById<CheckBox>(R.id.cbAllDay)
 
         if (event != null) {
             cbHideAgenda.isChecked = event.hideInOverview
@@ -383,6 +384,7 @@ class CalendarActivity : BaseActivity() {
             cbHideWeek.isChecked = event.hideInWeek
             cbHideMonth.isChecked = event.hideInMonth
             cbHideYear.isChecked = event.hideInYear
+            cbAllDay.isChecked = event.isAllDay
         }
 
         val updateRecurrenceText = {
@@ -525,11 +527,10 @@ class CalendarActivity : BaseActivity() {
                     e.hideInWeek = cbHideWeek.isChecked
                     e.hideInMonth = cbHideMonth.isChecked
                     e.hideInYear = cbHideYear.isChecked
+                    e.startTime = startTime
+                    e.endTime = endTime
+                    e.isAllDay = cbAllDay.isChecked
 
-                    if (event == null || event.recurrence == null) {
-                        e.startTime = startTime
-                        e.endTime = endTime
-                    }
 
                     saveData()
                     updateCalendarView()
@@ -550,20 +551,32 @@ class CalendarActivity : BaseActivity() {
 
     private fun showDeleteConfirmDialog(event: CalendarEvent) {
         if (event.recurrence != null) {
-            val options = arrayOf("Alleen deze instantie", "De hele serie verwijderen")
+            val options = arrayOf(
+                getString(R.string.delete_instance),
+                getString(R.string.delete_future),
+                getString(R.string.delete_series)
+            )
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(R.string.delete)
                 .setItems(options) { _, which ->
-                    if (which == 0) {
-                        events.find { it.id == event.id }?.let { original ->
-                            if (original.excludedDates == null) original.excludedDates = mutableListOf()
-                            original.excludedDates?.add(event.startTime)
-                            saveData()
-                            updateCalendarView()
+                    when (which) {
+                        0 -> { // only this one
+                            events.find { it.id == event.id }?.let { original ->
+                                if (original.excludedDates == null) original.excludedDates = mutableListOf()
+                                original.excludedDates?.add(event.startTime)
+                            }
                         }
-                    } else {
-                        performFinalDelete(event)
+                        1 -> { // this one and next
+                            events.find { it.id == event.id }?.let { original ->
+                                original.recurrenceUntil = event.startTime - 1000
+                            }
+                        }
+                        2 -> { // all
+                            events.removeAll { it.id == event.id }
+                        }
                     }
+                    saveData()
+                    updateCalendarView()
                 }
                 .setNegativeButton(R.string.cancel, null)
                 .show().let { ColorHelper.styleSupportAlertDialog(it, this) }
@@ -571,6 +584,7 @@ class CalendarActivity : BaseActivity() {
             performFinalDelete(event)
         }
     }
+
 
     private fun performFinalDelete(event: CalendarEvent) {
         var clicks = 0
@@ -659,7 +673,7 @@ class CalendarActivity : BaseActivity() {
 
             when (event.recurrence) {
                 "DAILY" -> cal.add(Calendar.DAY_OF_YEAR, 1)
-                "WEEKLY" -> cal.add(Calendar.DAY_OF_YEAR, 1) // Check every day for weekly
+                "WEEKLY" -> cal.add(Calendar.DAY_OF_YEAR, 1)
                 "MONTHLY" -> cal.add(Calendar.MONTH, 1)
                 "YEARLY" -> cal.add(Calendar.YEAR, 1)
                 else -> break

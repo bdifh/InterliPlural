@@ -75,6 +75,13 @@
             android:textSize="12sp"
             android:alpha="0.7" />
 
+        <CheckBox
+            android:id="@+id/cbAllDay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/event_all_day" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnEventRecurrence"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"

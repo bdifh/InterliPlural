@@ -22,7 +22,7 @@ class CalendarTimelineView @JvmOverloads constructor(
     private var daysCount = 1
     
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private val textPaint = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.RIGHT
     }
     
@@ -61,7 +61,6 @@ class CalendarTimelineView @JvmOverloads constructor(
         val timeInDay = (ty / hourHeight) * 60 * 60 * 1000
         val touchTime = dayStart + timeInDay.toLong()
 
-        // Find event at this time - prioritize shorter events if they overlap
         val possibleEvents = events.filter { event ->
             event.startTime <= touchTime && event.endTime >= touchTime &&
             event.startTime < dayEnd && event.endTime > dayStart
@@ -76,18 +75,15 @@ class CalendarTimelineView @JvmOverloads constructor(
 
             val startY = if (clickedEvent.startTime < dayStartRange) 0f 
                         else (eventStartCal.get(Calendar.HOUR_OF_DAY) + eventStartCal.get(Calendar.MINUTE) / 60f) * hourHeight
-            
-            // Check for link clicks
+
             val relativeY = ty - startY
-            
-            // Re-calculate the layout logic from onDraw to find click targets
-            if (relativeY > 20 * density) { // Below title
+
+            if (relativeY > 20 * density) {
                 val links = mutableListOf<Triple<String, String, String>>()
                 clickedEvent.linkedMemberIds.forEach { id -> people.find { it.id == id }?.let { links.add(Triple("MEMBER", it.id, it.name)) } }
                 clickedEvent.linkedNoteId?.let { id -> notes.find { it.id == id }?.let { links.add(Triple("NOTE", it.id, it.title.ifEmpty { "Note" })) } }
                 clickedEvent.linkedTodoListId?.let { id -> todoLists.find { it.id == id }?.let { links.add(Triple("TODO", it.id, it.title.ifEmpty { "Todo" })) } }
 
-                // Always try horizontal (side-by-side) logic as requested
                 var currentX = 4 * density
                 val spacing = 12 * density
                 links.forEach { link ->
@@ -147,7 +143,6 @@ class CalendarTimelineView @JvmOverloads constructor(
         val density = resources.displayMetrics.density
         val colWidth = (width - timeColumnWidth) / daysCount
 
-        // Reset state for each draw pass
         textPaint.textAlign = Paint.Align.RIGHT
         textPaint.alpha = 255
         paint.alpha = 255
@@ -159,7 +154,6 @@ class CalendarTimelineView @JvmOverloads constructor(
 
         canvas.drawColor(bgColor)
 
-        // Draw Hour Grid
         paint.color = textColor
         paint.alpha = 40
         paint.strokeWidth = 1f
@@ -176,7 +170,6 @@ class CalendarTimelineView @JvmOverloads constructor(
         }
         paint.alpha = 255
 
-        // Draw Day Dividers if multiple days
         if (daysCount > 1) {
             for (i in 1 until daysCount) {
                 val x = timeColumnWidth + i * colWidth
@@ -184,7 +177,6 @@ class CalendarTimelineView @JvmOverloads constructor(
             }
         }
 
-        // Draw Events
         val startOfRange = getStartOfRange()
         val endOfRange = startOfRange.clone() as Calendar
         endOfRange.add(Calendar.DAY_OF_YEAR, daysCount)
@@ -204,14 +196,24 @@ class CalendarTimelineView @JvmOverloads constructor(
                 dayEndCal.add(Calendar.DAY_OF_YEAR, 1)
                 
                 if (event.startTime < dayEndCal.timeInMillis && event.endTime > dayStartCal.timeInMillis) {
-                    // Event overlaps with this day
                     val x = timeColumnWidth + i * colWidth
-                    
-                    val startY = if (event.startTime < dayStartCal.timeInMillis) 0f 
-                                else (eventStartCal.get(Calendar.HOUR_OF_DAY) + eventStartCal.get(Calendar.MINUTE) / 60f) * hourHeight
-                    val endY = if (event.endTime > dayEndCal.timeInMillis) 24 * hourHeight
-                              else (eventEndCal.get(Calendar.HOUR_OF_DAY) + eventEndCal.get(Calendar.MINUTE) / 60f) * hourHeight
-                    
+
+                    val startY = if (event.isAllDay) {
+                        0f
+                    } else if (event.startTime < dayStartCal.timeInMillis) {
+                        0f
+                    } else {
+                        (eventStartCal.get(Calendar.HOUR_OF_DAY) + eventStartCal.get(Calendar.MINUTE) / 60f) * hourHeight
+                    }
+
+                    val endY = if (event.isAllDay) {
+                        25 * density 
+                    } else if (event.endTime > dayEndCal.timeInMillis) {
+                        24 * hourHeight
+                    } else {
+                        (eventEndCal.get(Calendar.HOUR_OF_DAY) + eventEndCal.get(Calendar.MINUTE) / 60f) * hourHeight
+                    }
+
                     eventRect.set(x + 2 * density, startY + 1 * density, x + colWidth - 2 * density, endY - 1 * density)
                     
                     val color = getEventColor(event)
@@ -223,12 +225,16 @@ class CalendarTimelineView @JvmOverloads constructor(
                         textPaint.color = if (ColorHelper.isDark(color)) Color.WHITE else Color.BLACK
                         textPaint.textAlign = Paint.Align.LEFT
                         textPaint.textSize = 12 * density
-                        val title = if (event.title.length > (colWidth / (8 * density)).toInt()) 
-                                    event.title.take((colWidth / (10 * density)).toInt()) + ".." 
-                                    else event.title
-                        canvas.drawText(title, eventRect.left + 4 * density, eventRect.top + 14 * density, textPaint)
+                        val availableWidth = colWidth - 8 * density
+                        val textPaintForLayout = android.text.TextPaint(textPaint)
+                        val ellipsizedTitle = android.text.TextUtils.ellipsize(
+                            event.title,
+                            textPaintForLayout,
+                            availableWidth,
+                            android.text.TextUtils.TruncateAt.END
+                        )
+                        canvas.drawText(ellipsizedTitle.toString(), eventRect.left + 4 * density, eventRect.top + 14 * density, textPaint)
 
-                        // Draw Links
                         textPaint.textSize = 10 * density
                         val links = mutableListOf<Triple<String, String, String>>()
                         event.linkedMemberIds.forEach { id -> people.find { it.id == id }?.let { links.add(Triple("MEMBER", it.id, it.name)) } }
@@ -236,8 +242,7 @@ class CalendarTimelineView @JvmOverloads constructor(
                         event.linkedTodoListId?.let { id -> todoLists.find { it.id == id }?.let { links.add(Triple("TODO", it.id, it.title.ifEmpty { "Todo" })) } }
 
                         val colWidthAdjusted = colWidth - 4 * density
-                        
-                        // Side-by-side (horizontal) logic as requested
+
                         var currentX = 4 * density
                         val spacing = 12 * density
                         links.forEach { link ->
