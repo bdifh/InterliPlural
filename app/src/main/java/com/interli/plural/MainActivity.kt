@@ -117,7 +117,8 @@ data class DiaryNote(
     var senderId: String? = null,
     var bundleId: String? = null,
     var bundleName: String? = null,
-    var linkedTodoListId: String? = null
+    var linkedTodoListId: String? = null,
+    var isProfileOnly: Boolean = false
 )
 
 data class TodoTask(

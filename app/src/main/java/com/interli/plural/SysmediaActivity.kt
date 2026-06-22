@@ -348,13 +348,16 @@ class SysmediaActivity : BaseActivity() {
             tvActiveName.text = profile?.displayName ?: person.name
             tvActiveName.setTextColor(ColorHelper.getTextColor(this))
             val avatarUri = profile?.profilePictureUri ?: person.profilePictureUri
-            if (avatarUri != null) {
+            val userColor = ColorHelper.getUserColor(person.id, person.profileColor)
+            val colorDrawable = android.graphics.drawable.ColorDrawable(userColor)
+
+            if (avatarUri != null && avatarUri.isNotEmpty()) {
                 ivActiveAvatar.load(avatarUri) {
-                    error(android.graphics.drawable.ColorDrawable(ColorHelper.getUserColor(person.id, person.profileColor)))
+                    placeholder(colorDrawable)
+                    error(colorDrawable)
                 }
             } else {
-                val color = ColorHelper.getUserColor(person.id, person.profileColor)
-                ivActiveAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(color))
+                ivActiveAvatar.setImageDrawable(colorDrawable)
             }
         } else {
             tvActiveName.text = getString(R.string.nobody_fronting)
@@ -543,6 +546,30 @@ class SysmediaActivity : BaseActivity() {
         updateTabBadges()
     }
 
+    private fun handleLike(post: SysmediaPost, onUpdate: () -> Unit) {
+        val memberId = activeMemberId ?: return
+        val currentLikes = post.likedByMemberIds[memberId] ?: 0
+
+        if (currentLikes < 3) {
+            post.likedByMemberIds[memberId] = currentLikes + 1
+            post.likes++
+
+            if (currentLikes == 0 && post.senderId != memberId) {
+                val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+                val notifJson = sharedPref.getString("sysmedia_notifications", "[]")
+                val notifications: MutableList<SysmediaNotification> = Gson().fromJson(notifJson, object : TypeToken<MutableList<SysmediaNotification>>() {}.type) ?: mutableListOf()
+                notifications.add(0, SysmediaNotification(receiverId = post.senderId, senderId = memberId, type = "LIKE", postId = post.id))
+                sharedPref.edit().putString("sysmedia_notifications", Gson().toJson(notifications)).apply()
+            }
+        } else {
+            post.likes -= 3
+            post.likedByMemberIds[memberId] = 0
+        }
+
+        saveData()
+        onUpdate()
+    }
+
     private inner class SysmediaAdapter(private var items: List<SysmediaPost>) :
         RecyclerView.Adapter<SysmediaAdapter.ViewHolder>() {
 
@@ -675,7 +702,7 @@ class SysmediaActivity : BaseActivity() {
             bindPostData(holder, post, sender)
             
             holder.btnReblog.setOnClickListener { showReblogConfirmDialog(post) }
-            holder.btnLike.setOnClickListener { handleLike(post, position) }
+            holder.btnLike.setOnClickListener { handleLike(post) { notifyItemChanged(position, "LIKE_UPDATE") } }
             holder.btnReply.setOnClickListener {
                 val intent = android.content.Intent(this@SysmediaActivity, CreatePostActivity::class.java)
                 intent.putExtra("current_user_id", activeMemberId)
@@ -690,30 +717,6 @@ class SysmediaActivity : BaseActivity() {
                 openPostDetail(post.id)
                 true
             }
-        }
-
-        internal fun handleLike(post: SysmediaPost, position: Int) {
-            val memberId = activeMemberId ?: return
-            val currentLikes = post.likedByMemberIds[memberId] ?: 0
-            
-            if (currentLikes < 3) {
-                post.likedByMemberIds[memberId] = currentLikes + 1
-                post.likes++
-                
-                if (currentLikes == 0 && post.senderId != memberId) {
-                    val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-                    val notifJson = sharedPref.getString("sysmedia_notifications", "[]")
-                    val notifications: MutableList<SysmediaNotification> = Gson().fromJson(notifJson, object : TypeToken<MutableList<SysmediaNotification>>() {}.type) ?: mutableListOf()
-                    notifications.add(0, SysmediaNotification(receiverId = post.senderId, senderId = memberId, type = "LIKE", postId = post.id))
-                    sharedPref.edit().putString("sysmedia_notifications", Gson().toJson(notifications)).apply()
-                }
-            } else {
-                post.likes -= 3
-                post.likedByMemberIds[memberId] = 0
-            }
-            
-            saveData()
-            notifyItemChanged(position, "LIKE_UPDATE")
         }
 
         fun updateLikeUi(holder: ViewHolder, post: SysmediaPost) {
@@ -807,21 +810,19 @@ class SysmediaActivity : BaseActivity() {
             }
             if (text !is android.text.Spannable) holder.tvContent.text = spannable
             holder.tvContent.movementMethod = android.text.method.LinkMovementMethod.getInstance()
-            
+
             val avatarUri = profile?.profilePictureUri ?: sender?.profilePictureUri
+            val userColor = ColorHelper.getUserColor(sender?.id, sender?.profileColor ?: -6934396)
+            val colorDrawable = android.graphics.drawable.ColorDrawable(userColor)
 
             if (avatarUri != null && avatarUri.isNotEmpty()) {
                 holder.ivAvatar.load(avatarUri) {
-                    val userColor =
-                        ColorHelper.getUserColor(sender?.id, sender?.profileColor ?: -6934396)
-                    val placeholder = android.graphics.drawable.ColorDrawable(userColor)
-                    placeholder(placeholder)
-                    error(placeholder)
+                    placeholder(colorDrawable)
+                    error(colorDrawable)
                 }
             } else {
-                    val userColor = ColorHelper.getUserColor(sender?.id, sender?.profileColor ?: -6934396)
-                    holder.ivAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(userColor))
-                }
+                holder.ivAvatar.setImageDrawable(colorDrawable)
+            }
             
             holder.ivAvatar.setOnClickListener { sender?.id?.let { openProfile(it) } }
             holder.tvName.setOnClickListener { sender?.id?.let { openProfile(it) } }
@@ -1069,15 +1070,20 @@ class SysmediaActivity : BaseActivity() {
                         val parentProfile = parentSender?.sysmediaProfile
                         sysmediaHolder.tvParentName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
                         sysmediaHolder.tvParentContent.text = originalPost.content
-                        
+
                         val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
-                        if (parentAvatar != null) {
+                        val pColor = parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)
+                        val pDrawable = android.graphics.drawable.ColorDrawable(pColor)
+
+                        if (parentAvatar != null && parentAvatar.isNotEmpty()) {
                             sysmediaHolder.ivParentAvatar.load(parentAvatar) {
-                                placeholder(android.graphics.drawable.ColorDrawable(parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)))
-                                error(android.graphics.drawable.ColorDrawable(parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)))
+                                placeholder(pDrawable)
+                                error(pDrawable)
                             }
-                        } else sysmediaHolder.ivParentAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)))
-                        
+                        } else {
+                            sysmediaHolder.ivParentAvatar.setImageDrawable(pDrawable)
+                        }
+
                         sysmediaHolder.tvParentName.setTextColor(textColor and 0xCCFFFFFF.toInt())
                         sysmediaHolder.tvParentContent.setTextColor(textColor and 0xCCFFFFFF.toInt())
                     }
@@ -1093,14 +1099,19 @@ class SysmediaActivity : BaseActivity() {
                         val origHandle = origProfile?.handle ?: originalSender?.name?.replace(" ", "_")?.lowercase() ?: originalSender?.manualId ?: "unknown"
                         sysmediaHolder.tvOriginalHandle.text = "@$origHandle"
                         markwon.setMarkdown(sysmediaHolder.tvOriginalContent, originalPost.content)
-                        
+
                         val origAvatar = origProfile?.profilePictureUri ?: originalSender?.profilePictureUri
-                        if (origAvatar != null) {
+                        val oColor = originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)
+                        val oDrawable = android.graphics.drawable.ColorDrawable(oColor)
+
+                        if (origAvatar != null && origAvatar.isNotEmpty()) {
                             sysmediaHolder.ivOriginalAvatar.load(origAvatar) {
-                                placeholder(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)))
-                                error(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)))
+                                placeholder(oDrawable)
+                                error(oDrawable)
                             }
-                        } else sysmediaHolder.ivOriginalAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)))
+                        } else {
+                            sysmediaHolder.ivOriginalAvatar.setImageDrawable(oDrawable)
+                        }
                         
                         if (originalPost.imageUri != null) {
                             sysmediaHolder.ivOriginalPostImage.visibility = View.VISIBLE
@@ -1121,7 +1132,7 @@ class SysmediaActivity : BaseActivity() {
 
                 holder.btnReblog.setOnClickListener { adapter.showReblogConfirmDialog(post) }
                 holder.btnLike.setOnClickListener {
-                    adapter.handleLike(post, position)
+                    handleLike(post) { notifyItemChanged(position, "LIKE_UPDATE") }
                 }
                 holder.btnReply.setOnClickListener {
                     val intent = android.content.Intent(this@SysmediaActivity, CreatePostActivity::class.java)

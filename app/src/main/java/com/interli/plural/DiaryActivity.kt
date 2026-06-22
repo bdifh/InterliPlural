@@ -150,9 +150,9 @@ class DiaryActivity : BaseActivity() {
     private fun filterNotes() {
         displayedItems.clear()
         val filtered = if (currentTab == 0) {
-            allNotes.filter { it.senderId == null }
+            allNotes.filter { it.senderId == null && !it.isProfileOnly }
         } else {
-            allNotes.filter { it.senderId != null }
+            allNotes.filter { it.senderId != null && !it.isProfileOnly }
         }
 
         if (filtered.isEmpty() && (currentTab != 0 || allBundles.isEmpty())) {

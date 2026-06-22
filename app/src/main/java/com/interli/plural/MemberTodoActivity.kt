@@ -44,6 +44,7 @@ class MemberTodoActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         loadData()
+        autoResetPastRecurringTasks()
         val personId = intent.getStringExtra("person_id") ?: return
         renderMemberTasks(personId)
     }
@@ -262,7 +263,7 @@ class MemberTodoActivity : BaseActivity() {
         }
     }
 
-    private fun handleRecurrence(task: TodoTask) {
+    private fun handleRecurrence(task: TodoTask, showToast: Boolean = true) {
         val baseTime = task.deadline ?: System.currentTimeMillis()
         
         val cal = java.util.Calendar.getInstance()
@@ -311,7 +312,7 @@ class MemberTodoActivity : BaseActivity() {
         
         task.deadline = cal.timeInMillis
         task.status = "EMPTY"
-        Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
+        if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
     }
 
     private fun getStatusChar(status: String): String = when (status) {
@@ -354,6 +355,34 @@ class MemberTodoActivity : BaseActivity() {
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
+
+    private fun autoResetPastRecurringTasks() {
+        val now = java.util.Calendar.getInstance()
+        var changed = false
+        
+        todoLists.forEach { list ->
+            list.tasks.forEach { task ->
+                if (task.recurrence != null && task.status == "CHECKED") {
+                    if (task.deadline == null) {
+                        val today = java.util.Calendar.getInstance().apply { 
+                            set(java.util.Calendar.HOUR_OF_DAY, 0); set(java.util.Calendar.MINUTE, 0); set(java.util.Calendar.SECOND, 0); set(java.util.Calendar.MILLISECOND, 0)
+                        }
+                        task.deadline = today.timeInMillis
+                        changed = true
+                    }
+
+                    // Reset if the current time is past the deadline
+                    while (now.timeInMillis > (task.deadline ?: 0L)) {
+                        handleRecurrence(task, showToast = false)
+                        changed = true
+                    }
+                }
+            }
+        }
+        if (changed) {
+            saveData()
+        }
+    }
     private var TextView.textStyle: Int
         get() = typeface?.style ?: android.graphics.Typeface.NORMAL
         set(value) { setTypeface(typeface, value) }

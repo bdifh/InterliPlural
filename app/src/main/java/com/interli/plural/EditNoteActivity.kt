@@ -41,6 +41,7 @@ class EditNoteActivity : BaseActivity() {
     private lateinit var markdownView: TextView
     private lateinit var linkedMembersText: TextView
     private lateinit var selectedBundleText: TextView
+    private lateinit var cbProfileOnly: android.widget.CheckBox
     private lateinit var markwon: Markwon
 
     private lateinit var allTodoLists: List<TodoList>
@@ -94,6 +95,7 @@ class EditNoteActivity : BaseActivity() {
         markdownView = findViewById(R.id.markdownNoteView)
         linkedMembersText = findViewById(R.id.linkedMembersText)
         selectedBundleText = findViewById(R.id.selectedBundleText)
+        cbProfileOnly = findViewById(R.id.cbProfileOnlyNote)
         val btnDelete = findViewById<Button>(R.id.btnDeleteNote)
         val btnEditMode = findViewById<Button>(R.id.btnEditNoteMode)
         val btnSave = findViewById<Button>(R.id.btnSaveNote)
@@ -118,6 +120,7 @@ class EditNoteActivity : BaseActivity() {
             editTitle.setText(existingNote.title)
             editContent.setText(existingNote.content)
             selectedBundleName = existingNote.bundleName
+            cbProfileOnly.isChecked = existingNote.isProfileOnly
             selectedMemberIds = existingNote.linkedMemberIds?.toMutableList() ?: mutableListOf()
             btnDelete.visibility = View.VISIBLE
             btnEditMode.visibility = View.VISIBLE
@@ -318,10 +321,15 @@ class EditNoteActivity : BaseActivity() {
 
     private fun hasChanges(): Boolean {
         if (!isEditMode) return false
+        val initialProfileOnly = intent.getStringExtra("note_id")?.let { id ->
+            notes.find { it.id == id }?.isProfileOnly
+        } ?: false
+
         return editTitle.text.toString() != initialTitle ||
                editContent.text.toString() != initialContent ||
                (selectedBundleName ?: "") != initialBundle ||
-               selectedMemberIds != initialMemberIds
+               selectedMemberIds != initialMemberIds ||
+               cbProfileOnly.isChecked != initialProfileOnly
     }
 
     private fun setupMarkwon() {
@@ -381,6 +389,10 @@ class EditNoteActivity : BaseActivity() {
         }
         findViewById<Button>(R.id.btnSelectBundle).visibility = if (isEditMode) View.VISIBLE else View.GONE
         findViewById<Button>(R.id.btnSaveNote).visibility = if (isEditMode) View.VISIBLE else View.GONE
+        cbProfileOnly.visibility = if (isEditMode) View.VISIBLE else View.GONE
+        cbProfileOnly.setTextColor(textColor)
+        cbProfileOnly.buttonTintList = android.content.res.ColorStateList.valueOf(textColor)
+
         findViewById<Button>(R.id.btnEditNoteMode).visibility = if (!isEditMode && noteId != null) View.VISIBLE else View.GONE
         
         findViewById<Button>(R.id.btnExportNotePopup).visibility = if (!isEditMode && noteId != null) View.VISIBLE else View.GONE
@@ -467,7 +479,7 @@ class EditNoteActivity : BaseActivity() {
         }
 
         if (noteId == null) {
-            notes.add(DiaryNote(title = title, content = content, linkedMemberIds = selectedMemberIds, bundleName = selectedBundleName, linkedTodoListId = selectedTodoId))
+            notes.add(DiaryNote(title = title, content = content, linkedMemberIds = selectedMemberIds, bundleName = selectedBundleName, linkedTodoListId = selectedTodoId, isProfileOnly = cbProfileOnly.isChecked))
         } else {
             val note = notes.find { it.id == noteId }
             if (note != null) {
@@ -475,6 +487,7 @@ class EditNoteActivity : BaseActivity() {
                 note.content = content
                 note.linkedMemberIds = selectedMemberIds
                 note.linkedTodoListId = selectedTodoId
+                note.isProfileOnly = cbProfileOnly.isChecked
                 if (note.bundleName != selectedBundleName) {
                     note.bundleName = selectedBundleName
                     note.bundleId = null

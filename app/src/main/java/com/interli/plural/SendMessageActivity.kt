@@ -19,6 +19,7 @@ class SendMessageActivity : BaseActivity() {
     private lateinit var toFieldContainer: View
     private lateinit var tvSelectedTargets: TextView
     private lateinit var cbAnonymous: CheckBox
+    private lateinit var cbProfileOnly: CheckBox
     private lateinit var editMessageContent: EditText
     private lateinit var editMessageTitle: EditText
     
@@ -36,6 +37,7 @@ class SendMessageActivity : BaseActivity() {
         toFieldContainer = findViewById(R.id.toFieldContainer)
         tvSelectedTargets = findViewById(R.id.tvSelectedTargets)
         cbAnonymous = findViewById(R.id.cbAnonymous)
+        cbProfileOnly = findViewById(R.id.cbProfileOnly)
         editMessageContent = findViewById(R.id.editMessageContent)
         editMessageTitle = findViewById(R.id.editMessageTitle)
         
@@ -162,7 +164,8 @@ class SendMessageActivity : BaseActivity() {
             content = fullMessage,
             timestamp = System.currentTimeMillis(),
             linkedMemberIds = selectedTargetIds.toMutableList(),
-            senderId = if (cbAnonymous.isChecked) "anonymous" else fromPerson?.id
+            senderId = if (cbAnonymous.isChecked) "anonymous" else fromPerson?.id,
+            isProfileOnly = cbProfileOnly.isChecked
         )
         
         val allNotesJson = prefs.getString("diary_notes", "[]") ?: "[]"

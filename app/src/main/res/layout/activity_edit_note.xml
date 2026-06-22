@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:paddingTop="48dp"
+        android:paddingTop="24dp"
         android:paddingStart="24dp"
         android:paddingEnd="24dp"
         android:paddingBottom="24dp">
@@ -19,114 +19,101 @@
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="40dp">
+            android:layout_marginBottom="8dp">
 
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <Button
-                    android:id="@+id/btnReply"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    android:layout_marginEnd="4dp"
-                    app:icon="@android:drawable/ic_menu_revert"
-                    app:iconGravity="textStart"
-                    android:text="@string/action_reply"
-                    android:visibility="gone" />
-
-                <Button
-                    android:id="@+id/btnMarkRead"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    android:layout_marginEnd="4dp"
-                    app:icon="@android:drawable/checkbox_on_background"
-                    app:iconGravity="textStart"
-                    android:text="@string/action_mark_read"
-                    android:visibility="gone" />
-
-                <Button
-                    android:id="@+id/btnEditNoteMode"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    android:layout_marginEnd="4dp"
-                    app:icon="@android:drawable/ic_menu_edit"
-                    app:iconGravity="textStart"
-                    android:text="@string/edit"
-                    android:visibility="gone" />
-
-                <Button
-                    android:id="@+id/btnExportNotePopup"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    android:layout_marginEnd="8dp"
-                    app:icon="@android:drawable/ic_menu_share"
-                    app:iconGravity="textStart"
-                    android:text="@string/action_export" />
-
-                <Button
-                    android:id="@+id/btnImportNote"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    android:layout_marginEnd="8dp"
-                    app:icon="@android:drawable/ic_menu_add"
-                    app:iconGravity="textStart"
-                    android:text="@string/action_import_note" />
-
-                <Button
-                    android:id="@+id/btnDeleteNote"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    android:layout_marginEnd="8dp"
-                    app:icon="@android:drawable/ic_menu_delete"
-                    app:iconGravity="textStart"
-                    android:text="@string/delete"
-                    android:textColor="#FF0000"
-                    android:visibility="gone" />
-
-                <Button
-                    android:id="@+id/btnSaveNote"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    android:layout_marginEnd="8dp"
-                    app:icon="@android:drawable/ic_menu_save"
-                    app:iconGravity="textStart"
-                    android:text="@string/save" />
-
-                <View
-                    android:layout_width="4dp"
-                    android:layout_height="0dp" />
-
-                <Button
-                    android:id="@+id/btnEditNoteBack"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:padding="0dp"
-                    app:icon="@drawable/abc_ic_ab_back_material"
-                    app:iconGravity="textStart"
-                    app:iconPadding="0dp"
-                    android:text="" />
-
-            </LinearLayout>
+            <Button
+                android:id="@+id/btnEditNoteBack"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:padding="0dp"
+                app:icon="@drawable/abc_ic_ab_back_material"
+                app:iconGravity="textStart"
+                app:iconPadding="0dp"
+                android:text="" />
         </RelativeLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp">
+
+            <androidx.constraintlayout.helper.widget.Flow
+                android:id="@+id/flowButtons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:flow_maxElementsWrap="2"
+                app:flow_wrapMode="aligned"
+                app:flow_horizontalGap="8dp"
+                app:flow_verticalGap="8dp"
+                app:flow_horizontalStyle="spread"
+                app:constraint_referenced_ids="btnReply,btnMarkRead,btnEditNoteMode,btnExportNotePopup,btnImportNote,btnDeleteNote,btnSaveNote"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/btnReply"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_revert"
+                app:iconGravity="textStart"
+                android:text="@string/action_reply"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnMarkRead"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/checkbox_on_background"
+                app:iconGravity="textStart"
+                android:text="@string/action_mark_read"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnEditNoteMode"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_edit"
+                app:iconGravity="textStart"
+                android:text="@string/edit"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnExportNotePopup"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_share"
+                app:iconGravity="textStart"
+                android:text="@string/action_export" />
+
+            <Button
+                android:id="@+id/btnImportNote"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_add"
+                app:iconGravity="textStart"
+                android:text="@string/action_import_note" />
+
+            <Button
+                android:id="@+id/btnDeleteNote"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_delete"
+                app:iconGravity="textStart"
+                android:text="@string/delete"
+                android:textColor="#FF0000"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/btnSaveNote"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_save"
+                app:iconGravity="textStart"
+                android:text="@string/save" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -210,6 +197,13 @@
                     android:layout_marginTop="4dp"
                     android:textSize="12sp"
                     android:alpha="0.7" />
+
+                <CheckBox
+                    android:id="@+id/cbProfileOnlyNote"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/action_profile_only" />
 
                 <TextView
                     android:id="@+id/labelLinkedTodo"

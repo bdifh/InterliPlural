@@ -364,6 +364,7 @@
     <string name="action_send_message">Bericht sturen</string>
     <string name="action_send">Verstuur</string>
     <string name="action_anonymous">Anoniem</string>
+    <string name="action_profile_only">Alleen profiel</string>
     <string name="action_reply">Beantwoord</string>
     <string name="action_mark_read">Markeer als gelezen</string>
     <string name="dialog_send_message_title">Bericht sturen</string>
@@ -456,7 +457,7 @@
     <string name="year">Jaar</string>
     <string name="event_title">Titel</string>
     <string name="event_description">Beschrijving</string>
-    <string name="event_all_day">Hele dag</string>
+    <string name="event_all_day">Bovenaan gepind</string>
     <string name="event_location">Locatie</string>
     <string name="add_event">Afspraak toevoegen</string>
     <string name="edit_event">Afspraak bewerken</string>
@@ -499,6 +500,9 @@
     <string name="front_history_timeline">Front Geschiedenis Tijdlijn</string>
     <string name="no_active_member">Geen actief lid geselecteerd</string>
     <string name="no_events_today">Geen afspraken vandaag</string>
+
+    <string name="delete_message_title">Bericht verwijderen</string>
+    <string name="delete_message_confirm">Weet je zeker dat je dit bericht wilt verwijderen?</string>
 
     <string name="delete_instance">Alleen deze instantie</string>
     <string name="delete_future">Deze en volgende</string>

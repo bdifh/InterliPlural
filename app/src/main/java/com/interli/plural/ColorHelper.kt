@@ -115,7 +115,7 @@ object ColorHelper {
         }
     }
 
-    fun styleSupportAlertDialog(dialog: androidx.appcompat.app.AlertDialog, context: android.content.Context) {
+    fun styleAlertDialog(dialog: androidx.appcompat.app.AlertDialog, context: android.content.Context) {
         val textColor = getTextColor(context)
         val bgColor = getBgColor(context)
         val btnColor = getBtnColor(context)
@@ -167,6 +167,11 @@ object ColorHelper {
             listView.setBackgroundColor(bgColor)
             listView.post { applyTextColorToAllViews(listView, textColor) }
         }
+    }
+
+    @Deprecated("Use styleAlertDialog instead", ReplaceWith("styleAlertDialog(dialog, context)"))
+    fun styleSupportAlertDialog(dialog: androidx.appcompat.app.AlertDialog, context: android.content.Context) {
+        styleAlertDialog(dialog, context)
     }
 
     fun styleNavigationView(navigationView: com.google.android.material.navigation.NavigationView) {

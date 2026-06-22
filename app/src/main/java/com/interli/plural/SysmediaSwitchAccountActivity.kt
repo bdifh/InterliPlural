@@ -124,13 +124,18 @@ class SysmediaSwitchAccountActivity : BaseActivity() {
             val handle = profile?.handle ?: person.name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
             holder.tvHandle.text = "@$handle"
             holder.tvHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
-            
+
             val avatarUri = profile?.profilePictureUri ?: person.profilePictureUri
-            if (avatarUri != null) {
-                holder.ivAvatar.load(avatarUri)
+            val userColor = ColorHelper.getUserColor(person.id, person.profileColor)
+            val colorDrawable = android.graphics.drawable.ColorDrawable(userColor)
+
+            if (avatarUri != null && avatarUri.isNotEmpty()) {
+                holder.ivAvatar.load(avatarUri) {
+                    placeholder(colorDrawable)
+                    error(colorDrawable)
+                }
             } else {
-                val color = if (person.profileColor == -6934396) ColorHelper.getBtnColor(this@SysmediaSwitchAccountActivity) else person.profileColor
-                holder.ivAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(color))
+                holder.ivAvatar.setImageDrawable(colorDrawable)
             }
 
             holder.itemView.setOnClickListener {

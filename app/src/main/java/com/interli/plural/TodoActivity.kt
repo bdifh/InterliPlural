@@ -147,17 +147,28 @@ class TodoActivity : BaseActivity() {
                 saveData()
                 renderLists()
             }
-            .setNeutralButton(R.string.delete) { _, _ ->
-                todoLists.forEach { if (it.bundleId == bundle.id) it.bundleId = null }
-                todoBundles.remove(bundle)
-                saveData()
-                renderLists()
-            }
+            .setNeutralButton(R.string.delete, null) // Set to null first to override listener
             .setNegativeButton(R.string.cancel, null)
             .create()
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, this)
         input.setTextColor(ColorHelper.getTextColor(this))
+
+        var deleteClicks = 8
+        val deleteBtn = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+        deleteBtn?.text = "${getString(R.string.delete)} ($deleteClicks)"
+        deleteBtn?.setOnClickListener {
+            deleteClicks--
+            if (deleteClicks <= 0) {
+                todoLists.forEach { if (it.bundleId == bundle.id) it.bundleId = null }
+                todoBundles.remove(bundle)
+                saveData()
+                renderLists()
+                dialog.dismiss()
+            } else {
+                deleteBtn.text = "${getString(R.string.delete)} ($deleteClicks)"
+            }
+        }
     }
 
     override fun onResume() {
@@ -529,7 +540,7 @@ class TodoActivity : BaseActivity() {
         }
     }
 
-    private fun handleRecurrence(task: TodoTask) {
+    private fun handleRecurrence(task: TodoTask, showToast: Boolean = true) {
         val baseTime = task.deadline ?: System.currentTimeMillis()
         val cal = Calendar.getInstance()
         cal.timeInMillis = baseTime
@@ -559,7 +570,7 @@ class TodoActivity : BaseActivity() {
         if (wasMidnight) { cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0) }
         task.deadline = cal.timeInMillis
         task.status = "EMPTY"
-        Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
+        if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
     }
 
     private fun getStatusChar(status: String): String = when (status) {
@@ -597,26 +608,26 @@ class TodoActivity : BaseActivity() {
         
         todoLists.forEach { list ->
             list.tasks.forEach { task ->
-                if (task.recurrence != null && task.status == "CHECKED" && task.deadline != null) {
-                    if (task.resetType == "DELAYED") return@forEach
-
-                    val deadlineCal = Calendar.getInstance().apply { timeInMillis = task.deadline!! }
-                    val resetTimeCal = Calendar.getInstance().apply {
-                        timeInMillis = task.deadline!!
-                        add(Calendar.DAY_OF_YEAR, 1)
-                        set(Calendar.HOUR_OF_DAY, task.resetHour)
-                        set(Calendar.MINUTE, task.resetMinute)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
+                if (task.recurrence != null && task.status == "CHECKED") {
+                    if (task.deadline == null) {
+                        val today = Calendar.getInstance().apply { 
+                            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                        }
+                        task.deadline = today.timeInMillis
+                        changed = true
                     }
 
-                    if (now.after(resetTimeCal)) {
-                        handleRecurrence(task)
+                    // Reset if the current time is past the deadline
+                    while (now.timeInMillis > (task.deadline ?: 0L)) {
+                        handleRecurrence(task, showToast = false)
                         changed = true
                     }
                 }
             }
         }
-        if (changed) saveData()
+        if (changed) {
+            saveData()
+            renderLists()
+        }
     }
 }

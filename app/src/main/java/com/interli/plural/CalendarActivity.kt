@@ -89,7 +89,17 @@ class CalendarActivity : BaseActivity() {
 
     private fun updateCalendarView() {
         val container = findViewById<LinearLayout>(R.id.calendarContainer)
-        val scrollView = findViewById<View>(R.id.calendarScrollView)
+        val scrollView = findViewById<ScrollView>(R.id.calendarScrollView)
+
+        scrollView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
+            val container = findViewById<LinearLayout>(R.id.calendarContainer)
+            for (i in 0 until container.childCount) {
+                val child = container.getChildAt(i)
+                if (child is CalendarTimelineView) {
+                    child.setScrollYOffset(scrollY)
+                }
+            }
+        }
         val recyclerView = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.calendarRecyclerView)
 
         container.removeAllViews()

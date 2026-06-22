@@ -30,13 +30,27 @@ object MemberHelper {
     fun savePeople(context: Context, people: List<Person>) {
         val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val gson = GsonBuilder().disableHtmlEscaping().create()
-        
-        val normalPeople = people.filter { !it.isSysmediaOnly }
-        val sysmediaOnly = people.filter { it.isSysmediaOnly }
+
+        val existingSysmediaJson = sharedPref.getString("sysmedia_people_list", "[]")
+        val existingSysmedia: List<Person> = Gson().fromJson(existingSysmediaJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
+
+        val newNormal = people.filter { !it.isSysmediaOnly }
+        val newSysmedia = people.filter { it.isSysmediaOnly }
 
         val editor = sharedPref.edit()
-        editor.putString("people_list", gson.toJson(normalPeople))
-        editor.putString("sysmedia_people_list", gson.toJson(sysmediaOnly))
+
+        editor.putString("people_list", gson.toJson(newNormal))
+
+        if (newSysmedia.isNotEmpty()) {
+            editor.putString("sysmedia_people_list", gson.toJson(newSysmedia))
+        } else {
+            if (people.isEmpty()) {
+                editor.putString("sysmedia_people_list", "[]")
+            } else {
+                editor.putString("sysmedia_people_list", gson.toJson(existingSysmedia))
+            }
+        }
+
         editor.commit()
     }
 

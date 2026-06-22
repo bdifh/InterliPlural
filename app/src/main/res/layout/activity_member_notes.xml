@@ -66,27 +66,36 @@
                 android:padding="16dp" />
         </androidx.core.widget.NestedScrollView>
 
+        <androidx.constraintlayout.helper.widget.Flow
+            android:id="@+id/flowButtonsMemberNotes"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
+            android:layout_marginBottom="24dp"
+            app:flow_maxElementsWrap="2"
+            app:flow_wrapMode="aligned"
+            app:flow_horizontalGap="8dp"
+            app:flow_verticalGap="8dp"
+            app:flow_horizontalStyle="spread"
+            app:constraint_referenced_ids="btnSendMessage,btnAddNoteMemberStyled"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <Button
             android:id="@+id/btnSendMessage"
             style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/action_send_message"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="24dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/btnAddNoteMemberStyled" />
+            android:text="@string/action_send_message" />
 
         <Button
             android:id="@+id/btnAddNoteMemberStyled"
             style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="24dp"
-            android:layout_marginBottom="24dp"
-            android:text="@string/add_note_button"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            android:text="@string/add_note_button" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -7,7 +7,6 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
-import java.text.SimpleDateFormat
 import java.util.*
 
 class CalendarTimelineView @JvmOverloads constructor(
@@ -20,15 +19,17 @@ class CalendarTimelineView @JvmOverloads constructor(
     private var todoLists: List<TodoList> = emptyList()
     private var baseDate: Calendar = Calendar.getInstance()
     private var daysCount = 1
-    
+
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textPaint = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.RIGHT
     }
-    
+
     private val hourHeight = 60f * resources.displayMetrics.density
     private val timeColumnWidth = 50f * resources.displayMetrics.density
-    
+    private val eventRect = RectF()
+    private var scrollYOffset = 0f
+
     var onEventClicked: ((CalendarEvent) -> Unit)? = null
     var onLinkSelected: ((String, String) -> Unit)? = null
 
@@ -49,34 +50,52 @@ class CalendarTimelineView @JvmOverloads constructor(
 
     private fun handleTouch(tx: Float, ty: Float) {
         if (tx < timeColumnWidth) return
-        
+
         val colWidth = (width - timeColumnWidth) / daysCount
         val col = ((tx - timeColumnWidth) / colWidth).toInt()
-        
-        val cal = getStartOfRange()
+        val density = resources.displayMetrics.density
+        val topOffset = getTopOffset()
+        val allDayHeight = 30 * density
+
+        val startOfRange = getStartOfRange()
+        val cal = startOfRange.clone() as Calendar
         cal.add(Calendar.DAY_OF_YEAR, col)
         val dayStart = cal.timeInMillis
         val dayEnd = dayStart + 24 * 60 * 60 * 1000
-        
-        val timeInDay = (ty / hourHeight) * 60 * 60 * 1000
+
+        val dayAllDayEvents = events.filter { it.isAllDay && it.startTime < dayEnd && it.endTime > dayStart }
+        val stickyStart = maxOf(0f, scrollYOffset)
+        dayAllDayEvents.forEachIndexed { index, event ->
+            val eventTop = stickyStart + index * allDayHeight
+            if (ty >= eventTop && ty <= eventTop + allDayHeight) {
+                onEventClicked?.invoke(event)
+                return
+            }
+        }
+
+        if (ty < topOffset) return
+        val adjustedTy = ty - topOffset
+
+        val timeInDay = (adjustedTy / hourHeight) * 60 * 60 * 1000
         val touchTime = dayStart + timeInDay.toLong()
 
         val possibleEvents = events.filter { event ->
-            event.startTime <= touchTime && event.endTime >= touchTime &&
-            event.startTime < dayEnd && event.endTime > dayStart
+            !event.isAllDay &&
+                    event.startTime <= touchTime && event.endTime >= touchTime &&
+                    event.startTime < dayEnd && event.endTime > dayStart
         }
         val clickedEvent = possibleEvents.minByOrNull { it.endTime - it.startTime }
-        
+
         if (clickedEvent != null) {
-            val density = resources.displayMetrics.density
             val eventStartCal = Calendar.getInstance().apply { timeInMillis = clickedEvent.startTime }
-            val dayIdx = col
-            val dayStartRange = getStartOfRange().apply { add(Calendar.DAY_OF_YEAR, dayIdx) }.timeInMillis
+            val dayStartRange = startOfRange.clone() as Calendar
+            dayStartRange.add(Calendar.DAY_OF_YEAR, col)
+            val dayStartMillis = dayStartRange.timeInMillis
 
-            val startY = if (clickedEvent.startTime < dayStartRange) 0f 
-                        else (eventStartCal.get(Calendar.HOUR_OF_DAY) + eventStartCal.get(Calendar.MINUTE) / 60f) * hourHeight
+            val startY = if (clickedEvent.startTime < dayStartMillis) 0f
+            else (eventStartCal.get(Calendar.HOUR_OF_DAY) + eventStartCal.get(Calendar.MINUTE) / 60f) * hourHeight
 
-            val relativeY = ty - startY
+            val relativeY = adjustedTy - startY
 
             if (relativeY > 20 * density) {
                 val links = mutableListOf<Triple<String, String, String>>()
@@ -92,7 +111,7 @@ class CalendarTimelineView @JvmOverloads constructor(
                         "NOTE" -> "📝 ${link.third}"
                         else -> "✅ ${link.third}"
                     }
-                    val textWidth = text.length * 7 * density // Rough estimate
+                    val textWidth = text.length * 7 * density
                     val touchXInEvent = tx - (timeColumnWidth + col * colWidth)
                     if (touchXInEvent in currentX..(currentX + textWidth) && relativeY in (20 * density)..(35 * density)) {
                         onLinkSelected?.invoke(link.first, link.second)
@@ -126,15 +145,35 @@ class CalendarTimelineView @JvmOverloads constructor(
         this.baseDate = baseDate
         this.daysCount = daysCount
         invalidate()
+        requestLayout()
+    }
+
+    fun setScrollYOffset(offset: Int) {
+        if (this.scrollYOffset != offset.toFloat()) {
+            this.scrollYOffset = offset.toFloat()
+            invalidate()
+        }
+    }
+
+    private fun getTopOffset(): Float {
+        val density = resources.displayMetrics.density
+        val allDayHeight = 30 * density
+        val startOfRange = getStartOfRange()
+
+        val maxAllDayCount = (0 until daysCount).map { i ->
+            val dStart = (startOfRange.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, i) }.timeInMillis
+            val dEnd = dStart + 24 * 3600 * 1000
+            events.count { it.isAllDay && it.startTime < dEnd && it.endTime > dStart }
+        }.maxOrNull() ?: 0
+
+        return maxAllDayCount * allDayHeight
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
-        val height = (24 * hourHeight).toInt()
+        val height = (24 * hourHeight + getTopOffset()).toInt()
         setMeasuredDimension(width, height)
     }
-
-    private val eventRect = RectF()
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -142,14 +181,10 @@ class CalendarTimelineView @JvmOverloads constructor(
 
         val density = resources.displayMetrics.density
         val colWidth = (width - timeColumnWidth) / daysCount
+        val topOffset = getTopOffset()
+        val allDayHeight = 30 * density
 
-        textPaint.textAlign = Paint.Align.RIGHT
-        textPaint.alpha = 255
-        paint.alpha = 255
-        
         val textColor = ColorHelper.getTextColor(context)
-        val btnColor = ColorHelper.getBtnColor(context)
-        val btnTextColor = ColorHelper.getBtnTextColor(context)
         val bgColor = ColorHelper.getBgColor(context)
 
         canvas.drawColor(bgColor)
@@ -158,10 +193,11 @@ class CalendarTimelineView @JvmOverloads constructor(
         paint.alpha = 40
         paint.strokeWidth = 1f
         for (i in 0..24) {
-            val y = i * hourHeight
+            val y = topOffset + i * hourHeight
             canvas.drawLine(timeColumnWidth, y, width.toFloat(), y, paint)
-            
+
             if (i < 24) {
+                textPaint.textAlign = Paint.Align.RIGHT
                 textPaint.color = textColor
                 textPaint.alpha = 200
                 textPaint.textSize = 12 * density
@@ -180,83 +216,80 @@ class CalendarTimelineView @JvmOverloads constructor(
         val startOfRange = getStartOfRange()
         val endOfRange = startOfRange.clone() as Calendar
         endOfRange.add(Calendar.DAY_OF_YEAR, daysCount)
-        
-        val visibleEvents = events.filter { 
-            it.startTime < endOfRange.timeInMillis && it.endTime > startOfRange.timeInMillis 
+
+        val visibleEvents = events.filter {
+            it.startTime < endOfRange.timeInMillis && it.endTime > startOfRange.timeInMillis
         }
 
-        visibleEvents.forEach { event ->
-            val eventStartCal = Calendar.getInstance().apply { timeInMillis = event.startTime }
-            val eventEndCal = Calendar.getInstance().apply { timeInMillis = event.endTime }
-            
-            for (i in 0 until daysCount) {
-                val dayStartCal = startOfRange.clone() as Calendar
-                dayStartCal.add(Calendar.DAY_OF_YEAR, i)
-                val dayEndCal = dayStartCal.clone() as Calendar
-                dayEndCal.add(Calendar.DAY_OF_YEAR, 1)
-                
-                if (event.startTime < dayEndCal.timeInMillis && event.endTime > dayStartCal.timeInMillis) {
-                    val x = timeColumnWidth + i * colWidth
+        val stickyStart = maxOf(0f, scrollYOffset)
 
-                    val startY = if (event.isAllDay) {
-                        0f
-                    } else if (event.startTime < dayStartCal.timeInMillis) {
-                        0f
-                    } else {
-                        (eventStartCal.get(Calendar.HOUR_OF_DAY) + eventStartCal.get(Calendar.MINUTE) / 60f) * hourHeight
+        for (i in 0 until daysCount) {
+            val dayStartMillis = (startOfRange.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, i) }.timeInMillis
+            val dayEndMillis = dayStartMillis + 24 * 3600 * 1000
+            val x = timeColumnWidth + i * colWidth
+
+            val dayAllDayEvents = visibleEvents.filter { it.isAllDay && it.startTime < dayEndMillis && it.endTime > dayStartMillis }
+            dayAllDayEvents.forEachIndexed { index, event ->
+                val stickyY = stickyStart + index * allDayHeight
+                drawEventBox(canvas, event, x, colWidth, stickyY + 1 * density, stickyY + allDayHeight - 1 * density, density)
+            }
+
+            val dayRegularEvents = visibleEvents.filter { !it.isAllDay && it.startTime < dayEndMillis && it.endTime > dayStartMillis }
+            dayRegularEvents.forEach { event ->
+                val eventStartCal = Calendar.getInstance().apply { timeInMillis = event.startTime }
+                val eventEndCal = Calendar.getInstance().apply { timeInMillis = event.endTime }
+
+                val startY = if (event.startTime < dayStartMillis) 0f
+                else (eventStartCal.get(Calendar.HOUR_OF_DAY) + eventStartCal.get(Calendar.MINUTE) / 60f) * hourHeight
+                val endY = if (event.endTime > dayEndMillis) 24 * hourHeight
+                else (eventEndCal.get(Calendar.HOUR_OF_DAY) + eventEndCal.get(Calendar.MINUTE) / 60f) * hourHeight
+
+                drawEventBox(canvas, event, x, colWidth, topOffset + startY + 1 * density, topOffset + endY - 1 * density, density)
+            }
+        }
+    }
+
+    private fun drawEventBox(canvas: Canvas, event: CalendarEvent, x: Float, colWidth: Float, top: Float, bottom: Float, density: Float) {
+        eventRect.set(x + 2 * density, top, x + colWidth - 2 * density, bottom)
+
+        val color = getEventColor(event)
+        paint.color = color
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(eventRect, 4 * density, 4 * density, paint)
+
+        if (bottom - top > 15 * density) {
+            textPaint.color = if (ColorHelper.isDark(color)) Color.WHITE else Color.BLACK
+            textPaint.textAlign = Paint.Align.LEFT
+            textPaint.textSize = 12 * density
+            val availableWidth = colWidth - 8 * density
+            val ellipsizedTitle = android.text.TextUtils.ellipsize(
+                event.title,
+                android.text.TextPaint(textPaint),
+                availableWidth,
+                android.text.TextUtils.TruncateAt.END
+            )
+            canvas.drawText(ellipsizedTitle.toString(), eventRect.left + 4 * density, eventRect.top + 14 * density, textPaint)
+
+            if (bottom - top > 30 * density) {
+                textPaint.textSize = 10 * density
+                val links = mutableListOf<Triple<String, String, String>>()
+                event.linkedMemberIds.forEach { id -> people.find { it.id == id }?.let { links.add(Triple("MEMBER", it.id, it.name)) } }
+                event.linkedNoteId?.let { id -> notes.find { it.id == id }?.let { links.add(Triple("NOTE", it.id, it.title.ifEmpty { "Note" })) } }
+                event.linkedTodoListId?.let { id -> todoLists.find { it.id == id }?.let { links.add(Triple("TODO", it.id, it.title.ifEmpty { "Todo" })) } }
+
+                val colWidthAdjusted = colWidth - 4 * density
+                var currentX = 4 * density
+                val spacing = 12 * density
+                links.forEach { link ->
+                    val text = when(link.first) {
+                        "MEMBER" -> "👤 ${link.third}"
+                        "NOTE" -> "📝 ${link.third}"
+                        else -> "✅ ${link.third}"
                     }
-
-                    val endY = if (event.isAllDay) {
-                        25 * density 
-                    } else if (event.endTime > dayEndCal.timeInMillis) {
-                        24 * hourHeight
-                    } else {
-                        (eventEndCal.get(Calendar.HOUR_OF_DAY) + eventEndCal.get(Calendar.MINUTE) / 60f) * hourHeight
-                    }
-
-                    eventRect.set(x + 2 * density, startY + 1 * density, x + colWidth - 2 * density, endY - 1 * density)
-                    
-                    val color = getEventColor(event)
-                    paint.color = color
-                    paint.style = Paint.Style.FILL
-                    canvas.drawRoundRect(eventRect, 4 * density, 4 * density, paint)
-                    
-                    if (endY - startY > 15 * density) {
-                        textPaint.color = if (ColorHelper.isDark(color)) Color.WHITE else Color.BLACK
-                        textPaint.textAlign = Paint.Align.LEFT
-                        textPaint.textSize = 12 * density
-                        val availableWidth = colWidth - 8 * density
-                        val textPaintForLayout = android.text.TextPaint(textPaint)
-                        val ellipsizedTitle = android.text.TextUtils.ellipsize(
-                            event.title,
-                            textPaintForLayout,
-                            availableWidth,
-                            android.text.TextUtils.TruncateAt.END
-                        )
-                        canvas.drawText(ellipsizedTitle.toString(), eventRect.left + 4 * density, eventRect.top + 14 * density, textPaint)
-
-                        textPaint.textSize = 10 * density
-                        val links = mutableListOf<Triple<String, String, String>>()
-                        event.linkedMemberIds.forEach { id -> people.find { it.id == id }?.let { links.add(Triple("MEMBER", it.id, it.name)) } }
-                        event.linkedNoteId?.let { id -> notes.find { it.id == id }?.let { links.add(Triple("NOTE", it.id, it.title.ifEmpty { "Note" })) } }
-                        event.linkedTodoListId?.let { id -> todoLists.find { it.id == id }?.let { links.add(Triple("TODO", it.id, it.title.ifEmpty { "Todo" })) } }
-
-                        val colWidthAdjusted = colWidth - 4 * density
-
-                        var currentX = 4 * density
-                        val spacing = 12 * density
-                        links.forEach { link ->
-                            val text = when(link.first) {
-                                "MEMBER" -> "👤 ${link.third}"
-                                "NOTE" -> "📝 ${link.third}"
-                                else -> "✅ ${link.third}"
-                            }
-                            val textWidth = text.length * 7 * density // Rough estimate
-                            if (currentX + textWidth < colWidthAdjusted && eventRect.top + 32 * density < eventRect.bottom) {
-                                canvas.drawText(text, eventRect.left + currentX, eventRect.top + 28 * density, textPaint)
-                                currentX += textWidth + spacing
-                            }
-                        }
+                    val textWidth = text.length * 7 * density
+                    if (currentX + textWidth < colWidthAdjusted && eventRect.top + 32 * density < eventRect.bottom) {
+                        canvas.drawText(text, eventRect.left + currentX, eventRect.top + 28 * density, textPaint)
+                        currentX += textWidth + spacing
                     }
                 }
             }

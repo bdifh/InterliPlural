@@ -517,20 +517,25 @@ class ChatActivity : BaseActivity() {
                 markwon.setMarkdown(holder.tvMessage, processedContent)
             }
             
-            if (msg.imageUri != null) {
-                holder.ivImage.visibility = View.VISIBLE
-                holder.ivImage.load(msg.imageUri)
-            } else {
-                holder.ivImage.visibility = View.GONE
-            }
-
-            holder.tvTime.text = sdf.format(Date(msg.timestamp))
-
             val displayMetrics = resources.displayMetrics
             val density = displayMetrics.density
             val maxBubbleWidth = (displayMetrics.widthPixels * 0.8).toInt()
+            val innerPadding = (24 * density).toInt() // 12dp padding on each side from layoutBubbleContent in XML
+            val targetImageWidth = maxBubbleWidth - innerPadding
+
+            if (msg.imageUri != null) {
+                holder.ivImage.visibility = View.VISIBLE
+                holder.ivImage.layoutParams.width = targetImageWidth
+                holder.ivImage.load(msg.imageUri)
+                holder.cardBubble.layoutParams.width = maxBubbleWidth
+            } else {
+                holder.ivImage.visibility = View.GONE
+                holder.ivImage.layoutParams.width = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                holder.cardBubble.layoutParams.width = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            }
+
+            holder.tvTime.text = sdf.format(Date(msg.timestamp))
             
-            holder.cardBubble.layoutParams.width = android.view.ViewGroup.LayoutParams.WRAP_CONTENT
             holder.tvMessage.maxWidth = maxBubbleWidth - (32 * density).toInt()
             holder.ivImage.maxWidth = maxBubbleWidth - (32 * density).toInt()
 
@@ -660,16 +665,26 @@ class ChatActivity : BaseActivity() {
                                 getString(R.string.action_switch_account) -> showSwitchSenderDialog(m, pos)
                                 getString(R.string.edit) -> showEditMessageDialog(m, pos)
                                 getString(R.string.delete) -> {
-                                    val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-                                    val msgJson = sharedPref.getString("sysmedia_dms", "[]")
-                                    val typeMsg = object : TypeToken<MutableList<DirectMessage>>() {}.type
-                                    val allMessages: MutableList<DirectMessage> = Gson().fromJson(msgJson, typeMsg) ?: mutableListOf()
-                                    
-                                    allMessages.removeAll { it.id == m.id }
-                                    sharedPref.edit { putString("sysmedia_dms", Gson().toJson(allMessages)) }
-                                    
-                                    messages.removeAt(pos)
-                                    notifyItemRemoved(pos)
+                                    androidx.appcompat.app.AlertDialog.Builder(this@ChatActivity)
+                                        .setTitle(R.string.delete_message_title)
+                                        .setMessage(R.string.delete_message_confirm)
+                                        .setPositiveButton(R.string.delete) { _, _ ->
+                                            val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+                                            val msgJson = sharedPref.getString("sysmedia_dms", "[]")
+                                            val typeMsg = object : TypeToken<MutableList<DirectMessage>>() {}.type
+                                            val allMessages: MutableList<DirectMessage> = Gson().fromJson(msgJson, typeMsg) ?: mutableListOf()
+                                            
+                                            allMessages.removeAll { it.id == m.id }
+                                            sharedPref.edit { putString("sysmedia_dms", Gson().toJson(allMessages)) }
+                                            
+                                            messages.removeAt(pos)
+                                            notifyItemRemoved(pos)
+                                        }
+                                        .setNegativeButton(R.string.cancel, null)
+                                        .show()
+                                        .let { dialog: androidx.appcompat.app.AlertDialog -> 
+                                            ColorHelper.styleAlertDialog(dialog, this@ChatActivity) 
+                                        }
                                 }
                             }
                         }.show()

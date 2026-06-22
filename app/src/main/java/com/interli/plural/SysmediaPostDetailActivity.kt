@@ -105,12 +105,12 @@ class SysmediaPostDetailActivity : BaseActivity() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val postsJson = sharedPref.getString("sysmedia_posts", "[]")
         posts = gson.fromJson(postsJson, object : TypeToken<MutableList<SysmediaPost>>() {}.type) ?: mutableListOf()
-        
-        posts.forEach { 
+
+        posts.forEach {
             @Suppress("SENSELESS_COMPARISON")
             if (it.likedByMemberIds == null) it.likedByMemberIds = mutableMapOf()
         }
-        
+
         people = MemberHelper.loadAllPeople(this)
     }
 

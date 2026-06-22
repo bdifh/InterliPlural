@@ -374,6 +374,7 @@
     <string name="action_send_message">Send Message</string>
     <string name="action_send">Send</string>
     <string name="action_anonymous">Anonymous</string>
+    <string name="action_profile_only">Profile only</string>
     <string name="action_reply">Reply</string>
     <string name="action_mark_read">Mark as Read</string>
     <string name="dialog_send_message_title">Send Message</string>
@@ -457,6 +458,7 @@
     <string name="dialog_add_time">Add time?</string>
     <string name="action_add_notification">+ Add Notification</string>
 
+
     <string name="label_color">Color</string>
     <string name="label_recurrence">Recurrence</string>
     <string name="agenda">Agenda</string>
@@ -466,12 +468,16 @@
     <string name="year">Year</string>
     <string name="event_title">Title</string>
     <string name="event_description">Description</string>
-    <string name="event_all_day">All Day</string>
+    <string name="event_all_day">Pinned on top</string>
     <string name="event_location">Location</string>
     <string name="add_event">Add Event</string>
     <string name="edit_event">Edit Event</string>
     <string name="delete_event_8x">Delete Event (%1$d)</string>
     <string name="label_hide_in">Hide in:</string>
+
+    <string name="delete_instance">Delete this instance</string>
+    <string name="delete_future">Delete this and all future</string>
+    <string name="delete_series">Delete entire series</string>
 
     <string name="action_remove_notification">Remove</string>
     <string name="notification_times_label">Notification Times:</string>
@@ -510,7 +516,7 @@
     <string name="no_active_member">No active member selected</string>
     <string name="no_events_today">No events today</string>
 
-    <string name="delete_instance">Delete this instance</string>
-    <string name="delete_future">Delete this and all future</string>
-    <string name="delete_series">Delete entire series</string>
+    <string name="delete_message_title">Delete Message</string>
+    <string name="delete_message_confirm">Are you sure you want to delete this message?</string>
+
 </resources>

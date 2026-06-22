@@ -15,7 +15,7 @@
         android:paddingEnd="24dp"
         android:paddingBottom="24dp">
 
-        <RelativeLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp">
@@ -27,37 +27,43 @@
                 android:text="@string/dialog_send_message_title"
                 android:textSize="24sp"
                 android:textStyle="bold"
-                android:textColor="@color/black" />
+                android:textColor="@color/black"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
 
-            <LinearLayout
-                android:layout_width="wrap_content"
+            <androidx.constraintlayout.helper.widget.Flow
+                android:id="@+id/flowButtonsSendMessage"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_alignParentEnd="true"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:layout_marginTop="16dp"
+                app:flow_maxElementsWrap="2"
+                app:flow_wrapMode="aligned"
+                app:flow_horizontalGap="8dp"
+                app:flow_verticalGap="8dp"
+                app:flow_horizontalStyle="spread"
+                app:constraint_referenced_ids="btnSend,btnSendMessageBack"
+                app:layout_constraintTop_toBottomOf="@id/titleSendMessage"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
 
-                <Button
-                    android:id="@+id/btnSend"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    android:layout_marginEnd="8dp"
-                    app:icon="@android:drawable/ic_menu_send"
-                    app:iconGravity="textStart"
-                    android:text="@string/action_send" />
+            <Button
+                android:id="@+id/btnSend"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@android:drawable/ic_menu_send"
+                app:iconGravity="textStart"
+                android:text="@string/action_send" />
 
-                <Button
-                    android:id="@+id/btnSendMessageBack"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:minWidth="80dp"
-                    app:icon="@drawable/abc_ic_ab_back_material"
-                    app:iconGravity="textStart"
-                    android:text="@string/back" />
-            </LinearLayout>
-        </RelativeLayout>
+            <Button
+                android:id="@+id/btnSendMessageBack"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                app:icon="@drawable/abc_ic_ab_back_material"
+                app:iconGravity="textStart"
+                android:text="@string/back" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -96,6 +102,13 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/action_anonymous"
+                        android:textSize="12sp" />
+
+                    <CheckBox
+                        android:id="@+id/cbProfileOnly"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/action_profile_only"
                         android:textSize="12sp" />
                 </LinearLayout>
 
