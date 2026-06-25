@@ -490,6 +490,13 @@ class MainActivity : BaseActivity() {
             val todoName = getString(R.string.todo)
             val todoChannel = android.app.NotificationChannel("TODO_CHANNEL", todoName, android.app.NotificationManager.IMPORTANCE_HIGH)
             notificationManager.createNotificationChannel(todoChannel)
+
+            val sysmediaName = getString(R.string.notification_channel_sysmedia_name)
+            val sysmediaDesc = getString(R.string.notification_channel_sysmedia_description)
+            val sysmediaChannel = android.app.NotificationChannel("SYSMEDIA_CHANNEL", sysmediaName, android.app.NotificationManager.IMPORTANCE_HIGH).apply {
+                description = sysmediaDesc
+            }
+            notificationManager.createNotificationChannel(sysmediaChannel)
         }
     }
 
@@ -645,6 +652,13 @@ class MainActivity : BaseActivity() {
 
     private fun handleIntentDialogs(intent: android.content.Intent?) {
         if (intent == null) return
+
+        if (intent.getBooleanExtra("OPEN_SYSMEDIA", false)) {
+            val sysmediaIntent = android.content.Intent(this, SysmediaActivity::class.java)
+            startActivity(sysmediaIntent)
+            intent.removeExtra("OPEN_SYSMEDIA")
+            return
+        }
 
         if ((intent.flags and android.content.Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0) {
             intent.removeExtra("SHOW_DIALOG")
@@ -852,6 +866,7 @@ class MainActivity : BaseActivity() {
                 showFrontMessageNotification(person)
                 person.messageRead = true
             }
+            SysmediaNotificationHelper.checkAndNotify(this, person.id)
         } else {
             sessions.filter { (it.personId == person.id || (it.personId == null && it.personName == person.name)) && it.endTime == null }
                 .forEach { it.endTime = System.currentTimeMillis() }

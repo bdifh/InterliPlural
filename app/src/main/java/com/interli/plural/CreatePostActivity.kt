@@ -410,6 +410,7 @@ class CreatePostActivity : BaseActivity() {
                             type = "EVERYONE",
                             postId = newPost.id
                         ))
+                        SysmediaNotificationHelper.checkAndNotify(this@CreatePostActivity, person.id)
                     }
                 }
             }
@@ -428,6 +429,7 @@ class CreatePostActivity : BaseActivity() {
                         type = "TAG",
                         postId = newPost.id
                     ))
+                    SysmediaNotificationHelper.checkAndNotify(this@CreatePostActivity, taggedPerson.id)
                 }
             }
 
@@ -453,6 +455,7 @@ class CreatePostActivity : BaseActivity() {
                         type = "REPLY",
                         postId = newPost.id
                     ))
+                    SysmediaNotificationHelper.checkAndNotify(this@CreatePostActivity, original.senderId)
                 }
             }
         }

@@ -30,6 +30,8 @@
     <!-- MainActivity extracts -->
     <string name="notification_channel_name">Front Status</string>
     <string name="notification_channel_description">Toont wie er op dit moment front</string>
+    <string name="notification_channel_sysmedia_name">Sysmedia Notificaties</string>
+    <string name="notification_channel_sysmedia_description">Meldingen voor mentions, antwoorden en DM\'s in Sysmedia</string>
     <string name="nobody_fronting_notification">Niemand front op dit moment</string>
     <string name="hint_enter_name">Naam invoeren</string>
     <string name="dialog_add_member_title">Nieuw lid toevoegen</string>
@@ -186,6 +188,7 @@
     <string name="notif_liked">vindt dit leuk</string>
     <string name="notif_new_post">heeft een nieuw bericht geplaatst</string>
     <string name="notif_interacted">heeft interactie getoond</string>
+    <string name="notification_sysmedia_summary">Je hebt %1$d nieuwe Sysmedia meldingen</string>
     <string name="handle_format">\@%1$s</string>
     <string name="scheduled_for_format">Ingepland voor: %1$s</string>
     <string name="todo">To Do</string>
@@ -346,6 +349,8 @@
     <string name="action_manage_notifications">Notificaties Beheren</string>
     <string name="notification_front_toggle">Front notificatie tonen</string>
     <string name="notification_todo_toggle">To Do herinneringen</string>
+    <string name="notification_sysmedia_notif_toggle">Sysmedia: Mentions &amp; Antwoorden</string>
+    <string name="notification_sysmedia_dm_toggle">Sysmedia: Directe Berichten (DM)</string>
     <string name="notification_mood_toggle">Mood entry herinneringen</string>
     <string name="notification_mood_frequency">Frequentie per dag</string>
     <string name="notification_mood_title">Hoe gaat het?</string>

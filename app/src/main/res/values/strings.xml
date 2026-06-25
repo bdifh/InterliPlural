@@ -33,6 +33,8 @@
     <!-- (MainActivity) -->
     <string name="notification_channel_name">Front Status</string>
     <string name="notification_channel_description">Shows who is currently fronting</string>
+    <string name="notification_channel_sysmedia_name">Sysmedia Notifications</string>
+    <string name="notification_channel_sysmedia_description">Notifications for mentions, replies and DMs in Sysmedia</string>
     <string name="nobody_fronting_notification">Nobody is fronting at the moment</string>
     <string name="hint_enter_name">Enter name</string>
     <string name="dialog_add_member_title">Add new member</string>
@@ -189,6 +191,7 @@
     <string name="notif_liked">liked</string>
     <string name="notif_new_post">posted something new</string>
     <string name="notif_interacted">interacted</string>
+    <string name="notification_sysmedia_summary">You have %1$d new Sysmedia notifications</string>
     <string name="handle_format">\@%1$s</string>
     <string name="scheduled_for_format">Scheduled for: %1$s</string>
     <string name="todo">To Do</string>
@@ -356,6 +359,8 @@
     <string name="action_manage_notifications">Manage Notifications</string>
     <string name="notification_front_toggle">Show front notification</string>
     <string name="notification_todo_toggle">To Do reminders</string>
+    <string name="notification_sysmedia_notif_toggle">Sysmedia: Mentions &amp; Replies</string>
+    <string name="notification_sysmedia_dm_toggle">Sysmedia: Direct Messages</string>
     <string name="notification_mood_toggle">Mood entry reminders</string>
     <string name="notification_mood_frequency">Frequency per day</string>
     <string name="notification_mood_title">How are you doing?</string>

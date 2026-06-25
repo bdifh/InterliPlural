@@ -327,6 +327,9 @@ class ChatActivity : BaseActivity() {
         allMessages.add(newMsg)
         sharedPref.edit(commit = true) { putString("sysmedia_dms", Gson().toJson(allMessages)) }
 
+        val notifyId = if (isGroup) chatId!! else chatId!!
+        SysmediaNotificationHelper.checkAndNotify(this, notifyId)
+
         messages.add(newMsg)
         adapter.notifyItemInserted(messages.size - 1)
         recyclerView.scrollToPosition(messages.size - 1)

@@ -15,7 +15,7 @@ android {
         minSdk = 24
         targetSdk = 35
         versionCode = 24 // DO NOT TOUCH
-        versionName = "V002-1a" // DO NOT TOUCH, lowest easy downgrade version.
+        versionName = "V002-1a" // DO NOT TOUCH = lowest easy downgrade version.
 
         buildConfigField("String", "VERSION_DISPLAYED", "\"$versionDisplayed\"")
 

@@ -270,6 +270,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
                     val notifications: MutableList<SysmediaNotification> = gson.fromJson(notifJson, object : TypeToken<MutableList<SysmediaNotification>>() {}.type) ?: mutableListOf()
                     notifications.add(0, SysmediaNotification(receiverId = post.senderId, senderId = memberId, type = "LIKE", postId = post.id))
                     sharedPref.edit().putString("sysmedia_notifications", Gson().toJson(notifications)).apply()
+                    SysmediaNotificationHelper.checkAndNotify(this@SysmediaPostDetailActivity, post.senderId)
                 }
             } else {
                 post.likes -= 3
@@ -386,6 +387,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
             val notifications: MutableList<SysmediaNotification> = gson.fromJson(notifJson, object : TypeToken<MutableList<SysmediaNotification>>() {}.type) ?: mutableListOf()
             notifications.add(0, SysmediaNotification(receiverId = currentPost.senderId, senderId = activeMemberId, type = "REPLY", postId = currentPost.id))
             getSharedPreferences("my_app", MODE_PRIVATE).edit().putString("sysmedia_notifications", gson.toJson(notifications)).apply()
+            SysmediaNotificationHelper.checkAndNotify(this, currentPost.senderId)
         }
         saveData()
     }
@@ -610,6 +612,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
                             val notifications: MutableList<SysmediaNotification> = gson.fromJson(notifJson, object : TypeToken<MutableList<SysmediaNotification>>() {}.type) ?: mutableListOf()
                             notifications.add(0, SysmediaNotification(receiverId = item.senderId, senderId = memberId, type = "LIKE", postId = item.id))
                             sharedPref.edit().putString("sysmedia_notifications", Gson().toJson(notifications)).apply()
+                            SysmediaNotificationHelper.checkAndNotify(this@SysmediaPostDetailActivity, item.senderId)
                         }
                     } else {
                         item.likes -= 3

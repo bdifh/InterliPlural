@@ -570,6 +570,8 @@ class SettingsActivity : BaseActivity() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val frontEnabled = sharedPref.getBoolean("front_notif_enabled", true)
         val todoEnabled = sharedPref.getBoolean("todo_notif_enabled", true)
+        val sysmediaNotisEnabled = sharedPref.getBoolean("sysmedia_notif_enabled", true)
+        val sysmediaDmsEnabled = sharedPref.getBoolean("sysmedia_dm_notif_enabled", true)
         val moodEnabled = sharedPref.getBoolean("mood_notif_enabled", false)
         val timesJson = sharedPref.getString("mood_notif_times", "[]") ?: "[]"
         val moodTimes: MutableList<String> = try { 
@@ -597,6 +599,20 @@ class SettingsActivity : BaseActivity() {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 24 }
         }
         layout.addView(swTodo)
+
+        val swSysmediaNotis = SwitchCompat(this).apply {
+            text = getString(R.string.notification_sysmedia_notif_toggle)
+            isChecked = sysmediaNotisEnabled
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 24 }
+        }
+        layout.addView(swSysmediaNotis)
+
+        val swSysmediaDms = SwitchCompat(this).apply {
+            text = getString(R.string.notification_sysmedia_dm_toggle)
+            isChecked = sysmediaDmsEnabled
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 24 }
+        }
+        layout.addView(swSysmediaDms)
 
         val swMood = SwitchCompat(this).apply {
             text = getString(R.string.notification_mood_toggle)
@@ -677,6 +693,8 @@ class SettingsActivity : BaseActivity() {
                 sharedPref.edit {
                     putBoolean("front_notif_enabled", swFront.isChecked)
                     putBoolean("todo_notif_enabled", swTodo.isChecked)
+                    putBoolean("sysmedia_notif_enabled", swSysmediaNotis.isChecked)
+                    putBoolean("sysmedia_dm_notif_enabled", swSysmediaDms.isChecked)
                     putBoolean("mood_notif_enabled", swMood.isChecked)
                     putString("mood_notif_times", Gson().toJson(moodTimes))
                 }
