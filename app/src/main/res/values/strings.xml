@@ -218,6 +218,7 @@
     <string name="action_link_todo_list">Link To Do List</string>
     <string name="label_linked_note">Linked Note</string>
     <string name="label_linked_todo">Linked To Do</string>
+    <string name="label_reply_to">Replying to</string>
     <string name="hint_field_title">Field Title</string>
     <string name="hint_field_template">Template (Optional)</string>
     <string name="action_reset">Reset</string>
@@ -273,6 +274,7 @@
     <string name="all_activities">All Activities</string>
     <string name="all_members">All Members</string>
     <string name="action_edit">Edit</string>
+    <string name="edit_current_picture">Edit current picture</string>
     <string name="label_date_time">Date &amp; Time</string>
     <string name="view_month">Visual</string>
     <string name="mood_month_stats">Monthly Mood</string>
@@ -386,7 +388,8 @@
     <string name="label_from">From:</string>
     <string name="label_to">To:</string>
     <string name="label_to_member">To: %1$s</string>
-    <string name="message_from_placeholder">From %1$s:\n\n%2$s</string>
+    <string name="message_from_placeholder">From: %1$s</string>
+    <string name="message_to_placeholder">To: %1$s</string>
     <string name="hint_message_content">Type your message here...</string>
     <string name="message_sent">Sysmail sent!</string>
     <string name="action_delete_all">Delete All Data (%1$d)</string>
@@ -527,5 +530,13 @@
 
     <string name="delete_message_title">Delete Sysmail</string>
     <string name="delete_message_confirm">Are you sure you want to delete this Sysmail?</string>
+
+    <string name="help">Help</string>
+    <string name="help_who_am_i_title">Help: Who Am I?</string>
+    <string name="help_who_am_i_like">I like this</string>
+    <string name="help_who_am_i_neutral">This is neutral / okay</string>
+    <string name="help_who_am_i_dislike">I don\'t like this</string>
+    <string name="help_who_am_i_now">I am doing / feeling this now</string>
+    <string name="help_who_am_i_note">Note: The checkmark ✅ gives a higher score to members who have filled in this activity most in the Mood Tracker.</string>
 
 </resources>

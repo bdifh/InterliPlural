@@ -339,6 +339,16 @@ class TodoActivity : BaseActivity() {
                     setColorFilter(ColorHelper.getBtnTextColor(this@TodoActivity))
                 }
                 content.addView(btnExpand)
+                
+                val btnEdit = ImageButton(this@TodoActivity).apply {
+                    setImageResource(android.R.drawable.ic_menu_edit)
+                    background = null
+                    setColorFilter(ColorHelper.getBtnTextColor(this@TodoActivity))
+                    alpha = 0.6f
+                    setOnClickListener { showEditBundleDialog(bundle) }
+                }
+                content.addView(btnEdit)
+
                 card.addView(content)
 
                 card.setOnClickListener {

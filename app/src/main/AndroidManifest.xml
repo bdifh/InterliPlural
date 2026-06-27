@@ -44,6 +44,12 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".CropImageActivity"
+            android:label="@string/adjust_profile_photo"
+            android:parentActivityName=".ProfileActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".SettingsActivity"
             android:label="Instellingen"
             android:parentActivityName=".MainActivity"

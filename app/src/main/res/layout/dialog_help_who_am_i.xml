@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- 👍 Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="4dp">
+            <TextView
+                android:id="@+id/tvHelpLikeIcon"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="👍"
+                android:textSize="20sp"
+                android:gravity="center" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" = "
+                android:textSize="16sp"
+                android:paddingHorizontal="8dp" />
+            <TextView
+                android:id="@+id/tvHelpLikeText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/help_who_am_i_like"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Neutral Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="4dp">
+            <TextView
+                android:id="@+id/tvHelpNeutralIcon"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="👍"
+                android:rotation="90"
+                android:textSize="20sp"
+                android:gravity="center" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" = "
+                android:textSize="16sp"
+                android:paddingHorizontal="8dp" />
+            <TextView
+                android:id="@+id/tvHelpNeutralText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/help_who_am_i_neutral"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Dislike Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="4dp">
+            <TextView
+                android:id="@+id/tvHelpDislikeIcon"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="👍"
+                android:rotation="180"
+                android:textSize="20sp"
+                android:gravity="center" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" = "
+                android:textSize="16sp"
+                android:paddingHorizontal="8dp" />
+            <TextView
+                android:id="@+id/tvHelpDislikeText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/help_who_am_i_dislike"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- Now Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="4dp">
+            <TextView
+                android:id="@+id/tvHelpNowIcon"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:text="✅"
+                android:textSize="18sp"
+                android:gravity="center" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" = "
+                android:textSize="16sp"
+                android:paddingHorizontal="8dp" />
+            <TextView
+                android:id="@+id/tvHelpNowText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/help_who_am_i_now"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvHelpNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="16dp"
+            android:text="@string/help_who_am_i_note"
+            android:textSize="12sp"
+            android:textStyle="italic" />
+
+    </LinearLayout>
+</ScrollView>

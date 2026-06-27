@@ -111,7 +111,20 @@ object ColorHelper {
         val listView = dialog.listView
         if (listView != null) {
             listView.setBackgroundColor(bgColor)
-            listView.post { applyTextColorToAllViews(listView, textColor) }
+            listView.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
+                override fun onChildViewAdded(parent: View?, child: View?) {
+                    child?.let { 
+                        applyToView(it, bgColor, btnColor, btnTextColor, textColor)
+                        if (it is ViewGroup) applyToViewGroup(it, bgColor, btnColor, btnTextColor, textColor)
+                    }
+                }
+                override fun onChildViewRemoved(parent: View?, child: View?) {}
+            })
+            for (i in 0 until listView.childCount) {
+                val child = listView.getChildAt(i)
+                applyToView(child, bgColor, btnColor, btnTextColor, textColor)
+                if (child is ViewGroup) applyToViewGroup(child, bgColor, btnColor, btnTextColor, textColor)
+            }
         }
     }
 
@@ -165,7 +178,20 @@ object ColorHelper {
         val listView = dialog.listView
         if (listView != null) {
             listView.setBackgroundColor(bgColor)
-            listView.post { applyTextColorToAllViews(listView, textColor) }
+            listView.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
+                override fun onChildViewAdded(parent: View?, child: View?) {
+                    child?.let { 
+                        applyToView(it, bgColor, btnColor, btnTextColor, textColor)
+                        if (it is ViewGroup) applyToViewGroup(it, bgColor, btnColor, btnTextColor, textColor)
+                    }
+                }
+                override fun onChildViewRemoved(parent: View?, child: View?) {}
+            })
+            for (i in 0 until listView.childCount) {
+                val child = listView.getChildAt(i)
+                applyToView(child, bgColor, btnColor, btnTextColor, textColor)
+                if (child is ViewGroup) applyToViewGroup(child, bgColor, btnColor, btnTextColor, textColor)
+            }
         }
     }
 
@@ -363,6 +389,71 @@ object ColorHelper {
         return adapter
     }
 
+    private fun applyToView(view: View, bgColor: Int, btnColor: Int, btnTextColor: Int, globalTextColor: Int) {
+        val childTag = view.getTag(R.id.color_tag)
+        if (childTag == "skip") return
+
+        when (view) {
+            is com.google.android.material.textfield.TextInputLayout -> {
+                val hintColorStateList = android.content.res.ColorStateList.valueOf(globalTextColor)
+                view.defaultHintTextColor = hintColorStateList
+                view.hintTextColor = android.content.res.ColorStateList.valueOf(btnColor)
+                view.setBoxStrokeColor(btnColor)
+                view.setBoxStrokeColorStateList(android.content.res.ColorStateList(
+                    arrayOf(intArrayOf(android.R.attr.state_focused), intArrayOf()),
+                    intArrayOf(btnColor, globalTextColor and 0x44FFFFFF)
+                ))
+                view.editText?.let { et ->
+                    et.setTextColor(globalTextColor)
+                    et.setHintTextColor(globalTextColor and 0x88FFFFFF.toInt())
+                }
+            }
+            is com.google.android.material.chip.Chip -> {
+                if (childTag != "custom") {
+                    view.chipBackgroundColor = android.content.res.ColorStateList.valueOf(btnColor)
+                    view.setTextColor(btnTextColor)
+                }
+            }
+            is com.google.android.material.button.MaterialButton -> {
+                view.backgroundTintList = android.content.res.ColorStateList.valueOf(btnColor)
+                val contrastColor = btnTextColor or 0xFF000000.toInt()
+                view.iconTint = android.content.res.ColorStateList.valueOf(contrastColor)
+                view.setTextColor(contrastColor)
+                view.strokeWidth = 0
+            }
+            is android.widget.CheckedTextView -> {
+                view.setTextColor(globalTextColor)
+                try {
+                    view.checkMarkTintList = android.content.res.ColorStateList.valueOf(globalTextColor)
+                } catch (_: Exception) {}
+            }
+            is android.widget.CompoundButton -> {
+                view.setTextColor(globalTextColor)
+                view.buttonTintList = android.content.res.ColorStateList.valueOf(globalTextColor)
+            }
+            is com.google.android.material.tabs.TabLayout -> {
+                view.setBackgroundColor(bgColor)
+                view.setTabTextColors(globalTextColor, btnColor)
+                view.setSelectedTabIndicatorColor(btnColor)
+            }
+            is com.google.android.material.floatingactionbutton.FloatingActionButton -> {
+                view.backgroundTintList = android.content.res.ColorStateList.valueOf(btnColor)
+                view.imageTintList = android.content.res.ColorStateList.valueOf(btnTextColor)
+            }
+            is Button -> {
+                view.setBackgroundColor(btnColor)
+                view.setTextColor(btnTextColor)
+            }
+            is android.widget.EditText -> {
+                view.setTextColor(globalTextColor)
+                view.setHintTextColor(globalTextColor and 0x88FFFFFF.toInt())
+            }
+            is TextView -> {
+                view.setTextColor(globalTextColor)
+            }
+        }
+    }
+
     private fun applyToViewGroup(group: ViewGroup, bgColor: Int, btnColor: Int, btnTextColor: Int, globalTextColor: Int) {
         val groupTag = group.getTag(R.id.color_tag)
         if (groupTag == "skip") return
@@ -376,66 +467,9 @@ object ColorHelper {
 
         for (i in 0 until group.childCount) {
             val child = group.getChildAt(i)
-            val childTag = child.getTag(R.id.color_tag)
-            if (childTag == "skip") continue
-
-            when (child) {
-                is com.google.android.material.textfield.TextInputLayout -> {
-                    val hintColorStateList = android.content.res.ColorStateList.valueOf(globalTextColor)
-                    child.defaultHintTextColor = hintColorStateList
-                    child.hintTextColor = android.content.res.ColorStateList.valueOf(btnColor)
-                    child.setBoxStrokeColor(btnColor)
-                    child.setBoxStrokeColorStateList(android.content.res.ColorStateList(
-                        arrayOf(intArrayOf(android.R.attr.state_focused), intArrayOf()),
-                        intArrayOf(btnColor, globalTextColor and 0x44FFFFFF)
-                    ))
-                    child.editText?.let { et ->
-                        et.setTextColor(globalTextColor)
-                        et.setHintTextColor(globalTextColor and 0x88FFFFFF.toInt())
-                    }
-                }
-                is com.google.android.material.chip.Chip -> {
-                    if (childTag != "custom") {
-                        child.chipBackgroundColor = android.content.res.ColorStateList.valueOf(btnColor)
-                        child.setTextColor(btnTextColor)
-                    }
-                }
-                is com.google.android.material.button.MaterialButton -> {
-                    child.backgroundTintList = android.content.res.ColorStateList.valueOf(btnColor)
-                    val contrastColor = btnTextColor or 0xFF000000.toInt()
-                    child.iconTint = android.content.res.ColorStateList.valueOf(contrastColor)
-                    child.setTextColor(contrastColor)
-                    child.strokeWidth = 0
-                }
-                is android.widget.CompoundButton -> {
-                    child.setTextColor(globalTextColor)
-                    child.buttonTintList = android.content.res.ColorStateList.valueOf(globalTextColor)
-                }
-                is com.google.android.material.tabs.TabLayout -> {
-                    child.setBackgroundColor(bgColor)
-                    child.setTabTextColors(globalTextColor, btnColor)
-                    child.setSelectedTabIndicatorColor(btnColor)
-                }
-                is com.google.android.material.floatingactionbutton.FloatingActionButton -> {
-                    child.backgroundTintList = android.content.res.ColorStateList.valueOf(btnColor)
-                    child.imageTintList = android.content.res.ColorStateList.valueOf(btnTextColor)
-                }
-                is Button -> {
-                    child.setBackgroundColor(btnColor)
-                    child.setTextColor(btnTextColor)
-                }
-                is android.widget.EditText -> {
-                    child.setTextColor(globalTextColor)
-                    child.setHintTextColor(globalTextColor and 0x88FFFFFF.toInt())
-                }
-                is TextView -> {
-                    child.setTextColor(globalTextColor)
-                }
-                is ViewGroup -> {
-                    if (child !is androidx.recyclerview.widget.RecyclerView) {
-                        applyToViewGroup(child, bgColor, btnColor, btnTextColor, globalTextColor)
-                    }
-                }
+            applyToView(child, bgColor, btnColor, btnTextColor, globalTextColor)
+            if (child is ViewGroup && child !is androidx.recyclerview.widget.RecyclerView) {
+                applyToViewGroup(child, bgColor, btnColor, btnTextColor, globalTextColor)
             }
         }
     }
@@ -443,12 +477,8 @@ object ColorHelper {
     fun applyTextColorToAllViews(group: ViewGroup, textColor: Int) {
         for (i in 0 until group.childCount) {
             val child = group.getChildAt(i)
-            if (child is android.widget.CompoundButton) {
-                child.setTextColor(textColor)
-                child.buttonTintList = android.content.res.ColorStateList.valueOf(textColor)
-            } else if (child is TextView) {
-                child.setTextColor(textColor)
-            } else if (child is ViewGroup) {
+            applyToView(child, 0, 0, 0, textColor)
+            if (child is ViewGroup) {
                 applyTextColorToAllViews(child, textColor)
             }
         }

@@ -26,6 +26,7 @@ class DiaryActivity : BaseActivity() {
 
     private lateinit var allNotes: MutableList<DiaryNote>
     private lateinit var allBundles: MutableList<NoteBundle>
+    private lateinit var people: List<Person>
     private var displayedItems: MutableList<DiaryItem> = mutableListOf()
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: DiaryAdapter
@@ -214,6 +215,7 @@ class DiaryActivity : BaseActivity() {
     }
 
     private fun loadNotes() {
+        people = MemberHelper.loadAllPeople(this)
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = sharedPref.getString("diary_notes", "[]")
         allNotes = Gson().fromJson(json, object : TypeToken<MutableList<DiaryNote>>() {}.type) ?: mutableListOf()
@@ -277,10 +279,12 @@ class DiaryActivity : BaseActivity() {
             is DiaryItem.BundleHeader -> 2
         }
 
-        inner class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+         inner class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val title: TextView = view.findViewById(R.id.noteTitle)
             val date: TextView = view.findViewById(R.id.noteDate)
+            val sender: TextView = view.findViewById(R.id.noteSender)
             val recipients: TextView = view.findViewById(R.id.noteRecipients)
+            val replyTo: TextView = view.findViewById(R.id.noteReplyTo)
             val preview: TextView = view.findViewById(R.id.notePreview)
             val linkedTodo: TextView = view.findViewById(R.id.linkedTodoLabel)
             val card: com.google.android.material.card.MaterialCardView = view as com.google.android.material.card.MaterialCardView
@@ -319,6 +323,16 @@ class DiaryActivity : BaseActivity() {
                     setColorFilter(ColorHelper.getBtnTextColor(this@DiaryActivity))
                 }
                 content.addView(btnExpand)
+                
+                val btnEdit = ImageButton(this@DiaryActivity).apply {
+                    setImageResource(android.R.drawable.ic_menu_edit)
+                    background = null
+                    setColorFilter(ColorHelper.getBtnTextColor(this@DiaryActivity))
+                    alpha = 0.6f
+                    setOnClickListener { showEditBundleDialog(bundle) }
+                }
+                content.addView(btnEdit)
+
                 card.addView(content)
 
                 card.setOnClickListener {
@@ -365,14 +379,62 @@ class DiaryActivity : BaseActivity() {
                     holder.date.text = sdf.format(Date(note.timestamp))
                     holder.date.setTextColor(textColor)
 
-                    if (note.nextFronterRecipient != null) {
+                    // Extract "From" from content if it exists
+                    val fromPrefixEn = "From: "
+                    val fromPrefixNl = "Van: "
+                    var displayContent = note.content
+                    var senderText: String? = null
+
+                    if (displayContent.startsWith(fromPrefixEn)) {
+                        senderText = displayContent.substringBefore("\n\n")
+                        displayContent = displayContent.substringAfter("\n\n")
+                    } else if (displayContent.startsWith(fromPrefixNl)) {
+                        senderText = displayContent.substringBefore("\n\n")
+                        displayContent = displayContent.substringAfter("\n\n")
+                    }
+
+                    if (senderText != null) {
+                        holder.sender.visibility = View.VISIBLE
+                        holder.sender.text = senderText
+                        holder.sender.setTextColor(textColor)
+                        holder.sender.textSize = 12f
+                    } else {
+                        holder.sender.visibility = View.GONE
+                    }
+
+                    val recipientsLine = if (note.nextFronterRecipient != null) {
+                        getString(R.string.message_to_placeholder, getString(R.string.next_fronter_format, note.nextFronterRecipient))
+                    } else if (note.linkedMemberIds.isNotEmpty()) {
+                        val names = note.linkedMemberIds.map { id -> people.find { it.id == id }?.name ?: id }
+                        getString(R.string.message_to_placeholder, names.joinToString(", "))
+                    } else {
+                        null
+                    }
+
+                    if (recipientsLine != null) {
                         holder.recipients.visibility = View.VISIBLE
-                        holder.recipients.text = getString(R.string.next_fronter_format, note.nextFronterRecipient)
+                        holder.recipients.text = recipientsLine
                         holder.recipients.setTextColor(textColor)
+                        holder.recipients.textSize = 12f
                     } else {
                         holder.recipients.visibility = View.GONE
                     }
-                    markwon.setMarkdown(holder.preview, note.content.replace("\r\n", "\n").replace("\n", "  \n"))
+
+                    if (note.parentNoteId != null) {
+                        val parent = allNotes.find { it.id == note.parentNoteId }
+                        if (parent != null) {
+                            holder.replyTo.visibility = View.VISIBLE
+                            holder.replyTo.text = "${getString(R.string.label_reply_to)}: ${parent.title}"
+                            holder.replyTo.setTextColor(textColor)
+                            holder.replyTo.textSize = 12f
+                        } else {
+                            holder.replyTo.visibility = View.GONE
+                        }
+                    } else {
+                        holder.replyTo.visibility = View.GONE
+                    }
+
+                    markwon.setMarkdown(holder.preview, displayContent.replace("\r\n", "\n").replace("\n", "  \n"))
                     holder.preview.setTextColor(textColor)
 
                     val todo = allTodoLists.find { it.id == note.linkedTodoListId }

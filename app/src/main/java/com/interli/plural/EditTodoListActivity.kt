@@ -458,20 +458,18 @@ class EditTodoListActivity : BaseActivity() {
                 btn.rippleColor = android.content.res.ColorStateList.valueOf(btnTextColor and 0x33FFFFFF)
             }
 
-            holder.etTitle.tag = task
+            holder.etTitle.onFocusChangeListener = null
+            holder.textWatcher?.let { holder.etTitle.removeTextChangedListener(it) }
             holder.etTitle.setText(task.title)
             
-            holder.etTitle.onFocusChangeListener = View.OnFocusChangeListener { v, hasFocus ->
-                if (hasFocus) {
-                    (v as EditText).addTextChangedListener(object : android.text.TextWatcher {
-                        override fun afterTextChanged(s: android.text.Editable?) { 
-                            if (v.tag == task) task.title = s.toString() 
-                        }
-                        override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-                        override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-                    })
+            holder.textWatcher = object : android.text.TextWatcher {
+                override fun afterTextChanged(s: android.text.Editable?) { 
+                    task.title = s.toString() 
                 }
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             }
+            holder.etTitle.addTextChangedListener(holder.textWatcher)
             
             val updateTaskLinkText = {
                 val names = people.filter { task.linkedMemberIds.contains(it.id) && !it.isArchived && !it.isSysmediaOnly }.map { it.name }
@@ -585,6 +583,7 @@ class EditTodoListActivity : BaseActivity() {
             val btnRepeat: com.google.android.material.button.MaterialButton = view.findViewById(R.id.btnSetTaskRecurrence)
             val btnReset: com.google.android.material.button.MaterialButton = view.findViewById(R.id.btnSetTaskReset)
             val btnRemove: ImageButton = view.findViewById(R.id.btnRemoveTask)
+            var textWatcher: android.text.TextWatcher? = null
         }
     }
 

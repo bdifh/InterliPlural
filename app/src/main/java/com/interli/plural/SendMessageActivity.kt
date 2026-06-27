@@ -44,6 +44,12 @@ class SendMessageActivity : BaseActivity() {
         
         editMessageTitle.setText(R.string.dialog_send_message_title)
 
+        val replyContent = intent.getStringExtra("reply_content")
+        if (replyContent != null) {
+            editMessageContent.setText("\n\n----\n$replyContent")
+            editMessageContent.setSelection(0)
+        }
+
         loadPeople()
 
         val targetId = intent.getStringExtra("target_id")
@@ -191,7 +197,8 @@ class SendMessageActivity : BaseActivity() {
             return
         }
 
-        val fullMessage = getString(R.string.message_from_placeholder, fromNamesStr, content)
+        val fromHeader = getString(R.string.message_from_placeholder, fromNamesStr)
+        val fullMessage = "$fromHeader\n\n$content"
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
 
         val newNote = DiaryNote(
@@ -201,7 +208,8 @@ class SendMessageActivity : BaseActivity() {
             timestamp = System.currentTimeMillis(),
             linkedMemberIds = if (cbNextFronter.isChecked) mutableListOf() else selectedTargetIds.toMutableList(),
             senderId = if (cbAnonymous.isChecked) "anonymous" else selectedSenderIds.firstOrNull(),
-            isProfileOnly = cbProfileOnly.isChecked
+            isProfileOnly = cbProfileOnly.isChecked,
+            parentNoteId = intent.getStringExtra("reply_to_id")
         )
 
         if (cbNextFronter.isChecked) {

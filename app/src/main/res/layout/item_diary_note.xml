@@ -34,13 +34,30 @@
             android:textColor="@color/black" />
 
         <TextView
+            android:id="@+id/noteSender"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/black"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/noteRecipients"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:layout_marginTop="4dp"
             android:textColor="@color/black"
-            android:textStyle="italic"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/noteReplyTo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/black"
             android:visibility="gone" />
 
         <TextView

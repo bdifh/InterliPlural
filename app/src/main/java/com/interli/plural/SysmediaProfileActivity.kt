@@ -1,5 +1,7 @@
 package com.interli.plural
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
@@ -35,22 +37,58 @@ class SysmediaProfileActivity : BaseActivity() {
     private val sdf = SimpleDateFormat("dd MMM yy", Locale.getDefault())
     private val pickImage = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
         uri?.let {
-            try {
-                val inputStream = contentResolver.openInputStream(it)
-                val file = java.io.File(filesDir, "profile_${System.currentTimeMillis()}.jpg")
-                val outputStream = java.io.FileOutputStream(file)
-                inputStream?.copyTo(outputStream)
-                inputStream?.close()
-                outputStream.close()
-                
+            val internalUri = saveSourceImage(it)
+            if (internalUri != null) {
                 if (profileUser.sysmediaProfile == null) profileUser.sysmediaProfile = SysmediaProfile()
-                val newUri = Uri.fromFile(file).toString()
-                profileUser.sysmediaProfile?.profilePictureUri = newUri
-                saveData()
-                renderProfileInfo()
-                ivDialogProfilePreview?.load(newUri)
-            } catch (e: Exception) { e.printStackTrace() }
+                profileUser.sysmediaProfile?.sourcePictureUri = internalUri.toString()
+                startCropActivity(internalUri)
+            }
         }
+    }
+
+    private val cropImageLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val croppedUriStr = result.data?.getStringExtra("cropped_uri")
+            if (croppedUriStr != null) {
+                applyCroppedImage(Uri.parse(croppedUriStr))
+            }
+        }
+    }
+
+    private fun startCropActivity(uri: Uri) {
+        val intent = Intent(this, CropImageActivity::class.java)
+        intent.putExtra("image_uri", uri.toString())
+        cropImageLauncher.launch(intent)
+    }
+
+    private fun saveSourceImage(uri: Uri): Uri? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val file = java.io.File(filesDir, "sysmedia_profile_${profileUser.id}_source.jpg")
+            val outputStream = java.io.FileOutputStream(file)
+            inputStream.copyTo(outputStream)
+            inputStream?.close()
+            outputStream.close()
+            Uri.fromFile(file)
+        } catch (e: Exception) { e.printStackTrace(); null }
+    }
+
+    private fun applyCroppedImage(uri: Uri) {
+        try {
+            val inputStream = contentResolver.openInputStream(uri)
+            val file = java.io.File(filesDir, "sysmedia_profile_${profileUser.id}_crop.jpg")
+            val outputStream = java.io.FileOutputStream(file)
+            inputStream?.copyTo(outputStream)
+            inputStream?.close()
+            outputStream.close()
+            
+            if (profileUser.sysmediaProfile == null) profileUser.sysmediaProfile = SysmediaProfile()
+            val newUri = Uri.fromFile(file).toString()
+            profileUser.sysmediaProfile?.profilePictureUri = newUri
+            saveData()
+            renderProfileInfo()
+            ivDialogProfilePreview?.load(newUri)
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -163,20 +201,30 @@ class SysmediaProfileActivity : BaseActivity() {
     }
 
     private fun showPhotoOptionsDialog() {
-        val options = arrayOf(
+        val hasImage = !profileUser.sysmediaProfile?.profilePictureUri.isNullOrBlank()
+        val options = mutableListOf(
             getString(R.string.upload_new_photo),
-            getString(R.string.photo_via_link),
-            getString(R.string.delete_photo)
+            getString(R.string.photo_via_link)
         )
+        if (hasImage) options.add(getString(R.string.edit_current_picture))
+        options.add(getString(R.string.delete_photo))
         
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.adjust_profile_photo))
-            .setItems(options) { _, which ->
-                when (options[which]) {
+            .setItems(options.toTypedArray()) { _, which ->
+                val selected = options[which]
+                when (selected) {
                     getString(R.string.upload_new_photo) -> pickImage.launch("image/*")
                     getString(R.string.photo_via_link) -> showUrlInputDialog()
+                    getString(R.string.edit_current_picture) -> {
+                        val sourceUri = profileUser.sysmediaProfile?.sourcePictureUri ?: profileUser.sysmediaProfile?.profilePictureUri
+                        sourceUri?.let { uriStr ->
+                            startCropActivity(Uri.parse(uriStr))
+                        }
+                    }
                     getString(R.string.delete_photo) -> {
                         profileUser.sysmediaProfile?.profilePictureUri = null
+                        profileUser.sysmediaProfile?.sourcePictureUri = null
                         saveData()
                         renderProfileInfo()
                         ivDialogProfilePreview?.setImageResource(R.mipmap.ic_launcher)
@@ -208,13 +256,15 @@ class SysmediaProfileActivity : BaseActivity() {
                         if (profileUser.sysmediaProfile == null) profileUser.sysmediaProfile = SysmediaProfile()
                         val localUri = ImageHelper.downloadAndSaveProfilePicture(this@SysmediaProfileActivity, url, profileUser.id)
                         if (localUri != null) {
-                            profileUser.sysmediaProfile?.profilePictureUri = localUri
+                            profileUser.sysmediaProfile?.sourcePictureUri = localUri
+                            startCropActivity(Uri.parse(localUri))
                         } else {
                             profileUser.sysmediaProfile?.profilePictureUri = url
+                            profileUser.sysmediaProfile?.sourcePictureUri = url
+                            saveData()
+                            renderProfileInfo()
+                            ivDialogProfilePreview?.load(profileUser.sysmediaProfile?.profilePictureUri)
                         }
-                        saveData()
-                        renderProfileInfo()
-                        ivDialogProfilePreview?.load(profileUser.sysmediaProfile?.profilePictureUri)
                     }
                 }
             }

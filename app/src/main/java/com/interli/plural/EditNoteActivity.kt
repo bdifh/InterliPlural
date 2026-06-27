@@ -144,6 +144,8 @@ class EditNoteActivity : BaseActivity() {
                     existingNote.linkedMemberIds?.firstOrNull()?.let { 
                         intent.putExtra("from_id", it)
                     }
+                    intent.putExtra("reply_to_id", existingNote.id)
+                    intent.putExtra("reply_content", existingNote.content)
                     startActivity(intent)
                 }
 
@@ -172,6 +174,8 @@ class EditNoteActivity : BaseActivity() {
                             existingNote.linkedMemberIds?.firstOrNull()?.let { 
                                 intent.putExtra("from_id", it)
                             }
+                            intent.putExtra("reply_to_id", existingNote.id)
+                            intent.putExtra("reply_content", existingNote.content)
                             startActivity(intent)
                         }
                         

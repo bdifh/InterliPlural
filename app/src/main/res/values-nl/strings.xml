@@ -215,7 +215,7 @@
     <string name="action_link_todo">To Do koppelen</string>
     <string name="action_link_todo_list">To Do lijst koppelen</string>
     <string name="label_linked_note">Gekoppelde notitie</string>
-    <string name="label_linked_todo">Gekoppelde To Do</string>
+    <string name="label_reply_to">Als antwoord op</string>
     <string name="hint_field_title">Titel Veld</string>
     <string name="hint_field_template">Sjabloon (Optioneel)</string>
     <string name="action_reset">Reset</string>
@@ -377,7 +377,8 @@
     <string name="label_from">Van:</string>
     <string name="label_to">Aan:</string>
     <string name="label_to_member">Naar: %1$s</string>
-    <string name="message_from_placeholder">Van %1$s:\n\n%2$s</string>
+    <string name="message_from_placeholder">Van: %1$s</string>
+    <string name="message_to_placeholder">Aan: %1$s</string>
     <string name="hint_message_content">Typ je bericht hier...</string>
     <string name="message_sent">Sysmail verstuurd!</string>
     <string name="action_delete_all">Alles Verwijderen (%1$d)</string>
@@ -397,4 +398,12 @@
     <string name="cb_next_fronter">Aan volgende fronter</string>
     <string name="next_fronter_format">Volgende fronter: %1$s</string>
     <string name="data_deleted">Data succesvol verwijderd</string>
+    <string name="help">Hulp</string>
+    <string name="help_who_am_i_title">Hulp: Who Am I?</string>
+    <string name="help_who_am_i_like">Dit vind ik leuk</string>
+    <string name="help_who_am_i_neutral">Dit is neutraal / oké</string>
+    <string name="help_who_am_i_dislike">Dit vind ik niet leuk</string>
+    <string name="help_who_am_i_now">Dit doe / voel ik nu</string>
+    <string name="help_who_am_i_note">Let op: Het vinkje ✅ geeft een hogere score aan leden die deze activiteit het meest hebben ingevuld in de Mood Tracker.</string>
+
 </resources>

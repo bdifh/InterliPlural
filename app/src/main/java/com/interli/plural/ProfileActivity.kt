@@ -1,5 +1,7 @@
 package com.interli.plural
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.BitmapDrawable
@@ -62,8 +64,28 @@ class ProfileActivity : BaseActivity() {
 
     private val pickImage = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri != null) {
-            updateProfileImage(uri)
+            startCropActivity(uri)
         }
+    }
+
+    private val cropImageLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val croppedUriStr = result.data?.getStringExtra("cropped_uri")
+            val person = people.getOrNull(personIndex)
+            if (croppedUriStr != null && person != null) {
+                val internalUri = saveImageToInternalStorage(Uri.parse(croppedUriStr), person.id, isSource = false)
+                if (internalUri != null) {
+                    selectedImageUri = internalUri
+                    findViewById<ImageView>(R.id.profileImage).load(internalUri) { crossfade(true) }
+                }
+            }
+        }
+    }
+
+    private fun startCropActivity(uri: Uri) {
+        val intent = Intent(this, CropImageActivity::class.java)
+        intent.putExtra("image_uri", uri.toString())
+        cropImageLauncher.launch(intent)
     }
 
     private val downloadLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("image/jpeg")) { uri ->
@@ -644,6 +666,7 @@ class ProfileActivity : BaseActivity() {
         val profileImage = findViewById<ImageView>(R.id.profileImage)
         if (uri == null) {
             selectedImageUri = null
+            person.sourcePictureUri = null
             profileImage.load(android.R.drawable.ic_menu_gallery)
             return
         }
@@ -652,11 +675,13 @@ class ProfileActivity : BaseActivity() {
             lifecycleScope.launch {
                 val localUriStr = ImageHelper.downloadAndSaveProfilePicture(this@ProfileActivity, uri.toString(), person.id)
                 if (localUriStr != null) {
-                    selectedImageUri = Uri.parse(localUriStr)
-                    profileImage.load(selectedImageUri) { crossfade(true) }
+                    val localUri = Uri.parse(localUriStr)
+                    person.sourcePictureUri = localUri.toString()
+                    startCropActivity(localUri)
                 } else {
                     // Fallback to URL if download fails, though we want local
                     selectedImageUri = uri
+                    person.sourcePictureUri = uri.toString()
                     profileImage.load(uri.toString()) {
                         crossfade(true)
                         placeholder(android.R.drawable.ic_menu_gallery)
@@ -665,19 +690,22 @@ class ProfileActivity : BaseActivity() {
                 }
             }
         } else {
-            val internalUri = saveImageToInternalStorage(uri, person.id)
+            val internalUri = saveImageToInternalStorage(uri, person.id, isSource = true)
             if (internalUri != null) {
-                selectedImageUri = internalUri
-                profileImage.load(internalUri) { crossfade(true) }
+                person.sourcePictureUri = internalUri.toString()
+                startCropActivity(internalUri)
             }
         }
     }
 
-    private fun saveImageToInternalStorage(uri: Uri, personId: String): Uri? {
+    private fun saveImageToInternalStorage(uri: Uri, personId: String, isSource: Boolean): Uri? {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
-            val file = File(filesDir, "profile_${personId}_${System.currentTimeMillis()}.jpg")
-            filesDir.listFiles { f -> f.name.startsWith("profile_${personId}_") }?.forEach { it.delete() }
+            val suffix = if (isSource) "source" else "crop"
+            val file = File(filesDir, "profile_${personId}_${suffix}.jpg")
+            
+            // If it's a source, we might want to keep it. If it's a crop, we overwrite.
+            // Actually, let's just use stable names.
             FileOutputStream(file).use { output -> inputStream.use { input -> input.copyTo(output) } }
             Uri.fromFile(file)
         } catch (e: Exception) { null }
@@ -695,6 +723,7 @@ class ProfileActivity : BaseActivity() {
         options.add(getString(R.string.paste_link_url))
         
         if (hasImage) {
+            options.add(getString(R.string.edit_current_picture))
             options.add(getString(R.string.download_png))
             options.add(getString(R.string.download_jpg))
         }
@@ -708,6 +737,12 @@ class ProfileActivity : BaseActivity() {
                 when (selectedOption) {
                     getString(R.string.upload_new_photo) -> pickImage.launch("image/*")
                     getString(R.string.paste_link_url) -> showUrlInputDialog()
+                    getString(R.string.edit_current_picture) -> {
+                        val uri = person?.sourcePictureUri?.let { Uri.parse(it) } 
+                                  ?: selectedImageUri 
+                                  ?: person?.profilePictureUri?.let { Uri.parse(it) }
+                        uri?.let { startCropActivity(it) }
+                    }
                     getString(R.string.download_png) -> {
                         val fileName = "profile_${person?.name?.replace(" ", "_") ?: "member"}_${System.currentTimeMillis()}.png"
                         downloadPngLauncher.launch(fileName)

@@ -50,7 +50,8 @@ data class Person(
     var isSysmediaOnly: Boolean = false,
     var isArchived: Boolean = false,
     var linkedThemeId: String? = null,
-    var preferences: MutableList<MemberPreference>? = mutableListOf()
+    var preferences: MutableList<MemberPreference>? = mutableListOf(),
+    var sourcePictureUri: String? = null
 ) {
     val safeGroupIds: MutableList<String> get() = groupIds ?: mutableListOf()
     val safeCustomFields: MutableMap<String, String> get() = customFields ?: mutableMapOf()
@@ -119,7 +120,8 @@ data class DiaryNote(
     var bundleName: String? = null,
     var linkedTodoListId: String? = null,
     var isProfileOnly: Boolean = false,
-    var nextFronterRecipient: String? = null
+    var nextFronterRecipient: String? = null,
+    var parentNoteId: String? = null
 )
 
 data class TodoTask(
@@ -205,7 +207,8 @@ data class SysmediaProfile(
     var bio: String? = null,
     var displayName: String? = null,
     var profilePictureUri: String? = null,
-    var followingIds: MutableList<String> = mutableListOf()
+    var followingIds: MutableList<String> = mutableListOf(),
+    var sourcePictureUri: String? = null
 )
 
 data class SysmediaNotification(
