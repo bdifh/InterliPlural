@@ -38,6 +38,13 @@
                     android:src="@android:drawable/ic_menu_gallery" />
             </com.google.android.material.card.MaterialCardView>
 
+            <View
+                android:id="@+id/notificationDot"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="top|end"
+                android:background="@drawable/bg_badge"
+                android:visibility="gone" />
         </FrameLayout>
 
         <TextView

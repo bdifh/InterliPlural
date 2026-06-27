@@ -118,7 +118,8 @@ data class DiaryNote(
     var bundleId: String? = null,
     var bundleName: String? = null,
     var linkedTodoListId: String? = null,
-    var isProfileOnly: Boolean = false
+    var isProfileOnly: Boolean = false,
+    var nextFronterRecipient: String? = null
 )
 
 data class TodoTask(
@@ -334,7 +335,9 @@ class MainActivity : BaseActivity() {
             onFrontClicked = { person ->
                 toggleFront(person)
             },
-            onProfileClicked = { _, index ->
+            onProfileClicked = { person, index ->
+                person.messageRead = true
+                savePeople()
                 val intent = android.content.Intent(this, ProfileActivity::class.java)
                 intent.putExtra("person_index", index)
                 startActivity(intent)
@@ -855,16 +858,46 @@ class MainActivity : BaseActivity() {
 
     private fun toggleFront(person: Person) {
         if (person.isArchived) return
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         person.isFront = !person.isFront
 
         if (person.isFront) {
+            val pendingMsg = sharedPref.getString("pending_next_fronter_message", null)
+            val pendingNoteId = sharedPref.getString("pending_next_fronter_note_id", null)
+            
+            if (pendingMsg != null) {
+                person.frontMessage = pendingMsg
+                person.messageRead = false
+                
+                // Link the person to the note in diary
+                if (pendingNoteId != null) {
+                    val notesJson = sharedPref.getString("diary_notes", "[]") ?: "[]"
+                    val type = object : TypeToken<MutableList<DiaryNote>>() {}.type
+                    val allNotes: MutableList<DiaryNote> = try { 
+                        Gson().fromJson(notesJson, type) 
+                    } catch (_: Exception) { mutableListOf() }
+                    
+                    val note = allNotes.find { it.id == pendingNoteId }
+                    if (note != null) {
+                        note.nextFronterRecipient = person.name
+                        if (note.linkedMemberIds == null) note.linkedMemberIds = mutableListOf()
+                        if (note.linkedMemberIds?.contains(person.id) == false) {
+                            note.linkedMemberIds?.add(person.id)
+                            sharedPref.edit().putString("diary_notes", Gson().toJson(allNotes)).apply()
+                        }
+                    }
+                }
+                
+                sharedPref.edit().remove("pending_next_fronter_message").remove("pending_next_fronter_note_id").apply()
+                showFrontMessageNotification(person)
+            }
+            
             sessions.add(FrontSession(person.name, System.currentTimeMillis(), personId = person.id))
             savePeople()
             updateUI()
 
             if (!person.frontMessage.isNullOrBlank() && !person.messageRead) {
                 showFrontMessageNotification(person)
-                person.messageRead = true
             }
             SysmediaNotificationHelper.checkAndNotify(this, person.id)
         } else {

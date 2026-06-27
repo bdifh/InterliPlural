@@ -158,15 +158,24 @@ class MemberNotesActivity : BaseActivity() {
 
                 val titleView = view.findViewById<TextView>(R.id.noteTitle)
                 val dateView = view.findViewById<TextView>(R.id.noteDate)
+                val recipientView = view.findViewById<TextView>(R.id.noteRecipients)
                 val previewView = view.findViewById<TextView>(R.id.notePreview)
                 val embedContainer = view.findViewById<LinearLayout>(R.id.mediaEmbedContainerNoteItem)
 
                 titleView.setTextColor(textColor)
                 dateView.setTextColor(textColor)
+                recipientView.setTextColor(textColor)
                 previewView.setTextColor(textColor)
 
                 titleView.text = note.title ?: getString(R.string.unnamed_note)
                 dateView.text = sdf.format(Date(note.timestamp))
+
+                if (note.nextFronterRecipient != null) {
+                    recipientView.visibility = View.VISIBLE
+                    recipientView.text = getString(R.string.next_fronter_format, note.nextFronterRecipient)
+                } else {
+                    recipientView.visibility = View.GONE
+                }
 
                 val contentProcessed = (note.content ?: "").replace("\r\n", "\n").replace("\n", "  \n")
                 markwon.setMarkdown(previewView, contentProcessed)

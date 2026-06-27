@@ -75,7 +75,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <!-- From Field -->
+                <!-- From Field (Row 1) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -91,11 +91,31 @@
                         android:textStyle="bold"
                         android:textColor="@color/black" />
 
-                    <Spinner
-                        android:id="@+id/spinnerFrom"
+                    <TextView
+                        android:id="@+id/tvSelectedSenders"
                         android:layout_width="0dp"
-                        android:layout_height="48dp"
-                        android:layout_weight="1" />
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:gravity="center_vertical"
+                        android:textSize="14sp"
+                        android:hint="@string/action_link_members"
+                        android:textColor="@color/black"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground" />
+                </LinearLayout>
+
+                <!-- From Field (Row 2) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <View
+                        android:layout_width="60dp"
+                        android:layout_height="1dp" />
 
                     <CheckBox
                         android:id="@+id/cbAnonymous"
@@ -119,29 +139,26 @@
 
                 <!-- To Field -->
                 <LinearLayout
-                    android:id="@+id/toFieldContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingTop="8dp"
-                    android:paddingBottom="8dp"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:background="?attr/selectableItemBackground">
+                    android:orientation="horizontal"
+                    android:gravity="top"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:layout_width="60dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="@string/label_to"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/black" />
 
                     <LinearLayout
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical">
-
-                        <TextView
-                            android:layout_width="60dp"
-                            android:layout_height="wrap_content"
-                            android:text="@string/label_to"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/black" />
+                        android:layout_weight="1"
+                        android:orientation="vertical">
 
                         <TextView
                             android:id="@+id/tvSelectedTargets"
@@ -152,7 +169,17 @@
                             android:textSize="14sp"
                             android:hint="@string/action_link_members"
                             android:text=""
-                            android:textColor="@color/black" />
+                            android:textColor="@color/black"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:background="?attr/selectableItemBackground" />
+
+                        <CheckBox
+                            android:id="@+id/cbNextFronter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/cb_next_fronter"
+                            android:textSize="12sp" />
                     </LinearLayout>
                 </LinearLayout>
 

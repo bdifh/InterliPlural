@@ -280,6 +280,7 @@ class DiaryActivity : BaseActivity() {
         inner class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val title: TextView = view.findViewById(R.id.noteTitle)
             val date: TextView = view.findViewById(R.id.noteDate)
+            val recipients: TextView = view.findViewById(R.id.noteRecipients)
             val preview: TextView = view.findViewById(R.id.notePreview)
             val linkedTodo: TextView = view.findViewById(R.id.linkedTodoLabel)
             val card: com.google.android.material.card.MaterialCardView = view as com.google.android.material.card.MaterialCardView
@@ -363,6 +364,14 @@ class DiaryActivity : BaseActivity() {
                     holder.title.setTextColor(textColor)
                     holder.date.text = sdf.format(Date(note.timestamp))
                     holder.date.setTextColor(textColor)
+
+                    if (note.nextFronterRecipient != null) {
+                        holder.recipients.visibility = View.VISIBLE
+                        holder.recipients.text = getString(R.string.next_fronter_format, note.nextFronterRecipient)
+                        holder.recipients.setTextColor(textColor)
+                    } else {
+                        holder.recipients.visibility = View.GONE
+                    }
                     markwon.setMarkdown(holder.preview, note.content.replace("\r\n", "\n").replace("\n", "  \n"))
                     holder.preview.setTextColor(textColor)
 

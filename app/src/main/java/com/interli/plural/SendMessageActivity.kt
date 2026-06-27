@@ -15,15 +15,16 @@ import java.util.*
 
 class SendMessageActivity : BaseActivity() {
 
-    private lateinit var spinnerFrom: Spinner
-    private lateinit var toFieldContainer: View
+    private lateinit var tvSelectedSenders: TextView
     private lateinit var tvSelectedTargets: TextView
     private lateinit var cbAnonymous: CheckBox
     private lateinit var cbProfileOnly: CheckBox
+    private lateinit var cbNextFronter: CheckBox
     private lateinit var editMessageContent: EditText
     private lateinit var editMessageTitle: EditText
     
     private lateinit var people: List<Person>
+    private val selectedSenderIds = mutableListOf<String>()
     private val selectedTargetIds = mutableListOf<String>()
     private val gson = Gson()
 
@@ -33,11 +34,11 @@ class SendMessageActivity : BaseActivity() {
 
         ColorHelper.applySettings(this)
 
-        spinnerFrom = findViewById(R.id.spinnerFrom)
-        toFieldContainer = findViewById(R.id.toFieldContainer)
+        tvSelectedSenders = findViewById(R.id.tvSelectedSenders)
         tvSelectedTargets = findViewById(R.id.tvSelectedTargets)
         cbAnonymous = findViewById(R.id.cbAnonymous)
         cbProfileOnly = findViewById(R.id.cbProfileOnly)
+        cbNextFronter = findViewById(R.id.cbNextFronter)
         editMessageContent = findViewById(R.id.editMessageContent)
         editMessageTitle = findViewById(R.id.editMessageTitle)
         
@@ -51,27 +52,26 @@ class SendMessageActivity : BaseActivity() {
             updateSelectedTargetsText()
         }
 
-        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-        val groupsJson = sharedPref.getString("groups_list", "[]") ?: "[]"
-        val groups: List<Group> = gson.fromJson(groupsJson, object : TypeToken<List<Group>>() {}.type)
-        val sortedPeople = MemberHelper.getSortedPeople(people, groups)
-        val sortedNames = sortedPeople.map { it.name }
-
-        val adapterFrom = ColorHelper.createThemedAdapter(this, sortedNames)
-        spinnerFrom.adapter = adapterFrom
+        // Default to current fronter(s)
+        val fronters = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
+        if (fronters.isNotEmpty()) {
+            selectedSenderIds.addAll(fronters.map { it.id })
+            updateSelectedSendersText()
+        }
         
         val fromId = intent.getStringExtra("from_id")
         if (fromId != null) {
-            val fromPerson = people.find { it.id == fromId }
-            if (fromPerson != null) {
-                val index = sortedNames.indexOf(fromPerson.name)
-                if (index != -1) {
-                    spinnerFrom.setSelection(index)
-                }
+            if (!selectedSenderIds.contains(fromId)) {
+                selectedSenderIds.add(fromId)
+                updateSelectedSendersText()
             }
         }
 
-        toFieldContainer.setOnClickListener {
+        tvSelectedSenders.setOnClickListener {
+            showSenderSelectionDialog()
+        }
+
+        tvSelectedTargets.setOnClickListener {
             showTargetSelectionDialog()
         }
 
@@ -84,8 +84,17 @@ class SendMessageActivity : BaseActivity() {
         }
         
         cbAnonymous.setOnCheckedChangeListener { _, isChecked ->
-            spinnerFrom.isEnabled = !isChecked
-            spinnerFrom.alpha = if (isChecked) 0.5f else 1.0f
+            tvSelectedSenders.isEnabled = !isChecked
+            tvSelectedSenders.alpha = if (isChecked) 0.5f else 1.0f
+        }
+        
+        cbNextFronter.setOnCheckedChangeListener { _, isChecked ->
+            tvSelectedTargets.isEnabled = !isChecked
+            tvSelectedTargets.alpha = if (isChecked) 0.5f else 1.0f
+            if (isChecked) {
+                selectedTargetIds.clear()
+                updateSelectedTargetsText()
+            }
         }
         
         editMessageContent.setHintTextColor(ColorHelper.getTextColor(this) and 0x88FFFFFF.toInt())
@@ -103,6 +112,33 @@ class SendMessageActivity : BaseActivity() {
 
     private fun loadPeople() {
         people = MemberHelper.loadAllPeople(this)
+    }
+
+    private fun showSenderSelectionDialog() {
+        if (people.isEmpty()) return
+        
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val groupsJson = sharedPref.getString("groups_list", "[]") ?: "[]"
+        val groups: List<Group> = gson.fromJson(groupsJson, object : TypeToken<List<Group>>() {}.type)
+
+        val filteredPeople = people.filter { !it.isArchived && !it.isSysmediaOnly }
+
+        DialogHelper.showMemberSelectionDialog(
+            this,
+            getString(R.string.label_from),
+            filteredPeople,
+            groups,
+            selectedSenderIds
+        ) { newList ->
+            selectedSenderIds.clear()
+            selectedSenderIds.addAll(newList)
+            updateSelectedSendersText()
+        }
+    }
+
+    private fun updateSelectedSendersText() {
+        val names = people.filter { selectedSenderIds.contains(it.id) && !it.isArchived && !it.isSysmediaOnly }.map { it.name }
+        tvSelectedSenders.text = if (names.isEmpty()) "" else names.joinToString(", ")
     }
 
     private fun showTargetSelectionDialog() {
@@ -133,7 +169,15 @@ class SendMessageActivity : BaseActivity() {
     }
 
     private fun sendMessage() {
-        val fromName = if (cbAnonymous.isChecked) getString(R.string.action_anonymous) else spinnerFrom.selectedItem?.toString() ?: return
+        val fromNames = if (cbAnonymous.isChecked) listOf(getString(R.string.action_anonymous)) 
+                        else people.filter { selectedSenderIds.contains(it.id) }.map { it.name }
+        
+        if (fromNames.isEmpty() && !cbAnonymous.isChecked) {
+            Toast.makeText(this, "Please select at least one sender", Toast.LENGTH_SHORT).show()
+            return
+        }
+        
+        val fromNamesStr = fromNames.joinToString(", ")
         val content = editMessageContent.text.toString().trim()
         val title = editMessageTitle.text.toString().trim().ifEmpty { getString(R.string.dialog_send_message_title) }
 
@@ -142,31 +186,30 @@ class SendMessageActivity : BaseActivity() {
             return
         }
 
-        if (selectedTargetIds.isEmpty()) {
+        if (selectedTargetIds.isEmpty() && !cbNextFronter.isChecked) {
             Toast.makeText(this, "Please select at least one recipient", Toast.LENGTH_SHORT).show()
             return
         }
 
-        val fromPerson = if (cbAnonymous.isChecked) null else people.find { it.name == fromName }
-        val fullMessage = getString(R.string.message_from_placeholder, fromName, content)
+        val fullMessage = getString(R.string.message_from_placeholder, fromNamesStr, content)
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
-
-        val updatedPeople = people.map { 
-            if (selectedTargetIds.contains(it.id)) {
-                it.copy(frontMessage = fullMessage, messageRead = false)
-            } else it
-        }
-        MemberHelper.savePeople(this, updatedPeople)
 
         val newNote = DiaryNote(
             id = UUID.randomUUID().toString(),
             title = title,
             content = fullMessage,
             timestamp = System.currentTimeMillis(),
-            linkedMemberIds = selectedTargetIds.toMutableList(),
-            senderId = if (cbAnonymous.isChecked) "anonymous" else fromPerson?.id,
+            linkedMemberIds = if (cbNextFronter.isChecked) mutableListOf() else selectedTargetIds.toMutableList(),
+            senderId = if (cbAnonymous.isChecked) "anonymous" else selectedSenderIds.firstOrNull(),
             isProfileOnly = cbProfileOnly.isChecked
         )
+
+        if (cbNextFronter.isChecked) {
+            prefs.edit { 
+                putString("pending_next_fronter_message", fullMessage)
+                putString("pending_next_fronter_note_id", newNote.id)
+            }
+        }
         
         val allNotesJson = prefs.getString("diary_notes", "[]") ?: "[]"
         val allNotes: MutableList<DiaryNote> = try { 

@@ -377,10 +377,23 @@ object DialogHelper {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_member_selection, null)
         val etSearch = view.findViewById<EditText>(R.id.etSearch)
         val rvMembers = view.findViewById<RecyclerView>(R.id.rvMembers)
+        val btnEveryone = view.findViewById<Button>(R.id.btnSelectEveryone)
 
         val adapter = MemberSelectionAdapter(context, sortedPeople, selectedIds, isMultiSelect)
         rvMembers.layoutManager = LinearLayoutManager(context)
         rvMembers.adapter = adapter
+
+        btnEveryone.visibility = if (isMultiSelect) View.VISIBLE else View.GONE
+        btnEveryone.setOnClickListener {
+            val allIds = sortedPeople.map { it.id }
+            if (selectedIds.size == allIds.size) {
+                selectedIds.clear()
+            } else {
+                selectedIds.clear()
+                selectedIds.addAll(allIds)
+            }
+            adapter.notifyDataSetChanged()
+        }
 
         val dialog = AlertDialog.Builder(context)
             .setTitle(title)

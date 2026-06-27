@@ -196,8 +196,8 @@
     <string name="scheduled_for_format">Scheduled for: %1$s</string>
     <string name="todo">To Do</string>
     <string name="tab_notes">Notes</string>
-    <string name="tab_messages">Messages</string>
-    <string name="no_messages">No messages</string>
+    <string name="tab_messages">Sysmail</string>
+    <string name="no_messages">No Sysmail</string>
     <string name="no_notes">No notes</string>
     <string name="add_note_button">Add Note</string>
     <string name="label_bundle">Bundle / Group</string>
@@ -376,19 +376,19 @@
     <string name="front_arrow">▲</string>
     <string name="dialog_quick_unfront_title">Quick Unfront</string>
     <string name="dialog_quick_unfront_message">Click a member to stop fronting:</string>
-    <string name="action_send_message">Send Message</string>
+    <string name="action_send_message">Send Sysmail</string>
     <string name="action_send">Send</string>
     <string name="action_anonymous">Anonymous</string>
     <string name="action_profile_only">Profile only</string>
     <string name="action_reply">Reply</string>
     <string name="action_mark_read">Mark as Read</string>
-    <string name="dialog_send_message_title">Send Message</string>
+    <string name="dialog_send_message_title">Send Sysmail</string>
     <string name="label_from">From:</string>
     <string name="label_to">To:</string>
     <string name="label_to_member">To: %1$s</string>
     <string name="message_from_placeholder">From %1$s:\n\n%2$s</string>
     <string name="hint_message_content">Type your message here...</string>
-    <string name="message_sent">Message sent!</string>
+    <string name="message_sent">Sysmail sent!</string>
     <string name="action_delete_all">Delete All Data (%1$d)</string>
     <string name="delete_all_warning_title">WARNING: Delete Data</string>
     <string name="delete_all_warning_message">Select the data you want to permanently delete:</string>
@@ -402,6 +402,10 @@
     <string name="final_confirm_message">Are you absolutely sure? This cannot be undone. Tap the button below 8 times to confirm.</string>
     <string name="final_confirm_delete_account">Are you sure you want to delete this account? All its posts and data will be lost. Tap confirm 8 times.</string>
     <string name="tap_to_confirm">TAP TO CONFIRM: %1$d</string>
+    <string name="action_everyone">Everyone</string>
+    <string name="cb_next_fronter">To next fronter</string>
+    <string name="next_fronter">Next fronter</string>
+    <string name="next_fronter_format">Next fronter: %1$s</string>
     <string name="data_deleted">Data successfully deleted</string>
 
     <string name="who_am_i">Who am I?</string>
@@ -521,7 +525,7 @@
     <string name="no_active_member">No active member selected</string>
     <string name="no_events_today">No events today</string>
 
-    <string name="delete_message_title">Delete Message</string>
-    <string name="delete_message_confirm">Are you sure you want to delete this message?</string>
+    <string name="delete_message_title">Delete Sysmail</string>
+    <string name="delete_message_confirm">Are you sure you want to delete this Sysmail?</string>
 
 </resources>

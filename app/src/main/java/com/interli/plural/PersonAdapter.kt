@@ -168,6 +168,8 @@ class PersonAdapter(
                 holder.frontButton.setBackgroundColor(baseBtnColor)
                 holder.frontButton.setTextColor(btnTextColor)
             }
+            
+            holder.notificationDot.visibility = if (person.isFront && !person.frontMessage.isNullOrBlank() && !person.messageRead) View.VISIBLE else View.GONE
 
             val params = holder.card.layoutParams as ViewGroup.MarginLayoutParams
             params.marginStart = (item.depth * 24 * context.resources.displayMetrics.density).toInt() + (8 * context.resources.displayMetrics.density).toInt()
@@ -203,6 +205,7 @@ class PersonAdapter(
         val nameText: TextView = view.findViewById(R.id.nameText)
         val frontButton: Button = view.findViewById(R.id.frontButton)
         val smallImage: ImageView = view.findViewById(R.id.personSmallImage)
+        val notificationDot: View = view.findViewById(R.id.notificationDot)
     }
 
     class GroupViewHolder(view: View) : RecyclerView.ViewHolder(view) {

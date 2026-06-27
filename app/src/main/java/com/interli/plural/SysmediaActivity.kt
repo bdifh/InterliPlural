@@ -84,6 +84,7 @@ class SysmediaActivity : BaseActivity() {
         markwon = io.noties.markwon.Markwon.builder(this)
             .usePlugin(io.noties.markwon.linkify.LinkifyPlugin.create())
             .usePlugin(io.noties.markwon.ext.strikethrough.StrikethroughPlugin.create())
+            .usePlugin(io.noties.markwon.image.coil.CoilImagesPlugin.create(this))
             .build()
         
         if (activeMemberId == null) {
@@ -222,7 +223,7 @@ class SysmediaActivity : BaseActivity() {
                         btn.text = getString(R.string.tap_to_confirm, 8 - pressCount)
                     }
                 }
-                ColorHelper.styleSupportAlertDialog(dialog, this)
+                ColorHelper.styleAlertDialog(dialog, this)
             }
             .setPositiveButton(R.string.close, null)
             .show()
@@ -982,7 +983,7 @@ class SysmediaActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .create()
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private inner class NotificationAdapter(private val items: List<SysmediaNotification>) :

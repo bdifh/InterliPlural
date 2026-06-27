@@ -464,7 +464,20 @@ class EditNoteActivity : BaseActivity() {
     }
 
     private fun updateLinkedMembersText() {
-        val names = people.filter { selectedMemberIds.contains(it.id) && !it.isArchived && !it.isSysmediaOnly }.map { it.name }
+        val names = people.filter { selectedMemberIds.contains(it.id) && !it.isArchived && !it.isSysmediaOnly }.map { it.name }.toMutableList()
+        
+        val existingNote = notes.find { it.id == noteId }
+        val recipientInfo = existingNote?.nextFronterRecipient
+        
+        if (recipientInfo != null) {
+            val idx = names.indexOf(recipientInfo)
+            if (idx != -1) {
+                names[idx] = getString(R.string.next_fronter_format, recipientInfo)
+            } else if (!isEditMode) {
+                names.add(getString(R.string.next_fronter_format, recipientInfo))
+            }
+        }
+
         linkedMembersText.text = if (names.isEmpty()) "" else names.joinToString(", ")
         findViewById<TextView>(R.id.labelLinkedMembers).visibility = if (names.isEmpty() && !isEditMode) View.GONE else View.VISIBLE
     }
