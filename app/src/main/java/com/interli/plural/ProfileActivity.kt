@@ -243,18 +243,19 @@ class ProfileActivity : BaseActivity() {
         val archiveBtn = findViewById<Button>(R.id.btnArchivePerson)
         var archiveClicks = 0
         archiveBtn.setOnClickListener {
-            if (person.isArchived) {
-                person.isArchived = false
+            val currentPerson = people[personIndex]
+            if (currentPerson.isArchived) {
+                currentPerson.isArchived = false
                 saveData()
                 Toast.makeText(this, getString(R.string.member_unarchived), Toast.LENGTH_SHORT).show()
                 finish()
             } else {
                 archiveClicks++
                 if (archiveClicks >= 5) {
-                    person.isArchived = true
-                    if (person.isFront) {
-                        person.isFront = false
-                        sessions.find { (it.personId == person.id || it.personName == person.name) && it.endTime == null }?.let {
+                    currentPerson.isArchived = true
+                    if (currentPerson.isFront) {
+                        currentPerson.isFront = false
+                        sessions.find { (it.personId == currentPerson.id || it.personName == currentPerson.name) && it.endTime == null }?.let {
                             it.endTime = System.currentTimeMillis()
                         }
                     }
@@ -356,7 +357,6 @@ class ProfileActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        loadData()
     }
 
     private fun updateUiMode(nameEdit: EditText) {
