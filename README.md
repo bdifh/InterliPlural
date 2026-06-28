@@ -2,10 +2,9 @@
 
 This is the app for plural systems to encourage communication, discover roles and hobbies, tackle memory issues and truly get a hand back on your life. Even for people who are not plural, this app can come in handy and everyone is welcome to use it.
 
-The app is built **for plurals, by plurals**.
 
 ##  Features
-- **Fronting / members tracking**: Keep track of who is in control. + figuring out who you are in times of blurriness.
+- **Fronting / members tracking**: Keep track of who is at front. + figuring out who you are in times of blurriness.
 - **Sysmedia**: An internal social media experience for your system.
 - **Statistics**: Front and mood statistics, both globally and per member.
 - **Organization**: To-do lists and notes (global and per member).
