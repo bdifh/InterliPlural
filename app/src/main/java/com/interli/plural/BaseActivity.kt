@@ -85,8 +85,9 @@ abstract class BaseActivity : AppCompatActivity() {
             val idToGroup = mapOf(
                 R.id.action_add_person to 0, R.id.action_add_group to 0,
                 R.id.action_front_page to 1, R.id.action_statistics to 1, R.id.action_who_am_i to 1,
+                R.id.action_relations to 1,
                 R.id.action_diary to 2, R.id.action_todo to 2, R.id.action_calendar to 2,
-                R.id.action_mood_tracker to 3, R.id.action_mood_stats to 3,
+                R.id.action_mood_tracker to 3, R.id.action_mood_stats to 3, R.id.action_mood_insights to 3,
                 R.id.action_sysmedia to 4, R.id.action_settings to 99
             )
             val items = mutableListOf<android.view.MenuItem>()
@@ -113,8 +114,10 @@ abstract class BaseActivity : AppCompatActivity() {
                     }
                     R.id.action_front_page -> if (this !is MainActivity) startActivity(android.content.Intent(this, MainActivity::class.java).apply { putExtra("ignore_redirect", true); flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP })
                     R.id.action_who_am_i -> if (this !is WhoAmIActivity) startActivity(android.content.Intent(this, WhoAmIActivity::class.java))
+                    R.id.action_relations -> if (this !is RelationsActivity) startActivity(android.content.Intent(this, RelationsActivity::class.java))
                     R.id.action_mood_tracker -> if (this !is MoodActivity) startActivity(android.content.Intent(this, MoodActivity::class.java))
                     R.id.action_mood_stats -> if (this !is MoodStatsActivity) startActivity(android.content.Intent(this, MoodStatsActivity::class.java))
+                    R.id.action_mood_insights -> if (this !is MemberMoodCorrelationActivity) startActivity(android.content.Intent(this, MemberMoodCorrelationActivity::class.java))
                     R.id.action_statistics -> if (this !is StatisticsActivity) startActivity(android.content.Intent(this, StatisticsActivity::class.java))
                     R.id.action_diary -> if (this !is DiaryActivity) startActivity(android.content.Intent(this, DiaryActivity::class.java))
                     R.id.action_sysmedia -> if (this !is SysmediaActivity) startActivity(android.content.Intent(this, SysmediaActivity::class.java))
@@ -139,6 +142,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val frontSub = sharedPref.getBoolean("sub_front_page", true) && pluralMaster
         val statsSub = sharedPref.getBoolean("sub_statistics", true) && pluralMaster
         val whoAmISub = sharedPref.getBoolean("sub_who_am_i", true) && pluralMaster
+        val relationsSub = sharedPref.getBoolean("sub_relations_enabled", true) && pluralMaster
         val moodLogSub = sharedPref.getBoolean("sub_mood_log_enabled", true) && moodMaster
         val moodStatsSub = sharedPref.getBoolean("sub_mood_stats_enabled", true) && moodMaster
         val sysmediaSub = sharedPref.getBoolean("module_sysmedia_enabled", true) && pluralMaster
@@ -148,6 +152,7 @@ abstract class BaseActivity : AppCompatActivity() {
         menu.findItem(R.id.action_front_page)?.isVisible = frontSub
         menu.findItem(R.id.action_statistics)?.isVisible = statsSub
         menu.findItem(R.id.action_who_am_i)?.isVisible = whoAmISub
+        menu.findItem(R.id.action_relations)?.isVisible = relationsSub
         menu.findItem(R.id.action_mood_tracker)?.isVisible = moodLogSub
         menu.findItem(R.id.action_mood_stats)?.isVisible = moodStatsSub
         menu.findItem(R.id.action_diary)?.isVisible = notesEnabled
@@ -192,11 +197,13 @@ abstract class BaseActivity : AppCompatActivity() {
         val startPage = (settingsPref.getString("start_page", "members") ?: "members").lowercase()
         val targetClass = when (startPage) {
             "mood" -> if (settingsPref.getBoolean("module_mood_enabled", true) && settingsPref.getBoolean("sub_mood_log_enabled", true)) MoodActivity::class.java else MainActivity::class.java
+            "mood_insights" -> if (settingsPref.getBoolean("module_mood_enabled", true) && settingsPref.getBoolean("sub_mood_insights", true)) MemberMoodCorrelationActivity::class.java else MainActivity::class.java
             "diary" -> if (settingsPref.getBoolean("module_notes_enabled", true)) DiaryActivity::class.java else MainActivity::class.java
             "calendar" -> if (settingsPref.getBoolean("module_calendar_enabled", true)) CalendarActivity::class.java else MainActivity::class.java
             "sysmedia" -> if (settingsPref.getBoolean("module_fronting_enabled", true) && settingsPref.getBoolean("module_sysmedia_enabled", true)) SysmediaActivity::class.java else MainActivity::class.java
             "todo" -> if (settingsPref.getBoolean("module_todo_enabled", true)) TodoActivity::class.java else MainActivity::class.java
             "stats" -> if (settingsPref.getBoolean("module_fronting_enabled", true) && settingsPref.getBoolean("sub_front_page", true)) StatisticsActivity::class.java else MainActivity::class.java
+            "relations" -> if (settingsPref.getBoolean("module_fronting_enabled", true) && settingsPref.getBoolean("sub_relations_enabled", true)) RelationsActivity::class.java else MainActivity::class.java
             else -> MainActivity::class.java
         }
         if (this::class.java == targetClass) finish() else {

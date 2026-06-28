@@ -37,7 +37,7 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
         setupDatePickers()
         setupSelectionButtons()
         setupNavigationDrawer()
-        
+
         val spinner = findViewById<Spinner>(R.id.spinnerStatsPeriod)
         spinner.setSelection(1)
         updateFilteredData(1)
@@ -162,7 +162,7 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
                 if (newList.isEmpty()) {
                     findViewById<Button>(R.id.btnSelectMembers).text = getString(R.string.all_members)
                 } else {
-                    findViewById<Button>(R.id.btnSelectMembers).text = "${newList.size} members"
+                    findViewById<Button>(R.id.btnSelectMembers).text = getString(R.string.n_members_selected, newList.size)
                 }
                 
                 render()
@@ -236,6 +236,7 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
         container.removeAllViews()
 
         val filtered = allEntries.filter { it.timestamp in currentPeriodStart..currentPeriodEnd }
+        
         if (filtered.isEmpty()) {
             container.addView(TextView(this).apply { 
                 text = getString(R.string.no_mood_entries)
@@ -259,9 +260,10 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
         targetActivities.forEach { activity ->
             val activityEntries = filtered.filter { it.activities.contains(activity) }
             if (activityEntries.isEmpty()) return@forEach
-            
+
             val totalForThisActivity = activityEntries.size
-            val activityPercentage = if (totalAllActivityEntries > 0) (totalForThisActivity / totalAllActivityEntries * 100).toInt() else 0
+            val activityPercentage =
+                if (totalAllActivityEntries > 0) (totalForThisActivity / totalAllActivityEntries * 100).toInt() else 0
 
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -276,7 +278,8 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
                 textSize = 16f
                 textStyle = android.graphics.Typeface.BOLD
                 setTextColor(textColor)
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                layoutParams =
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             })
             activityHeader.addView(TextView(this).apply {
                 text = "$activityPercentage%"
@@ -290,7 +293,7 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
             targetMembers.forEach { memberId ->
                 val person = people.find { it.id == memberId } ?: return@forEach
                 val count = activityEntries.count { it.memberIds.contains(memberId) }
-                
+
                 if (count == 0 && selectedMemberIds.isEmpty() && selectedActivities.isEmpty()) return@forEach
 
                 hasAnyData = true
@@ -298,12 +301,14 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
                     orientation = LinearLayout.HORIZONTAL
                     setPadding(16.dpToPx(), 4.dpToPx(), 0, 0)
                 }
-                
-                val memberPercentage = if (totalForThisActivity > 0) (count.toFloat() / totalForThisActivity * 100).toInt() else 0
+
+                val memberPercentage =
+                    if (totalForThisActivity > 0) (count.toFloat() / totalForThisActivity * 100).toInt() else 0
 
                 memberRow.addView(TextView(this).apply {
                     text = getString(R.string.stats_person_label, person.name)
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    layoutParams =
+                        LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     setTextColor(textColor)
                 })
 
@@ -312,10 +317,10 @@ class ExtensiveMoodStatsActivity : BaseActivity() {
                     setTextColor(textColor)
                     textStyle = android.graphics.Typeface.BOLD
                 })
-                
+
                 row.addView(memberRow)
             }
-            
+
             if (hasAnyData) {
                 container.addView(row)
             }

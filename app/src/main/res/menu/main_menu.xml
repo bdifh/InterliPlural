@@ -15,6 +15,10 @@
             android:id="@+id/action_who_am_i"
             android:title="@string/who_am_i"
             app:showAsAction="never" />
+        <item
+            android:id="@+id/action_relations"
+            android:title="@string/module_relations"
+            app:showAsAction="never" />
     </group>
 
     <group android:id="@+id/group_plural">
@@ -40,6 +44,10 @@
         <item
             android:id="@+id/action_mood_stats"
             android:title="@string/mood_stats"
+            app:showAsAction="never" />
+        <item
+            android:id="@+id/action_mood_insights"
+            android:title="@string/mood_insights"
             app:showAsAction="never" />
     </group>
 

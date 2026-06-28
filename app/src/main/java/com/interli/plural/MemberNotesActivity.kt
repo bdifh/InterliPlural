@@ -143,10 +143,11 @@ class MemberNotesActivity : BaseActivity() {
             if (bundleTitle != null) {
                 val header = TextView(this).apply {
                     text = bundleTitle
-                    textSize = 18f
+                    textSize = 16f
                     setTypeface(null, android.graphics.Typeface.BOLD)
                     setTextColor(textColor)
-                    setPadding(8, 32, 8, 16)
+                    val py = (12 * resources.displayMetrics.density).toInt()
+                    setPadding(py, py, py, py / 2)
                 }
                 container.addView(header)
             }

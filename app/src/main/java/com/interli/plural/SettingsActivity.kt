@@ -213,8 +213,40 @@ class SettingsActivity : BaseActivity() {
         findViewById<Button>(R.id.btnViewArchived).setOnClickListener { showArchivedMembersDialog() }
         findViewById<Button>(R.id.btnPdfExport).setOnClickListener { showPdfExportDialog() }
 
+        val mainMenu = findViewById<LinearLayout>(R.id.settingsMainMenu)
+        val layoutGroup = findViewById<LinearLayout>(R.id.layoutSettingsGroup)
+        val appSettingsGroup = findViewById<LinearLayout>(R.id.appSettingsGroup)
+        val backupGroup = findViewById<LinearLayout>(R.id.backupSettingsGroup)
+        val membersGroup = findViewById<LinearLayout>(R.id.memberSettingsGroup)
+        val topAppBar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
+        val topAppBarTitle = topAppBar.getChildAt(0) as? TextView
+
+        fun showGroup(group: LinearLayout, title: String) {
+            mainMenu.visibility = View.GONE
+            layoutGroup.visibility = View.GONE
+            appSettingsGroup.visibility = View.GONE
+            backupGroup.visibility = View.GONE
+            membersGroup.visibility = View.GONE
+            
+            group.visibility = View.VISIBLE
+            topAppBarTitle?.text = title
+            topAppBar.setNavigationIcon(android.R.drawable.ic_menu_revert)
+            topAppBar.setNavigationOnClickListener {
+                showGroup(mainMenu, getString(R.string.settings))
+                topAppBar.setNavigationIcon(android.R.drawable.ic_menu_sort_by_size)
+                topAppBar.setNavigationOnClickListener {
+                    findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawerLayout).openDrawer(android.view.Gravity.LEFT)
+                }
+            }
+        }
+
+        findViewById<Button>(R.id.btnCategoryLayout).setOnClickListener { showGroup(layoutGroup, getString(R.string.settings_category_layout)) }
+        findViewById<Button>(R.id.btnCategoryAppSettings).setOnClickListener { showGroup(appSettingsGroup, getString(R.string.settings_category_app)) }
+        findViewById<Button>(R.id.btnCategoryBackup).setOnClickListener { showGroup(backupGroup, getString(R.string.settings_category_backup)) }
+        findViewById<Button>(R.id.btnCategoryMembers).setOnClickListener { showGroup(membersGroup, getString(R.string.settings_category_members)) }
+
         val btnDeleteData = Button(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
-            id = R.id.btnBulkMove + 100 // Temporaire ou on l'ajoute au layout
+            id = View.generateViewId()
             text = getString(R.string.action_delete_all, 8)
             setTextColor(Color.RED)
             layoutParams = LinearLayout.LayoutParams(-1, -2).apply { 
@@ -233,7 +265,7 @@ class SettingsActivity : BaseActivity() {
                 btnDeleteData.text = getString(R.string.action_delete_all, 8 - deleteClicks)
             }
         }
-        (findViewById<View>(R.id.btnSaveSettings).parent as ViewGroup).addView(btnDeleteData, (findViewById<View>(R.id.btnSaveSettings).parent as ViewGroup).indexOfChild(findViewById(R.id.btnSaveSettings)))
+        findViewById<LinearLayout>(R.id.deleteDataContainer).addView(btnDeleteData)
 
         setupNavigationDrawer()
         ColorHelper.applySettings(this)
@@ -255,6 +287,32 @@ class SettingsActivity : BaseActivity() {
         findViewById<TextView>(R.id.tvDiscordLink2).apply {
             setOnClickListener(discordListener)
             setTextColor(btnColor)
+        }
+    }
+
+    override fun onBackPressed() {
+        val mainMenu = findViewById<LinearLayout>(R.id.settingsMainMenu)
+        if (mainMenu.visibility == View.GONE) {
+            val layoutGroup = findViewById<LinearLayout>(R.id.layoutSettingsGroup)
+            val appSettingsGroup = findViewById<LinearLayout>(R.id.appSettingsGroup)
+            val backupGroup = findViewById<LinearLayout>(R.id.backupSettingsGroup)
+            val membersGroup = findViewById<LinearLayout>(R.id.memberSettingsGroup)
+            val topAppBar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
+            val topAppBarTitle = topAppBar.getChildAt(0) as? TextView
+
+            mainMenu.visibility = View.VISIBLE
+            layoutGroup.visibility = View.GONE
+            appSettingsGroup.visibility = View.GONE
+            backupGroup.visibility = View.GONE
+            membersGroup.visibility = View.GONE
+
+            topAppBarTitle?.text = getString(R.string.settings)
+            topAppBar.setNavigationIcon(android.R.drawable.ic_menu_sort_by_size)
+            topAppBar.setNavigationOnClickListener {
+                findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawerLayout).openDrawer(android.view.Gravity.LEFT)
+            }
+        } else {
+            super.onBackPressed()
         }
     }
 
@@ -421,10 +479,12 @@ class SettingsActivity : BaseActivity() {
 
         val pluralMaster = sp.getBoolean("module_fronting_enabled", true)
         val frontSub = sp.getBoolean("sub_front_page", true) && pluralMaster
+        val relationsSub = sp.getBoolean("sub_relations_enabled", true) && pluralMaster
         val sysmediaSub = sp.getBoolean("module_sysmedia_enabled", true) && pluralMaster
 
         val moodMaster = sp.getBoolean("module_mood_enabled", true)
         val moodLogSub = sp.getBoolean("sub_mood_log_enabled", true) && moodMaster
+        val moodInsightsSub = sp.getBoolean("sub_mood_insights", true) && moodMaster
 
         val notesEnabled = sp.getBoolean("module_notes_enabled", true)
         val todoEnabled = sp.getBoolean("module_todo_enabled", true)
@@ -436,10 +496,20 @@ class SettingsActivity : BaseActivity() {
             options.add(getString(R.string.statistics))
             codes.add("stats")
         }
+
+        if (relationsSub) {
+            options.add(getString(R.string.module_relations))
+            codes.add("relations")
+        }
         
         if (moodLogSub) {
             options.add(getString(R.string.mood_tracker))
             codes.add("mood")
+        }
+
+        if (moodInsightsSub) {
+            options.add(getString(R.string.mood_insights))
+            codes.add("mood_insights")
         }
         
         if (notesEnabled) {
@@ -483,6 +553,7 @@ class SettingsActivity : BaseActivity() {
                 ModuleSub("sub_front_page", getString(R.string.front_page)),
                 ModuleSub("sub_statistics", getString(R.string.statistics)),
                 ModuleSub("sub_who_am_i", getString(R.string.who_am_i)),
+                ModuleSub("sub_relations_enabled", getString(R.string.module_relations)),
                 ModuleSub("module_sysmedia_enabled", getString(R.string.sysmedia))
             )),
             ModuleGroup("module_notes_enabled", getString(R.string.module_notes)),
@@ -490,7 +561,8 @@ class SettingsActivity : BaseActivity() {
             ModuleGroup("module_calendar_enabled", getString(R.string.module_calendar)),
             ModuleGroup("module_mood_enabled", getString(R.string.module_mood), listOf(
                 ModuleSub("sub_mood_log_enabled", getString(R.string.mood_tracker)),
-                ModuleSub("sub_mood_stats_enabled", getString(R.string.mood_stats))
+                ModuleSub("sub_mood_stats_enabled", getString(R.string.mood_stats)),
+                ModuleSub("sub_mood_insights", getString(R.string.mood_insights))
             ))
         )
 
@@ -1427,7 +1499,7 @@ class SettingsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .create()
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()

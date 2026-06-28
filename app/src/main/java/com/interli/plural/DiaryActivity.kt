@@ -297,7 +297,9 @@ class DiaryActivity : BaseActivity() {
 
         inner class BundleViewHolder(val card: com.google.android.material.card.MaterialCardView) : RecyclerView.ViewHolder(card) {
             fun bind(bundle: NoteBundle) {
-                card.layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, 0, 0, 8.dpToPx()) }
+                card.layoutParams = (card.layoutParams as? ViewGroup.MarginLayoutParams ?: LinearLayout.LayoutParams(-1, -2)).apply {
+                    setMargins(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
+                }
                 card.radius = 8f * resources.displayMetrics.density
                 card.setCardBackgroundColor(ColorHelper.getBtnColor(this@DiaryActivity))
                 card.removeAllViews()
@@ -318,15 +320,16 @@ class DiaryActivity : BaseActivity() {
                 content.addView(tvName)
 
                 val btnExpand = ImageView(this@DiaryActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx())
                     setImageResource(android.R.drawable.arrow_down_float)
                     rotation = if (bundle.isExpanded) 0f else -90f
                     setColorFilter(ColorHelper.getBtnTextColor(this@DiaryActivity))
                 }
                 content.addView(btnExpand)
                 
-                val btnEdit = ImageButton(this@DiaryActivity).apply {
+                val btnEdit = ImageView(this@DiaryActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx()).apply { marginStart = 8.dpToPx() }
                     setImageResource(android.R.drawable.ic_menu_edit)
-                    background = null
                     setColorFilter(ColorHelper.getBtnTextColor(this@DiaryActivity))
                     alpha = 0.6f
                     setOnClickListener { showEditBundleDialog(bundle) }

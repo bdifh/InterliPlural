@@ -182,6 +182,12 @@
             android:exported="false" />
 
         <activity
+            android:name=".MemberMoodCorrelationActivity"
+            android:label="@string/mood_insights"
+            android:parentActivityName=".MoodStatsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MemberMoodStatsActivity"
             android:label="@string/mood_stats"
             android:parentActivityName=".MemberMoodActivity"
@@ -250,6 +256,12 @@
             android:name=".MemberFrontHistoryActivity"
             android:label="@string/action_view_front"
             android:parentActivityName=".ProfileActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".RelationsActivity"
+            android:label="@string/module_relations"
+            android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <receiver

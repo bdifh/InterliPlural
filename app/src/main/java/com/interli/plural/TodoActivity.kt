@@ -297,7 +297,9 @@ class TodoActivity : BaseActivity() {
         inner class BundleViewHolder(val card: com.google.android.material.card.MaterialCardView) : RecyclerView.ViewHolder(card) {
             @android.annotation.SuppressLint("ClickableViewAccessibility")
             fun bind(bundle: TodoBundle) {
-                card.layoutParams = LinearLayout.LayoutParams(-1, -2).apply { setMargins(0, 0, 0, 8.dpToPx()) }
+                card.layoutParams = (card.layoutParams as? ViewGroup.MarginLayoutParams ?: LinearLayout.LayoutParams(-1, -2)).apply {
+                    setMargins(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
+                }
                 card.radius = 8f * resources.displayMetrics.density
                 card.setCardBackgroundColor(ColorHelper.getBtnColor(this@TodoActivity))
                 card.cardElevation = 4f
@@ -308,13 +310,11 @@ class TodoActivity : BaseActivity() {
                     gravity = Gravity.CENTER_VERTICAL
                     setPadding(12.dpToPx(), 12.dpToPx(), 12.dpToPx(), 12.dpToPx())
                 }
-                
+
                 val ivDrag = ImageView(this@TodoActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx()).apply { marginEnd = 8.dpToPx() }
                     setImageResource(android.R.drawable.ic_menu_sort_by_size)
                     setColorFilter(ColorHelper.getBtnTextColor(this@TodoActivity))
-                    setPadding(0, 0, 8.dpToPx(), 0)
-                    isClickable = false
-                    isFocusable = false
                     setOnTouchListener { _, event ->
                         if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
                             onDragStart?.invoke(this@BundleViewHolder)
@@ -327,22 +327,23 @@ class TodoActivity : BaseActivity() {
                 val tvName = TextView(this@TodoActivity).apply {
                     text = bundle.name
                     textSize = 16f
-                    textStyle = android.graphics.Typeface.BOLD
+                    setTypeface(null, android.graphics.Typeface.BOLD)
                     setTextColor(ColorHelper.getBtnTextColor(this@TodoActivity))
                     layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
                 }
                 content.addView(tvName)
-                
+
                 val btnExpand = ImageView(this@TodoActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx())
                     setImageResource(android.R.drawable.arrow_down_float)
                     rotation = if (bundle.isExpanded) 0f else -90f
                     setColorFilter(ColorHelper.getBtnTextColor(this@TodoActivity))
                 }
                 content.addView(btnExpand)
-                
-                val btnEdit = ImageButton(this@TodoActivity).apply {
+
+                val btnEdit = ImageView(this@TodoActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx()).apply { marginStart = 8.dpToPx() }
                     setImageResource(android.R.drawable.ic_menu_edit)
-                    background = null
                     setColorFilter(ColorHelper.getBtnTextColor(this@TodoActivity))
                     alpha = 0.6f
                     setOnClickListener { showEditBundleDialog(bundle) }
@@ -350,7 +351,6 @@ class TodoActivity : BaseActivity() {
                 content.addView(btnEdit)
 
                 card.addView(content)
-
                 card.setOnClickListener {
                     bundle.isExpanded = !bundle.isExpanded
                     saveData()

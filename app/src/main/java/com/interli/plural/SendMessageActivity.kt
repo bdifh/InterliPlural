@@ -143,8 +143,13 @@ class SendMessageActivity : BaseActivity() {
     }
 
     private fun updateSelectedSendersText() {
-        val names = people.filter { selectedSenderIds.contains(it.id) && !it.isArchived && !it.isSysmediaOnly }.map { it.name }
-        tvSelectedSenders.text = if (names.isEmpty()) "" else names.joinToString(", ")
+        val activePeople = people.filter { !it.isArchived && !it.isSysmediaOnly }
+        val names = activePeople.filter { selectedSenderIds.contains(it.id) }.map { it.name }
+        tvSelectedSenders.text = when {
+            names.isEmpty() -> ""
+            names.size == activePeople.size -> getString(R.string.action_link_everyone)
+            else -> names.joinToString(", ")
+        }
     }
 
     private fun showTargetSelectionDialog() {
@@ -170,8 +175,13 @@ class SendMessageActivity : BaseActivity() {
     }
 
     private fun updateSelectedTargetsText() {
-        val names = people.filter { selectedTargetIds.contains(it.id) && !it.isArchived && !it.isSysmediaOnly }.map { it.name }
-        tvSelectedTargets.text = if (names.isEmpty()) "" else names.joinToString(", ")
+        val activePeople = people.filter { !it.isArchived && !it.isSysmediaOnly }
+        val names = activePeople.filter { selectedTargetIds.contains(it.id) }.map { it.name }
+        tvSelectedTargets.text = when {
+            names.isEmpty() -> ""
+            names.size == activePeople.size -> getString(R.string.action_link_everyone)
+            else -> names.joinToString(", ")
+        }
     }
 
     private fun sendMessage() {

@@ -37,7 +37,7 @@
             android:layout_height="0dp"
             android:soundEffectsEnabled="false"
             app:layout_constraintTop_toBottomOf="@id/topAppBar"
-            app:layout_constraintBottom_toBottomOf="parent">
+            app:layout_constraintBottom_toTopOf="@id/btnSaveSettings">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -46,389 +46,444 @@
                 android:padding="24dp"
                 android:focusableInTouchMode="true">
 
-        <!-- App Layout Colours -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_section_colors"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:layout_marginBottom="8dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp">
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardBgColor"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#20000000">
-                <View
-                    android:id="@+id/bgPreview"
+                <!-- Main Menu -->
+                <LinearLayout
+                    android:id="@+id/settingsMainMenu"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardBtnColor"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#20000000">
-                <View
-                    android:id="@+id/btnPreview"
+                    <Button
+                        android:id="@+id/btnCategoryLayout"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="@string/settings_category_layout"
+                        app:icon="@android:drawable/ic_menu_gallery"
+                        app:iconGravity="textStart" />
+
+                    <Button
+                        android:id="@+id/btnCategoryAppSettings"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="@string/settings_category_app"
+                        app:icon="@android:drawable/ic_menu_preferences"
+                        app:iconGravity="textStart" />
+
+                    <Button
+                        android:id="@+id/btnCategoryBackup"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="@string/settings_category_backup"
+                        app:icon="@android:drawable/ic_popup_sync"
+                        app:iconGravity="textStart" />
+
+                    <Button
+                        android:id="@+id/btnCategoryMembers"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="64dp"
+                        android:layout_marginBottom="12dp"
+                        android:text="@string/settings_category_members"
+                        app:icon="@android:drawable/ic_menu_myplaces"
+                        app:iconGravity="textStart" />
+                </LinearLayout>
+
+                <!-- Category: Layout -->
+                <LinearLayout
+                    android:id="@+id/layoutSettingsGroup"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardBtnTextColor"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#20000000">
-                <View
-                    android:id="@+id/btnTextPreview"
+                    <!-- App Layout Colours -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_section_colors"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary"
+                        android:layout_marginBottom="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="16dp">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardBgColor"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#20000000">
+                            <View
+                                android:id="@+id/bgPreview"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardBtnColor"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#20000000">
+                            <View
+                                android:id="@+id/btnPreview"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardBtnTextColor"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#20000000">
+                            <View
+                                android:id="@+id/btnTextPreview"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardFrontColor"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#20000000">
+                            <View
+                                android:id="@+id/frontPreview"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardTextColor"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp"
+                            app:strokeWidth="1dp"
+                            app:strokeColor="#20000000">
+                            <View
+                                android:id="@+id/textPreview"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnSaveAsTheme"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/action_save_as_theme"
+                        app:icon="@android:drawable/ic_menu_save"
+                        app:iconGravity="textStart" />
+
+                    <Button
+                        android:id="@+id/btnThemePriority"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/settings_theme_priority"
+                        app:icon="@android:drawable/ic_menu_sort_by_size"
+                        app:iconGravity="textStart" />
+
+                    <Button
+                        android:id="@+id/btnManageThemes"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/action_manage_themes"
+                        app:icon="@android:drawable/ic_menu_gallery"
+                        app:iconGravity="textStart" />
+
+                    <!-- Mood Tracker Colours -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_section_mood_colors"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginBottom="24dp">
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardMood1"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp">
+                            <View android:id="@+id/mood1Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardMood2"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp">
+                            <View android:id="@+id/mood2Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardMood3"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp">
+                            <View android:id="@+id/mood3Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardMood4"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp">
+                            <View android:id="@+id/mood4Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/cardMood5"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_margin="8dp"
+                            app:cardElevation="2dp"
+                            app:cardCornerRadius="20dp">
+                            <View android:id="@+id/mood5Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
+                        </com.google.android.material.card.MaterialCardView>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- Category: App Settings -->
+                <LinearLayout
+                    android:id="@+id/appSettingsGroup"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardFrontColor"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#20000000">
-                <View
-                    android:id="@+id/frontPreview"
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_section_app_settings"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary"
+                        android:layout_marginBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btnChangeStartPage"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/action_change_start_page" />
+
+                    <Button
+                        android:id="@+id/btnManagePages"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="24dp"
+                        android:text="@string/action_manage_pages" />
+
+                    <Button
+                        android:id="@+id/btnChangeLanguage"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/action_change_language" />
+
+                    <Button
+                        android:id="@+id/btnChangeFontSize"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="24dp"
+                        android:text="@string/action_change_font_size" />
+
+                    <Button
+                        android:id="@+id/btnManageNotifications"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/action_manage_notifications" />
+                </LinearLayout>
+
+                <!-- Category: Backup & Data -->
+                <LinearLayout
+                    android:id="@+id/backupSettingsGroup"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardTextColor"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp"
-                app:strokeWidth="1dp"
-                app:strokeColor="#20000000">
-                <View
-                    android:id="@+id/textPreview"
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_section_data"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary"
+                        android:layout_marginBottom="8dp" />
+
+                    <Button
+                        android:id="@+id/btnOpenImportDialog"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/action_3rd_party_import" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginBottom="8dp">
+
+                        <Button
+                            android:id="@+id/btnExport"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="4dp"
+                            android:text="@string/action_export" />
+
+                        <Button
+                            android:id="@+id/btnImport"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="4dp"
+                            android:text="@string/action_import" />
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnPdfExport"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/action_pdf_export" />
+
+                    <Button
+                        android:id="@+id/btnConfigAutoBackup"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/auto_backup_settings"
+                        android:textAlignment="viewStart"
+                        app:icon="@android:drawable/ic_popup_sync"
+                        app:iconGravity="textStart" />
+
+                    <LinearLayout
+                        android:id="@+id/deleteDataContainer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="16dp" />
+                </LinearLayout>
+
+                <!-- Category: Members & Fields -->
+                <LinearLayout
+                    android:id="@+id/memberSettingsGroup"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-        <Button
-            android:id="@+id/btnSaveAsTheme"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/action_save_as_theme"
-            app:icon="@android:drawable/ic_menu_save"
-            app:iconGravity="textStart" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/settings_section_management"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorPrimary"
+                        android:layout_marginBottom="8dp" />
 
-        <Button
-            android:id="@+id/btnThemePriority"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/settings_theme_priority"
-            app:icon="@android:drawable/ic_menu_sort_by_size"
-            app:iconGravity="textStart" />
+                    <Button
+                        android:id="@+id/btnBulkMove"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/action_bulk_move" />
 
-        <Button
-            android:id="@+id/btnManageThemes"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:text="@string/action_manage_themes"
-            app:icon="@android:drawable/ic_menu_gallery"
-            app:iconGravity="textStart" />
+                    <Button
+                        android:id="@+id/btnViewArchived"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/view_archived_members" />
 
-        <!-- Mood Tracker Colours -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_section_mood_colors"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp" />
+                    <Button
+                        android:id="@+id/btnManageCustomFields"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/custom_fields_title"
+                        app:icon="@android:drawable/ic_menu_edit"
+                        app:iconGravity="textStart" />
+                </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="24dp">
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardMood1"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp">
-                <View android:id="@+id/mood1Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardMood2"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp">
-                <View android:id="@+id/mood2Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardMood3"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp">
-                <View android:id="@+id/mood3Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardMood4"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp">
-                <View android:id="@+id/mood4Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardMood5"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_margin="8dp"
-                app:cardElevation="2dp"
-                app:cardCornerRadius="20dp">
-                <View android:id="@+id/mood5Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
-
-        <!-- App Settings -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_section_app_settings"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnManageNotifications"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/action_manage_notifications" />
-
-        <Button
-            android:id="@+id/btnChangeStartPage"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/action_change_start_page" />
-
-        <Button
-            android:id="@+id/btnChangeLanguage"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/action_change_language" />
-
-        <Button
-            android:id="@+id/btnChangeFontSize"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="Change Font Size" />
-
-        <Button
-            android:id="@+id/btnManagePages"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/action_manage_pages" />
-
-
-        <!-- Management -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_section_management"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnBulkMove"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/action_bulk_move" />
-
-        <Button
-            android:id="@+id/btnViewArchived"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:text="@string/view_archived_members" />
-
-        <!-- Data & Backup -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_section_data"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnOpenImportDialog"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/action_3rd_party_import" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-
-            <Button
-                android:id="@+id/btnExport"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="4dp"
-                android:text="@string/action_export" />
-
-            <Button
-                android:id="@+id/btnImport"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:text="@string/action_import" />
-        </LinearLayout>
-
-        <Button
-            android:id="@+id/btnPdfExport"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/action_pdf_export" />
-
-        <!-- Auto Backup -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/auto_backup_settings"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnConfigAutoBackup"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:text="@string/auto_backup_settings"
-            android:textAlignment="viewStart"
-            app:icon="@android:drawable/ic_popup_sync"
-            app:iconGravity="textStart" />
-
-        <!-- Custom Fields -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/custom_fields_title"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnManageCustomFields"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:text="@string/custom_fields_title"
-            android:textAlignment="viewStart"
-            app:icon="@android:drawable/ic_menu_edit"
-            app:iconGravity="textStart" />
-
-        <Button
-            android:id="@+id/btnSaveSettings"
-            style="@style/Widget.Material3.Button"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            android:layout_gravity="center"
-            app:icon="@android:drawable/ic_menu_save"
-            app:iconGravity="textStart"
-            android:text="@string/save" />
-
-        <TextView
-            android:id="@+id/tvVersion"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/version_label"
-            android:textAlignment="center"
-            android:alpha="0.5"
-            android:layout_marginBottom="24dp" />
+                <TextView
+                    android:id="@+id/tvVersion"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/version_label"
+                    android:textAlignment="center"
+                    android:alpha="0.5"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="24dp" />
 
                 <TextView
                     android:id="@+id/tvDiscordLink2"
@@ -440,8 +495,20 @@
                     android:clickable="true"
                     android:focusable="true" />
 
-    </LinearLayout>
-</androidx.core.widget.NestedScrollView>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <Button
+            android:id="@+id/btnSaveSettings"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="24dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:icon="@android:drawable/ic_menu_save"
+            app:iconGravity="textStart"
+            android:text="@string/save" />
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

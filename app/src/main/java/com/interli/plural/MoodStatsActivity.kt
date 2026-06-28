@@ -34,8 +34,6 @@ class MoodStatsActivity : BaseActivity() {
         val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val frontEnabled = sp.getBoolean("module_fronting_enabled", true) && sp.getBoolean("sub_fronting_enabled", true)
         if (!frontEnabled) {
-            findViewById<View>(R.id.cardMemberMoodAverages)?.visibility = View.GONE
-            findViewById<View>(R.id.cardRecentFrontingActivity)?.visibility = View.GONE
             findViewById<View>(R.id.btnCalendarSelectMember)?.visibility = View.GONE
         }
 
@@ -240,207 +238,14 @@ class MoodStatsActivity : BaseActivity() {
         findViewById<MoodChartView>(R.id.moodAverageChart).setData(allEntries, MoodChartView.Mode.SEVEN_DAY_AVERAGE)
 
         renderMoodCounts(allEntries)
-        renderMemberMoodAverages(allEntries)
         renderActivityInfluence(allEntries, excludedActivities)
-        renderRecentFrontingActivity(allEntries)
-    }
-
-    private fun renderRecentFrontingActivity(recentEntries: List<MoodActivity.MoodEntry>) {
-        val container = findViewById<LinearLayout>(R.id.containerRecentFrontingActivity) ?: return
-        container.removeAllViews()
-
-        if (recentEntries.isEmpty()) return
-
-        val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val excludedActivities = sp.getStringSet("excluded_activities", emptySet()) ?: emptySet()
-        val pinnedActivities = sp.getStringSet("pinned_activities", emptySet()) ?: emptySet()
-
-        val allActivityEntries = recentEntries.flatMap { it.activities }
-        val totalActivityCount = allActivityEntries.size.toFloat()
-        
-        val activityCounts = allActivityEntries
-            .filter { !excludedActivities.contains(it) }
-            .groupingBy { it }.eachCount()
-
-        val activitiesToShow = if (pinnedActivities.isNotEmpty()) {
-            pinnedActivities.filter { activityCounts.containsKey(it) }.sorted()
-        } else {
-            val mostPopularActivity = activityCounts.maxByOrNull { it.value }?.key
-            if (mostPopularActivity != null) listOf(mostPopularActivity) else emptyList()
-        }
-
-        val people = loadPeopleList()
-        val textColor = ColorHelper.getTextColor(this)
-        val btnColor = ColorHelper.getBtnColor(this)
-        val btnTextColor = ColorHelper.getBtnTextColor(this)
-
-        val header = RelativeLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            setPadding(0, 0, 0, 8.dpToPx())
-        }
-
-        val titleTv = TextView(this).apply {
-            text = getString(R.string.stats_top_member_activities)
-            textSize = 18f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            setTextColor(textColor)
-            val lp = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, RelativeLayout.LayoutParams.WRAP_CONTENT)
-            lp.addRule(RelativeLayout.ALIGN_PARENT_START)
-            lp.addRule(RelativeLayout.CENTER_VERTICAL)
-            layoutParams = lp
-        }
-        header.addView(titleTv)
-
-        val btnPin = com.google.android.material.button.MaterialButton(this).apply {
-            text = "Pin / Filter"
-            textSize = 12f
-            setPadding(8.dpToPx(), 0, 8.dpToPx(), 0)
-            setBackgroundColor(btnColor)
-            setTextColor(btnTextColor)
-            rippleColor = android.content.res.ColorStateList.valueOf(btnTextColor and 0x33FFFFFF)
-            val lp = RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT, (36 * resources.displayMetrics.density).toInt())
-            lp.addRule(RelativeLayout.ALIGN_PARENT_END)
-            lp.addRule(RelativeLayout.CENTER_VERTICAL)
-            layoutParams = lp
-            setOnClickListener { showPinnedActivitiesDialog() }
-        }
-        header.addView(btnPin)
-        container.addView(header)
-
-        if (activitiesToShow.isEmpty() && pinnedActivities.isNotEmpty()) {
-            container.addView(TextView(this).apply {
-                text = "No data for pinned activities"
-                setTextColor(textColor)
-                alpha = 0.5f
-                setPadding(0, 0, 0, 8.dpToPx())
-            })
-        }
-
-        activitiesToShow.forEach { activity ->
-            val count = activityCounts[activity] ?: 0
-            val percentage = if (totalActivityCount > 0) (count / totalActivityCount * 100).toInt() else 0
-            
-            val activityRow = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, 8.dpToPx(), 0, 4.dpToPx())
-            }
-            activityRow.addView(TextView(this).apply {
-                text = activity
-                textSize = 16f
-                setTypeface(typeface, android.graphics.Typeface.BOLD)
-                setTextColor(textColor)
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            })
-            activityRow.addView(TextView(this).apply {
-                text = "$percentage%"
-                textSize = 14f
-                setTextColor(textColor)
-                alpha = 0.7f
-            })
-            container.addView(activityRow)
-
-            val activityEntries = recentEntries.filter { it.activities.contains(activity) }
-            val memberIdsInActivity = activityEntries.flatMap { it.memberIds }
-                .filter { mId -> people.any { it.id == mId && !it.isArchived && !it.isSysmediaOnly && !it.excludeFromStats } }
-            val memberCounts = memberIdsInActivity.groupingBy { it }.eachCount()
-            val totalInActivity = memberIdsInActivity.size.toFloat()
-
-            if (memberCounts.isEmpty()) {
-                container.addView(TextView(this).apply {
-                    text = getString(R.string.no_activities_found)
-                    setTextColor(textColor)
-                    alpha = 0.5f
-                    setPadding(16.dpToPx(), 0, 0, 8.dpToPx())
-                })
-            } else {
-                memberCounts.forEach { (memberId, mCount) ->
-                    val person = people.find { it.id == memberId }
-                    if (person == null || person.isArchived) return@forEach
-
-                    val name = person.name
-                    val mPercentage = if (totalInActivity > 0) (mCount / totalInActivity * 100).toInt() else 0
-                    
-                    val memberRow = LinearLayout(this@MoodStatsActivity).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        setPadding(16.dpToPx(), 2.dpToPx(), 0, 2.dpToPx())
-                    }
-                    memberRow.addView(TextView(this@MoodStatsActivity).apply {
-                        text = "• $name"
-                        setTextColor(textColor)
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    })
-                    memberRow.addView(TextView(this@MoodStatsActivity).apply {
-                        text = "$mPercentage%"
-                        setTextColor(textColor)
-                        alpha = 0.7f
-                    })
-                    container.addView(memberRow)
-                }
-            }
-        }
-
-        val btnExtensive = com.google.android.material.button.MaterialButton(this).apply {
-            text = getString(R.string.btn_extensive_stats)
-            setBackgroundColor(btnColor)
-            setTextColor(btnTextColor)
-            rippleColor = android.content.res.ColorStateList.valueOf(btnTextColor and 0x33FFFFFF)
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = 16.dpToPx()
-            }
-            setOnClickListener {
-                val intent = android.content.Intent(this@MoodStatsActivity, ExtensiveMoodStatsActivity::class.java)
-                startActivity(intent)
-            }
-        }
-        container.addView(btnExtensive)
-    }
-
-    private fun showPinnedActivitiesDialog() {
-        val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val pinned = sp.getStringSet("pinned_activities", emptySet())?.toMutableSet() ?: mutableSetOf()
-        
-        val allActivities = allEntriesForCalendar.flatMap { it.activities }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
-        if (allActivities.isEmpty()) return
-
-        val options = arrayOf(getString(R.string.pin_activities), getString(R.string.filter_activities_label))
-        
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(getString(R.string.manage_activities))
-            .setItems(options) { _, which ->
-                if (which == 0) showMultiSelectPinDialog(allActivities, pinned, sp)
-                else showActivityFilterDialog()
-            }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .create()
-
-        ColorHelper.styleSupportAlertDialog(dialog, this)
-        dialog.show()
-    }
-
-    private fun showMultiSelectPinDialog(allActivities: List<String>, pinned: MutableSet<String>, sp: android.content.SharedPreferences) {
-        val checkedItems = BooleanArray(allActivities.size) { i -> pinned.contains(allActivities[i]) }
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(getString(R.string.choose_activities_to_pin))
-            .setMultiChoiceItems(allActivities.toTypedArray(), checkedItems) { _, which, isChecked ->
-                val activity = allActivities[which]
-                if (isChecked) pinned.add(activity) else pinned.remove(activity)
-            }
-            .setPositiveButton(getString(R.string.save)) { _, _ ->
-                sp.edit().putStringSet("pinned_activities", pinned).apply()
-                loadAndRender()
-            }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .create()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
-        dialog.show()
     }
 
     private fun renderMoodCounts(entries: List<MoodActivity.MoodEntry>) {
-        val container = findViewById<LinearLayout>(R.id.containerMoodCounts)
+        val container = findViewById<LinearLayout>(R.id.containerMoodCounts) ?: return
         container.removeAllViews()
 
         val moodKeys = listOf("mood_awful", "mood_bad", "mood_meh", "mood_good", "mood_rad")
-        val moodRotations = listOf(180f, 135f, 90f, 45f, 0f)
         val counts = entries.groupingBy { it.moodLabel }.eachCount()
         
         val consolidatedCounts = mutableMapOf<String, Int>()
@@ -454,62 +259,35 @@ class MoodStatsActivity : BaseActivity() {
             consolidatedCounts[key] = (consolidatedCounts[key] ?: 0) + count
         }
 
-        val sorted = moodKeys.reversed().mapIndexed { i, key -> 
-            val moodIndex = moodKeys.indexOf(key)
-            Triple(key, consolidatedCounts[key] ?: 0, moodRotations[moodIndex])
-        }
+        val sorted = moodKeys.reversed().map { it to (consolidatedCounts[it] ?: 0) }
         val total = entries.size.toFloat()
-        val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val defaultColors = listOf("#fffa94", "#54bd44", "#8844bd", "#4446bd", "#3a3a47")
+        val textColor = ColorHelper.getTextColor(this)
 
-        sorted.forEach { (key, count, rotation) ->
+        sorted.forEach { (key, count) ->
             if (count == 0) return@forEach
 
             val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
-                gravity = android.view.Gravity.CENTER_VERTICAL
-            }
-
-            val color = ColorHelper.getMoodColor(this, key)
-            val moodIndex = moodKeys.indexOf(key)
-
-            val thumbFrame = FrameLayout(this).apply {
-                setTag(R.id.color_tag, "skip")
-                layoutParams = LinearLayout.LayoutParams(36.dpToPx(), 36.dpToPx())
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    shape = android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(color)
-                }
-            }
-            thumbFrame.addView(TextView(this).apply {
-                text = "👍"
-                textSize = 18f
-                this.rotation = rotation
-                gravity = android.view.Gravity.CENTER
-            })
-            row.addView(thumbFrame)
-
-            val infoContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginStart = 12.dpToPx()
-                }
+                setPadding(0, 0, 0, 16.dpToPx())
             }
+
+            val moodIndex = moodKeys.indexOf(key)
+            val displayName = (moodIndex + 1).toString()
 
             val percentage = (count / total * 100).toInt()
             val labelTv = TextView(this).apply {
-                text = getString(R.string.stats_score_count, (moodIndex + 1).toString(), count, percentage)
+                text = getString(R.string.stats_score_count, displayName, count, percentage)
                 textSize = 14f
-                setTextColor(ColorHelper.getTextColor(this@MoodStatsActivity))
+                setTextColor(textColor)
             }
-            infoContainer.addView(labelTv)
+            row.addView(labelTv)
 
             val bar = View(this).apply {
                 val weight = count / total
-                layoutParams = LinearLayout.LayoutParams(0, 6.dpToPx(), weight).apply {
+                layoutParams = LinearLayout.LayoutParams(0, 8.dpToPx(), weight).apply {
                     topMargin = 4.dpToPx()
                 }
+                
                 setBackgroundColor(ColorHelper.getMoodColor(this@MoodStatsActivity, key))
             }
             
@@ -520,98 +298,8 @@ class MoodStatsActivity : BaseActivity() {
                     layoutParams = LinearLayout.LayoutParams(0, 1, 1f - (count / total))
                 })
             }
-            infoContainer.addView(barContainer)
-            row.addView(infoContainer)
-
+            row.addView(barContainer)
             container.addView(row)
-        }
-    }
-
-    private fun renderMemberMoodAverages(entries: List<MoodActivity.MoodEntry>) {
-        val container = findViewById<LinearLayout>(R.id.containerMemberMoodAverages)
-        container.removeAllViews()
-
-        val people = loadPeopleList()
-        val memberMap = people.associateBy { it.id }
-        val moodKeys = listOf("mood_awful", "mood_bad", "mood_meh", "mood_good", "mood_rad")
-        
-        val memberEntries = mutableMapOf<String, MutableList<MoodActivity.MoodEntry>>()
-        for (entry in entries) {
-            for (memberId in entry.memberIds) {
-                val person = memberMap[memberId]
-                if (person != null && !person.isArchived && !person.isSysmediaOnly && !person.excludeFromStats) {
-                    memberEntries.getOrPut(memberId) { mutableListOf() }.add(entry)
-                }
-            }
-        }
-
-        if (memberEntries.isEmpty()) {
-            val emptyTv = TextView(this).apply {
-                text = getString(R.string.stats_no_data_per_member)
-                setTextColor(ColorHelper.getTextColor(this@MoodStatsActivity))
-                setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
-            }
-            container.addView(emptyTv)
-            return
-        }
-
-        val memberAverages = memberEntries.map { (memberId, memberMoodEntries) ->
-            val totalScore = memberMoodEntries.sumOf { entry ->
-                val label = entry.moodLabel
-                val score = moodKeys.indexOf(label) + 1
-                if (score > 0) score else {
-                    val index = moodKeys.indexOfFirst { key ->
-                        val resId = resources.getIdentifier(key, "string", packageName)
-                        resId != 0 && getString(resId) == label
-                    }
-                    if (index != -1) index + 1 else 3
-                }
-            }
-            val average = totalScore.toDouble() / memberMoodEntries.size
-            val name = memberMap[memberId]?.name ?: getString(R.string.deleted_member)
-            Triple(name, average, memberMoodEntries.size)
-        }.sortedByDescending { it.second }
-
-        memberAverages.forEach { (name, average, count) ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
-                gravity = android.view.Gravity.CENTER_VERTICAL
-            }
-
-            val nameTv = TextView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                text = name
-                setTextColor(ColorHelper.getTextColor(this@MoodStatsActivity))
-                textSize = 15f
-            }
-
-            val averageTv = TextView(this).apply {
-                text = String.format("%.2f", average)
-                setTextColor(ColorHelper.getTextColor(this@MoodStatsActivity))
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                textSize = 16f
-            }
-            
-            val countTv = TextView(this).apply {
-                text = " ($count)"
-                setTextColor(ColorHelper.getTextColor(this@MoodStatsActivity))
-                textSize = 12f
-                alpha = 0.7f
-                setPadding(4.dpToPx(), 0, 0, 0)
-            }
-
-            row.addView(nameTv)
-            row.addView(averageTv)
-            row.addView(countTv)
-            container.addView(row)
-            
-            val divider = View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1)
-                setBackgroundColor(Color.LTGRAY)
-                alpha = 0.3f
-            }
-            container.addView(divider)
         }
     }
 
