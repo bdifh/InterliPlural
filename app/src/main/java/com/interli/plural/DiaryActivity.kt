@@ -298,7 +298,7 @@ class DiaryActivity : BaseActivity() {
         inner class BundleViewHolder(val card: com.google.android.material.card.MaterialCardView) : RecyclerView.ViewHolder(card) {
             fun bind(bundle: NoteBundle) {
                 card.layoutParams = (card.layoutParams as? ViewGroup.MarginLayoutParams ?: LinearLayout.LayoutParams(-1, -2)).apply {
-                    setMargins(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
+                    setMargins(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 0)
                 }
                 card.radius = 8f * resources.displayMetrics.density
                 card.setCardBackgroundColor(ColorHelper.getBtnColor(this@DiaryActivity))
@@ -307,7 +307,7 @@ class DiaryActivity : BaseActivity() {
                 val content = LinearLayout(this@DiaryActivity).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setPadding(12.dpToPx(), 12.dpToPx(), 12.dpToPx(), 12.dpToPx())
+                    setPadding(12.dpToPx(), 6.dpToPx(), 12.dpToPx(), 6.dpToPx())
                 }
 
                 val tvName = TextView(this@DiaryActivity).apply {

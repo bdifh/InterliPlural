@@ -298,7 +298,7 @@ class TodoActivity : BaseActivity() {
             @android.annotation.SuppressLint("ClickableViewAccessibility")
             fun bind(bundle: TodoBundle) {
                 card.layoutParams = (card.layoutParams as? ViewGroup.MarginLayoutParams ?: LinearLayout.LayoutParams(-1, -2)).apply {
-                    setMargins(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
+                    setMargins(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 0)
                 }
                 card.radius = 8f * resources.displayMetrics.density
                 card.setCardBackgroundColor(ColorHelper.getBtnColor(this@TodoActivity))
@@ -308,7 +308,7 @@ class TodoActivity : BaseActivity() {
                 val content = LinearLayout(this@TodoActivity).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    setPadding(12.dpToPx(), 12.dpToPx(), 12.dpToPx(), 12.dpToPx())
+                    setPadding(12.dpToPx(), 6.dpToPx(), 12.dpToPx(), 6.dpToPx())
                 }
 
                 val ivDrag = ImageView(this@TodoActivity).apply {

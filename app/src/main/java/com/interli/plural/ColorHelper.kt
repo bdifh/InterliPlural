@@ -447,6 +447,7 @@ object ColorHelper {
             is android.widget.EditText -> {
                 view.setTextColor(globalTextColor)
                 view.setHintTextColor(globalTextColor and 0x88FFFFFF.toInt())
+                view.backgroundTintList = android.content.res.ColorStateList.valueOf(globalTextColor)
             }
             is TextView -> {
                 view.setTextColor(globalTextColor)

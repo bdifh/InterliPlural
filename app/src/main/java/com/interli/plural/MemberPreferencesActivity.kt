@@ -179,6 +179,7 @@ class MemberPreferencesActivity : BaseActivity() {
                 val btnLike = rowView.findViewById<View>(R.id.btnLike)
                 val btnNeutral = rowView.findViewById<View>(R.id.btnNeutral)
                 val btnDislike = rowView.findViewById<View>(R.id.btnDislike)
+                rowView.findViewById<View>(R.id.btnNow).visibility = View.GONE
 
                 val currentPref = person.safePreferences.find { it.activityName == itemName }
                 updateSelectionUi(btnLike, btnNeutral, btnDislike, currentPref?.preferenceType)

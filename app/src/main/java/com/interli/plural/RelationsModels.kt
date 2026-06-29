@@ -10,25 +10,35 @@ data class RelationNode(
     var imageUri: String? = null,
     var x: Float = 500f,
     var y: Float = 500f,
-    val memberId: String? = null // Reference to Person.id if type is MEMBER
+    val memberId: String? = null
 )
 
 enum class NodeType {
-    MEMBER, LOCATION
+    MEMBER, LOCATION, RELATIONSHIP_ORB
 }
 
 data class RelationEdge(
     val id: String = UUID.randomUUID().toString(),
-    val fromNodeId: String,
-    val toNodeId: String,
-    var tag: String? = null
-)
+    var nodeIds: MutableList<String> = mutableListOf(),
+    var tag: String? = null,
+    val fromNodeId: String? = null,
+    val toNodeId: String? = null
+) {
+    fun getSafeNodeIds(): List<String> {
+        if (nodeIds.isNotEmpty()) return nodeIds
+        val legacy = mutableListOf<String>()
+        fromNodeId?.let { legacy.add(it) }
+        toNodeId?.let { legacy.add(it) }
+        return legacy
+    }
+}
 
 data class RelationGroup(
     val id: String = UUID.randomUUID().toString(),
     var name: String = "",
     var color: Int = -6934396,
-    var nodeIds: MutableList<String> = mutableListOf()
+    var nodeIds: MutableList<String> = mutableListOf(),
+    var snapEnabled: Boolean = true
 )
 
 data class RelationsData(

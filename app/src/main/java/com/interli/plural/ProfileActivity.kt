@@ -702,10 +702,8 @@ class ProfileActivity : BaseActivity() {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
             val suffix = if (isSource) "source" else "crop"
-            val file = File(filesDir, "profile_${personId}_${suffix}.jpg")
-            
-            // If it's a source, we might want to keep it. If it's a crop, we overwrite.
-            // Actually, let's just use stable names.
+            val file = File(filesDir, "profile_${personId}_${suffix}.png")
+
             FileOutputStream(file).use { output -> inputStream.use { input -> input.copyTo(output) } }
             Uri.fromFile(file)
         } catch (e: Exception) { null }

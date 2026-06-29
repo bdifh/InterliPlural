@@ -50,9 +50,9 @@ class CropImageActivity : BaseActivity() {
 
     private fun saveCroppedImage(bitmap: Bitmap): Uri? {
         return try {
-            val file = File(cacheDir, "cropped_${System.currentTimeMillis()}.jpg")
+            val file = File(cacheDir, "cropped_${System.currentTimeMillis()}.png")
             val out = FileOutputStream(file)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             out.flush()
             out.close()
             Uri.fromFile(file)

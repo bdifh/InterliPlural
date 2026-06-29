@@ -46,13 +46,13 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
-        textSize = 14f
+        textSize = 36f
         color = Color.BLACK
         typeface = Typeface.DEFAULT_BOLD
     }
     private val tagPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
-        textSize = 12f
+        textSize = 36f
         color = Color.DKGRAY
     }
 
@@ -152,13 +152,16 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
 
         data.edges.forEach { edge ->
-            val from = data.nodes.find { it.id == edge.fromNodeId }
-            val to = data.nodes.find { it.id == edge.toNodeId }
-            if (from != null && to != null) {
-                canvas.drawLine(from.x, from.y, to.x, to.y, edgePaint)
+            val nodes = edge.getSafeNodeIds().mapNotNull { id -> data.nodes.find { it.id == id } }
+            if (nodes.size >= 2) {
+                for (i in 0 until nodes.size - 1) {
+                    canvas.drawLine(nodes[i].x, nodes[i].y, nodes[i + 1].x, nodes[i + 1].y, edgePaint)
+                }
+
                 edge.tag?.let { tag ->
-                    val midX = (from.x + to.x) / 2
-                    val midY = (from.y + to.y) / 2
+                    val midX = nodes.map { it.x }.average().toFloat()
+                    val midY = nodes.map { it.y }.average().toFloat()
+                    tagPaint.color = ColorHelper.getTextColor(context)
                     canvas.drawText(tag, midX, midY - 10f, tagPaint)
                 }
             }
@@ -182,8 +185,16 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                 commonPath.addCircle(node.x, node.y, nodeRadius, Path.Direction.CCW)
                 canvas.save()
                 canvas.clipPath(commonPath)
+
+                val bitmapWidth = bitmap.width
+                val bitmapHeight = bitmap.height
+                val size = if (bitmapWidth > bitmapHeight) bitmapHeight else bitmapWidth
+                val left = (bitmapWidth - size) / 2
+                val top = (bitmapHeight - size) / 2
+                val srcRect = Rect(left, top, left + size, top + size)
+                
                 bubbleRect.set(node.x - nodeRadius, node.y - nodeRadius, node.x + nodeRadius, node.y + nodeRadius)
-                canvas.drawBitmap(bitmap, null, bubbleRect, null)
+                canvas.drawBitmap(bitmap, srcRect, bubbleRect, null)
                 canvas.restore()
                 
                 nodePaint.style = Paint.Style.STROKE
@@ -197,7 +208,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
 
             textPaint.color = ColorHelper.getTextColor(context)
-            canvas.drawText(node.name, node.x, node.y + nodeRadius + 20f, textPaint)
+            canvas.drawText(node.name, node.x, node.y + nodeRadius + 30f, textPaint)
         }
 
         canvas.restore()
@@ -260,22 +271,65 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
     }
 
     private fun findGroupAt(x: Float, y: Float): RelationGroup? {
-        data.groups.forEach { group ->
+        return data.groups.find { group ->
             val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
-            if (memberNodes.isNotEmpty()) {
-                if (memberNodes.size == 1) {
-                    val dx = memberNodes[0].x - x
-                    val dy = memberNodes[0].y - y
-                    if (sqrt(dx * dx + dy * dy) <= nodeRadius * 2.5f) return group
-                } else {
-                    val minX = memberNodes.minOf { it.x } - nodeRadius * 1.5f
-                    val maxX = memberNodes.maxOf { it.x } + nodeRadius * 1.5f
-                    val minY = memberNodes.minOf { it.y } - nodeRadius * 1.5f
-                    val maxY = memberNodes.maxOf { it.y } + nodeRadius * 1.5f
-                    if (x in minX..maxX && y in minY..maxY) return group
-                }
+            if (memberNodes.isEmpty()) return@find false
+            
+            if (memberNodes.size == 1) {
+                val node = memberNodes[0]
+                val dx = node.x - x
+                val dy = node.y - y
+                sqrt(dx * dx + dy * dy) <= nodeRadius * 2.5f
+            } else {
+                val minX = memberNodes.minOf { it.x } - nodeRadius * 1.5f
+                val maxX = memberNodes.maxOf { it.x } + nodeRadius * 1.5f
+                val minY = memberNodes.minOf { it.y } - nodeRadius * 1.5f
+                val maxY = memberNodes.maxOf { it.y } + nodeRadius * 1.5f
+                x in minX..maxX && y in minY..maxY
             }
         }
-        return null
+    }
+
+    fun captureFullMapBitmap(): Bitmap? {
+        if (data.nodes.isEmpty()) return null
+        
+        val padding = 100f
+        val minX = (data.nodes.minOf { it.x } - nodeRadius * 3).coerceAtMost(0f)
+        val maxX = (data.nodes.maxOf { it.x } + nodeRadius * 3)
+        val minY = (data.nodes.minOf { it.y } - nodeRadius * 4).coerceAtMost(0f)
+        val maxY = (data.nodes.maxOf { it.y } + nodeRadius * 4)
+        
+        val width = (maxX - minX + padding * 2).toInt()
+        val height = (maxY - minY + padding * 2).toInt()
+        
+        // Limit bitmap size to prevent OOM
+        val maxDim = 4000
+        var scale = 1.0f
+        if (width > maxDim || height > maxDim) {
+            scale = maxDim.toFloat() / if (width > height) width else height
+        }
+        
+        val bitmap = Bitmap.createBitmap((width * scale).toInt(), (height * scale).toInt(), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(ColorHelper.getBgColor(context))
+        canvas.scale(scale, scale)
+        canvas.translate(-minX + padding, -minY + padding)
+        
+        // Temporarily override scale and offsets for onDraw
+        val oldOffsetX = offsetX
+        val oldOffsetY = offsetY
+        val oldScale = scaleFactor
+        
+        offsetX = 0f
+        offsetY = 0f
+        scaleFactor = 1.0f
+        
+        draw(canvas)
+        
+        offsetX = oldOffsetX
+        offsetY = oldOffsetY
+        scaleFactor = oldScale
+        
+        return bitmap
     }
 }

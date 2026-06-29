@@ -355,6 +355,62 @@ object PdfExportHelper {
         }.start()
     }
 
+    fun exportRelationsToPdf(context: Context, uri: Uri, relationsData: RelationsData, mapView: RelationsMapView) {
+        Thread {
+            val doc = PdfDocument()
+            try {
+                val pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create()
+                val page = doc.startPage(pageInfo)
+                val canvas = page.canvas
+                var currentY = MARGIN
+
+                val titlePaint = TextPaint().apply { textSize = 22f; isFakeBoldText = true; color = android.graphics.Color.BLACK }
+                val textPaint = TextPaint().apply { textSize = 11f; color = android.graphics.Color.BLACK }
+                val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
+
+                // Draw Header
+                val title = "Interli Plural - Relations Map"
+                val titleLayout = createStaticLayout(title, titlePaint, PAGE_WIDTH - 2 * MARGIN.toInt())
+                titleLayout.draw(canvas, MARGIN, currentY)
+                currentY += titleLayout.height + 10f
+
+                val dateStr = "Export Date: ${sdf.format(Date())}"
+                val dateLayout = createStaticLayout(dateStr, textPaint, PAGE_WIDTH - 2 * MARGIN.toInt())
+                dateLayout.draw(canvas, MARGIN, currentY)
+                currentY += dateLayout.height + 30f
+
+                // Capture Map Bitmap
+                val mapBitmap = mapView.captureFullMapBitmap()
+                if (mapBitmap != null) {
+                    val availableWidth = PAGE_WIDTH - 2 * MARGIN
+                    val availableHeight = PAGE_HEIGHT - MARGIN - currentY
+                    
+                    val scale = (availableWidth / mapBitmap.width).coerceAtMost(availableHeight / mapBitmap.height).coerceAtMost(1.0f)
+                    
+                    val drawWidth = mapBitmap.width * scale
+                    val drawHeight = mapBitmap.height * scale
+                    
+                    val destRect = android.graphics.RectF(MARGIN, currentY, MARGIN + drawWidth, currentY + drawHeight)
+                    canvas.drawBitmap(mapBitmap, null, destRect, null)
+                }
+
+                doc.finishPage(page)
+                context.contentResolver.openOutputStream(uri)?.use { os -> doc.writeTo(os) }
+
+                (context as? android.app.Activity)?.runOnUiThread {
+                    Toast.makeText(context, R.string.export_success, Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                (context as? android.app.Activity)?.runOnUiThread {
+                    Toast.makeText(context, context.getString(R.string.export_failed, e.message), Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                doc.close()
+            }
+        }.start()
+    }
+
     private fun createStaticLayout(text: String, paint: TextPaint, width: Int): StaticLayout {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             StaticLayout.Builder.obtain(text, 0, text.length, paint, width)
