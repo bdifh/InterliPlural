@@ -491,8 +491,11 @@ class MemberMoodCorrelationActivity : BaseActivity() {
     }
 
     private fun renderMemberActivityMatrix(entries: List<MoodActivity.MoodEntry>) {
-        val table = findViewById<TableLayout>(R.id.tableMemberActivityMatrix) ?: return
-        table.removeAllViews()
+        val tableData = findViewById<TableLayout>(R.id.tableMemberActivityMatrix) ?: return
+        val tableNames = findViewById<TableLayout>(R.id.tableMemberNamesSticky) ?: return
+
+        tableData.removeAllViews()
+        tableNames.removeAllViews()
 
         val textColor = ColorHelper.getTextColor(this)
         findViewById<TextView>(R.id.labelMatrixTitle)?.setTextColor(textColor)
@@ -512,34 +515,37 @@ class MemberMoodCorrelationActivity : BaseActivity() {
                 alpha = 0.5f
                 setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
             })
-            table.addView(row)
+            tableData.addView(row)
             return
         }
 
-        val headerRow = TableRow(this)
-        headerRow.addView(TextView(this).apply {
+        val rowHeight = 72.dpToPx()
+
+        val headerRowNames = TableRow(this).apply { minimumHeight = rowHeight }
+        headerRowNames.addView(TextView(this).apply {
             text = getString(R.string.label_member_activity)
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(textColor)
-            setPadding(8.dpToPx(), 8.dpToPx(), 24.dpToPx(), 8.dpToPx())
+            setPadding(8.dpToPx(), 16.dpToPx(), 24.dpToPx(), 16.dpToPx())
             layoutParams = TableRow.LayoutParams(120.dpToPx(), ViewGroup.LayoutParams.WRAP_CONTENT)
         })
+        tableNames.addView(headerRowNames)
 
+        val headerRowData = TableRow(this).apply { minimumHeight = rowHeight }
         targetActivities.forEach { activity ->
-            headerRow.addView(TextView(this).apply {
+            headerRowData.addView(TextView(this).apply {
                 text = activity
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 setTextColor(textColor)
                 gravity = android.view.Gravity.CENTER
-                setPadding(16.dpToPx(), 8.dpToPx(), 16.dpToPx(), 8.dpToPx())
+                setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
             })
         }
-        table.addView(headerRow)
+        tableData.addView(headerRowData)
 
         targetMembers.forEach { person ->
-            val row = TableRow(this)
-
-            row.addView(TextView(this).apply {
+            val rowNames = TableRow(this).apply { minimumHeight = rowHeight }
+            rowNames.addView(TextView(this).apply {
                 text = person.name
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 setTextColor(textColor)
@@ -548,7 +554,9 @@ class MemberMoodCorrelationActivity : BaseActivity() {
                 maxLines = 2
                 ellipsize = android.text.TextUtils.TruncateAt.END
             })
+            tableNames.addView(rowNames)
 
+            val rowData = TableRow(this).apply { minimumHeight = rowHeight }
             targetActivities.forEach { activity ->
                 val matches = entries.filter { it.memberIds.contains(person.id) && it.activities.contains(activity) }
 
@@ -556,6 +564,7 @@ class MemberMoodCorrelationActivity : BaseActivity() {
                     orientation = LinearLayout.VERTICAL
                     gravity = android.view.Gravity.CENTER
                     setPadding(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
+                    layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, rowHeight)
                 }
 
                 if (matches.isNotEmpty()) {
@@ -587,9 +596,9 @@ class MemberMoodCorrelationActivity : BaseActivity() {
                         alpha = 0.3f
                     })
                 }
-                row.addView(cellLayout)
+                rowData.addView(cellLayout)
             }
-            table.addView(row)
+            tableData.addView(rowData)
         }
     }
 

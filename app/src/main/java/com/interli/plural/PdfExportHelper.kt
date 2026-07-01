@@ -230,7 +230,7 @@ object PdfExportHelper {
                     chart.setExportRange(chartStart, chartEnd)
                     
                     val chartWidth = PAGE_WIDTH - 2 * MARGIN.toInt()
-                    val chartHeight = (chart.uniqueMembersSize() * 24f + 200f).coerceIn(200f, 600f) // Simplified height calculation
+                    val chartHeight = (chart.uniqueMembersSize() * 24f + 200f).coerceIn(200f, 600f)
                     
                     if (currentY + chartHeight > PAGE_HEIGHT - MARGIN) {
                         startNewPage()
@@ -368,7 +368,6 @@ object PdfExportHelper {
                 val textPaint = TextPaint().apply { textSize = 11f; color = android.graphics.Color.BLACK }
                 val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
 
-                // Draw Header
                 val title = "Interli Plural - Relations Map"
                 val titleLayout = createStaticLayout(title, titlePaint, PAGE_WIDTH - 2 * MARGIN.toInt())
                 titleLayout.draw(canvas, MARGIN, currentY)
@@ -379,22 +378,54 @@ object PdfExportHelper {
                 dateLayout.draw(canvas, MARGIN, currentY)
                 currentY += dateLayout.height + 30f
 
-                // Capture Map Bitmap
                 val mapBitmap = mapView.captureFullMapBitmap()
                 if (mapBitmap != null) {
-                    val availableWidth = PAGE_WIDTH - 2 * MARGIN
-                    val availableHeight = PAGE_HEIGHT - MARGIN - currentY
-                    
-                    val scale = (availableWidth / mapBitmap.width).coerceAtMost(availableHeight / mapBitmap.height).coerceAtMost(1.0f)
-                    
-                    val drawWidth = mapBitmap.width * scale
-                    val drawHeight = mapBitmap.height * scale
-                    
-                    val destRect = android.graphics.RectF(MARGIN, currentY, MARGIN + drawWidth, currentY + drawHeight)
-                    canvas.drawBitmap(mapBitmap, null, destRect, null)
+                    val scale = 0.3f
+                    val scaledWidth = mapBitmap.width * scale
+                    val scaledHeight = mapBitmap.height * scale
+
+                    val pageWidthPoints = PAGE_WIDTH - 2 * MARGIN
+                    val pageHeightPoints = PAGE_HEIGHT - 2 * MARGIN
+
+                    val cols = Math.ceil((scaledWidth / pageWidthPoints.toFloat()).toDouble()).toInt().coerceAtLeast(1)
+                    val rows = Math.ceil((scaledHeight / pageHeightPoints.toFloat()).toDouble()).toInt().coerceAtLeast(1)
+
+                    var firstPageFinished = false
+
+                    for (row in 0 until rows) {
+                        for (col in 0 until cols) {
+                            if (row == 0 && col == 0) {
+                                canvas.save()
+                                canvas.translate(MARGIN, currentY)
+                                canvas.scale(scale, scale)
+                                canvas.drawBitmap(mapBitmap, 0f, 0f, null)
+                                canvas.restore()
+                                doc.finishPage(page)
+                                firstPageFinished = true
+                            } else {
+                                val tilePageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, doc.pages.size + 1).create()
+                                val tilePage = doc.startPage(tilePageInfo)
+                                val tileCanvas = tilePage.canvas
+
+                                val offsetX = col * pageWidthPoints
+                                val offsetY = row * pageHeightPoints
+
+                                tileCanvas.save()
+                                tileCanvas.translate(MARGIN, MARGIN)
+                                tileCanvas.translate(-offsetX, -offsetY)
+                                tileCanvas.scale(scale, scale)
+                                tileCanvas.drawBitmap(mapBitmap, 0f, 0f, null)
+                                tileCanvas.restore()
+
+                                doc.finishPage(tilePage)
+                            }
+                        }
+                    }
+                    if (!firstPageFinished) doc.finishPage(page)
+                } else {
+                    doc.finishPage(page)
                 }
 
-                doc.finishPage(page)
                 context.contentResolver.openOutputStream(uri)?.use { os -> doc.writeTo(os) }
 
                 (context as? android.app.Activity)?.runOnUiThread {

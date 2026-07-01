@@ -41,7 +41,7 @@ class SettingsActivity : BaseActivity() {
     private var selectedLangCode = "en"
     private var selectedStartPage = "members"
 
-    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
         uri?.let { performExport(it) }
     }
 
@@ -205,8 +205,8 @@ class SettingsActivity : BaseActivity() {
             }
         }
 
-        findViewById<Button>(R.id.btnExport).setOnClickListener { exportLauncher.launch("plural_app_backup.json") }
-        findViewById<Button>(R.id.btnImport).setOnClickListener { importLauncher.launch(arrayOf("application/json")) }
+        findViewById<Button>(R.id.btnExport).setOnClickListener { exportLauncher.launch("plural_app_backup.zip") }
+        findViewById<Button>(R.id.btnImport).setOnClickListener { importLauncher.launch(arrayOf("application/json", "application/zip")) }
         findViewById<Button>(R.id.btnOpenImportDialog).setOnClickListener { showImportDialog() }
         
         findViewById<Button>(R.id.btnBulkMove).setOnClickListener { showBulkMoveDialog() }
@@ -432,7 +432,7 @@ class SettingsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .create()
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun showLanguageDialog() {
@@ -447,7 +447,7 @@ class SettingsActivity : BaseActivity() {
                 d.dismiss()
             }
             .show()
-            .let { ColorHelper.styleSupportAlertDialog(it, this) }
+            .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun showThemePriorityDialog() {
@@ -469,7 +469,7 @@ class SettingsActivity : BaseActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-            .let { ColorHelper.styleSupportAlertDialog(it, this) }
+            .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun showStartPageDialog() {
@@ -541,13 +541,12 @@ class SettingsActivity : BaseActivity() {
                 d.dismiss()
             }
             .show()
-            .let { ColorHelper.styleSupportAlertDialog(it, this) }
+            .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun showManagePagesDialog() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
 
-        // De indeling van je pagina's in groepen
         val hierarchy = listOf(
             ModuleGroup("module_fronting_enabled", getString(R.string.module_fronting), listOf(
                 ModuleSub("sub_front_page", getString(R.string.front_page)),
@@ -624,7 +623,7 @@ class SettingsActivity : BaseActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-            .let { ColorHelper.styleSupportAlertDialog(it, this) }
+            .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private data class ModuleGroup(val key: String, val label: String, val subs: List<ModuleSub> = emptyList())
@@ -778,12 +777,13 @@ class SettingsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .create()
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun performExport(uri: Uri) {
-        val json = BackupHelper.createBackupJson(this)
-        contentResolver.openOutputStream(uri)?.use { it.write(json.toByteArray()) }
+        contentResolver.openOutputStream(uri)?.use { 
+            BackupHelper.createBackupZip(this, it)
+        }
         Toast.makeText(this, getString(R.string.backup_saved), Toast.LENGTH_SHORT).show()
     }
 
@@ -884,7 +884,7 @@ class SettingsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .create()
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun performPdfExport(uri: Uri) {
@@ -944,7 +944,7 @@ class SettingsActivity : BaseActivity() {
         }
 
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
         etSpToken.setTextColor(ColorHelper.getTextColor(this))
         etPkToken.setTextColor(ColorHelper.getTextColor(this))
     }
@@ -1055,26 +1055,39 @@ class SettingsActivity : BaseActivity() {
                 
                 val membersToProcess = mutableListOf<Map<String, Any>>()
 
-                if (root is List<*>) {
-                    @Suppress("UNCHECKED_CAST")
-                    (root as List<Map<String, Any>>).forEach { membersToProcess.add(it) }
-                } else if (root is Map<*, *>) {
-                    val members = root["members"]
-                    if (members is List<*>) {
-                        @Suppress("UNCHECKED_CAST")
-                        (members as List<Map<String, Any>>).forEach { membersToProcess.add(it) }
-                    } else if (members is Map<*, *>) {
-                        @Suppress("UNCHECKED_CAST")
-                        (members as Map<String, Map<String, Any>>).forEach { (key, value) ->
-                            val mutableMember = value.toMutableMap()
-                            if (!mutableMember.containsKey("id")) mutableMember["id"] = key as String
-                            membersToProcess.add(mutableMember)
+                fun extractMembers(obj: Any?) {
+                    when (obj) {
+                        is List<*> -> {
+                            obj.forEach { item ->
+                                if (item is Map<*, *>) {
+                                    @Suppress("UNCHECKED_CAST")
+                                    val m = item as Map<String, Any>
+                                    if (m.containsKey("content") || m.containsKey("name")) {
+                                        membersToProcess.add(m)
+                                    } else {
+                                        extractMembers(item)
+                                    }
+                                }
+                            }
                         }
-                    } else if (root.containsKey("content") && (root.containsKey("id") || root.containsKey("uid"))) {
-                        @Suppress("UNCHECKED_CAST")
-                        membersToProcess.add(root as Map<String, Any>)
+                        is Map<*, *> -> {
+                            val members = obj["members"]
+                            if (members != null) {
+                                extractMembers(members)
+                            } else {
+                                @Suppress("UNCHECKED_CAST")
+                                val map = obj as Map<String, Any>
+                                if (map.containsKey("content") || map.containsKey("name")) {
+                                    membersToProcess.add(map)
+                                } else {
+                                    map.values.forEach { extractMembers(it) }
+                                }
+                            }
+                        }
                     }
                 }
+
+                extractMembers(root)
 
                 if (membersToProcess.isEmpty()) {
                     try {
@@ -1165,8 +1178,7 @@ class SettingsActivity : BaseActivity() {
                 val name = pkm["name"] as? String ?: "PK Member"
                 val desc = pkm["description"] as? String ?: ""
                 val avatar = pkm["avatar_url"] as? String
-                
-                // Kleur extraheren (PluralKit gebruikt hex codes)
+
                 val colorHex = pkm["color"] as? String
                 var profileColor = -6934396
                 if (!colorHex.isNullOrBlank()) {
@@ -1268,7 +1280,7 @@ class SettingsActivity : BaseActivity() {
             .setItems(names) { _, which -> showMemberSelectionForBulkMove(groups[which]) }
             .setNegativeButton(R.string.cancel, null)
             .show()
-            .let { ColorHelper.styleSupportAlertDialog(it, this) }
+            .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun showMemberSelectionForBulkMove(targetGroup: Group) {
@@ -1408,7 +1420,7 @@ class SettingsActivity : BaseActivity() {
                             }
                             .setNegativeButton(R.string.cancel, null)
                             .show()
-                            .let { ColorHelper.styleSupportAlertDialog(it, this@SettingsActivity) }
+                            .let { ColorHelper.styleAlertDialog(it, this@SettingsActivity) }
                     }
                 }
                 layout.addView(btn)
@@ -1434,7 +1446,7 @@ class SettingsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .create()
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun loadPeopleList(): MutableList<Person> {
@@ -1525,7 +1537,7 @@ class SettingsActivity : BaseActivity() {
             .create()
             
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
         
         var confirmClicks = 0
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {

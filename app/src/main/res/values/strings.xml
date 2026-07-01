@@ -239,6 +239,7 @@
     <string name="mood_tracker">Mood Tracker</string>
     <string name="mood_stats">Mood Statistics</string>
     <string name="mood_insights">Member-Mood Correlation</string>
+    <string name="edit_groups">Edit Groups</string>
     <string name="stats_mood_history">Mood History</string>
     <string name="how_are_you_feeling">How are you feeling?</string>
     <string name="activities">Activities</string>
@@ -576,6 +577,18 @@
     <string name="help_who_am_i_neutral">This is neutral / okay</string>
     <string name="help_who_am_i_dislike">I don\'t like this</string>
     <string name="help_who_am_i_now">I am doing / feeling this now</string>
+    <item name="help_who_am_i_now" type="id" /> <!-- I noticed some other IDs might be needed but strings.xml is not for IDs, wait -->
     <string name="help_who_am_i_note">Note: The checkmark ✅ gives a higher score to members who have filled in this activity most in the Mood Tracker.</string>
 
+    <string name="add_new_environment">+ New Environment</string>
+    <string name="dialog_new_environment_title">New Environment</string>
+    <string name="hint_environment_name">Environment name</string>
+    <string name="action_create">Create</string>
+    <string name="label_hue">Hue</string>
+    <string name="label_saturation">Saturation</string>
+    <string name="label_brightness">Brightness</string>
+    <string name="dialog_edit_label">Edit Label</string>
+
+    <string name="no_group_bubble">No group (standalone)</string>
+    <string name="connect_to_group_bubble">Connect to group (don\'t add)</string>
 </resources>

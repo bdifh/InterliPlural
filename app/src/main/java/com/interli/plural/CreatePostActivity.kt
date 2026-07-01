@@ -342,6 +342,15 @@ class CreatePostActivity : BaseActivity() {
         people = MemberHelper.loadAllPeople(this)
     }
 
+    private fun saveImageToInternalStorage(uri: Uri, fileName: String): Uri? {
+        return try {
+            val inputStream = contentResolver.openInputStream(uri) ?: return null
+            val file = java.io.File(filesDir, "$fileName.png")
+            java.io.FileOutputStream(file).use { output -> inputStream.use { input -> input.copyTo(output) } }
+            Uri.fromFile(file)
+        } catch (e: Exception) { null }
+    }
+
     private fun saveNewPost(content: String) {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val postsJson = sharedPref.getString("sysmedia_posts", "[]")
@@ -380,7 +389,9 @@ class CreatePostActivity : BaseActivity() {
                 val newPost = SysmediaPost(
                     senderId = currentUser.id,
                     content = content,
-                    imageUri = selectedImageUri?.toString(),
+                    imageUri = selectedImageUri?.let { uri ->
+                        saveImageToInternalStorage(uri, "post_${System.currentTimeMillis()}")?.toString()
+                    },
                     poll = poll
                 )
                 posts.add(0, newPost)
@@ -391,7 +402,9 @@ class CreatePostActivity : BaseActivity() {
                 content = content,
                 reblogOfId = reblogOfId,
                 replyToId = replyToId,
-                imageUri = selectedImageUri?.toString(),
+                imageUri = selectedImageUri?.let { uri ->
+                    saveImageToInternalStorage(uri, "post_${System.currentTimeMillis()}")?.toString()
+                },
                 scheduledTime = scheduledTimestamp,
                 poll = poll
             )

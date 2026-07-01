@@ -145,6 +145,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val relationsSub = sharedPref.getBoolean("sub_relations_enabled", true) && pluralMaster
         val moodLogSub = sharedPref.getBoolean("sub_mood_log_enabled", true) && moodMaster
         val moodStatsSub = sharedPref.getBoolean("sub_mood_stats_enabled", true) && moodMaster
+        val moodInsightsSub = sharedPref.getBoolean("sub_mood_insights", true) && moodMaster
         val sysmediaSub = sharedPref.getBoolean("module_sysmedia_enabled", true) && pluralMaster
 
         menu.findItem(R.id.action_add_person)?.isVisible = frontSub
@@ -155,6 +156,7 @@ abstract class BaseActivity : AppCompatActivity() {
         menu.findItem(R.id.action_relations)?.isVisible = relationsSub
         menu.findItem(R.id.action_mood_tracker)?.isVisible = moodLogSub
         menu.findItem(R.id.action_mood_stats)?.isVisible = moodStatsSub
+        menu.findItem(R.id.action_mood_insights)?.isVisible = moodInsightsSub
         menu.findItem(R.id.action_diary)?.isVisible = notesEnabled
         menu.findItem(R.id.action_todo)?.isVisible = todoEnabled
         menu.findItem(R.id.action_calendar)?.isVisible = calendarEnabled

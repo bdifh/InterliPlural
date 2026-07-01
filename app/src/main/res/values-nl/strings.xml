@@ -233,6 +233,7 @@
     <string name="mood_tracker">Mood Tracker</string>
     <string name="mood_stats">Mood Statistieken</string>
     <string name="mood_insights">Leden-Mood Correlatie</string>
+    <string name="edit_groups">Groepen Bewerken</string>
     <string name="stats_mood_history">Mood Geschiedenis</string>
     <string name="how_are_you_feeling">Hoe voel je je?</string>
     <string name="activities">Activiteiten</string>
@@ -445,4 +446,15 @@
     <string name="help_who_am_i_now">Dit doe / voel ik nu</string>
     <string name="help_who_am_i_note">Let op: Het vinkje ✅ geeft een hogere score aan leden die deze activiteit het meest hebben ingevuld in de Mood Tracker.</string>
 
+    <string name="add_new_environment">+ Nieuwe Omgeving</string>
+    <string name="dialog_new_environment_title">Nieuw Tabblad</string>
+    <string name="hint_environment_name">Naam van omgeving</string>
+    <string name="action_create">Aanmaken</string>
+    <string name="label_hue">Kleurtoon (Hue)</string>
+    <string name="label_saturation">Verzadiging (Saturation)</string>
+    <string name="label_brightness">Helderheid (Brightness)</string>
+    <string name="dialog_edit_label">Label Bewerken</string>
+
+    <string name="no_group_bubble">Geen groep (losstaand)</string>
+    <string name="connect_to_group_bubble">Verbinden met groep (niet toevoegen)</string>
 </resources>

@@ -12,6 +12,9 @@ import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 object BackupHelper {
 
@@ -121,6 +124,28 @@ object BackupHelper {
         return stringWriter.toString()
     }
 
+    fun createBackupZip(context: Context, outStream: OutputStream) {
+        val zipOut = ZipOutputStream(outStream)
+
+        val json = createBackupJson(context)
+        zipOut.putNextEntry(ZipEntry("backup.json"))
+        zipOut.write(json.toByteArray())
+        zipOut.closeEntry()
+
+        val filesDir = context.filesDir
+        filesDir.listFiles()?.forEach { file ->
+            if (file.isFile) {
+                try {
+                    zipOut.putNextEntry(ZipEntry("files/${file.name}"))
+                    FileInputStream(file).use { it.copyTo(zipOut) }
+                    zipOut.closeEntry()
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+        }
+
+        zipOut.close()
+    }
+
     fun saveAutoBackup(context: Context): Boolean {
         try {
             val folder = File(context.getExternalFilesDir(null), "backups")
@@ -132,10 +157,9 @@ object BackupHelper {
                 return true
             }
 
-            val json = createBackupJson(context)
-            val fileName = "${todayPrefix}_${SimpleDateFormat("HHmm", Locale.getDefault()).format(Date())}.json"
+            val fileName = "${todayPrefix}_${SimpleDateFormat("HHmm", Locale.getDefault()).format(Date())}.zip"
             val file = File(folder, fileName)
-            file.writeText(json)
+            FileOutputStream(file).use { createBackupZip(context, it) }
 
             val files = folder.listFiles { f -> f.name.startsWith("auto_backup_") }?.sortedBy { it.lastModified() }
             if (files != null && files.size > 10) {
@@ -149,10 +173,42 @@ object BackupHelper {
 
     fun getAutoBackups(context: Context): List<File> {
         val folder = File(context.getExternalFilesDir(null), "backups")
-        return folder.listFiles { f -> f.name.endsWith(".json") }?.toList()?.sortedByDescending { it.lastModified() } ?: emptyList()
+        return folder.listFiles { f -> f.name.endsWith(".json") || f.name.endsWith(".zip") }?.toList()?.sortedByDescending { it.lastModified() } ?: emptyList()
     }
 
     fun restoreBackup(context: Context, inputStream: InputStream) {
+        val bis = BufferedInputStream(inputStream)
+        bis.mark(1024)
+        val header = ByteArray(4)
+        val read = bis.read(header)
+        bis.reset()
+
+        val isZip = read == 4 && header[0] == 0x50.toByte() && header[1] == 0x4B.toByte() && header[2] == 0x03.toByte() && header[3] == 0x04.toByte()
+
+        if (isZip) {
+            val zipIn = ZipInputStream(bis)
+            var entry: ZipEntry? = zipIn.getNextEntry()
+            while (entry != null) {
+                if (entry.name == "backup.json") {
+                    val tempFile = File(context.cacheDir, "temp_backup.json")
+                    FileOutputStream(tempFile).use { zipIn.copyTo(it) }
+                    restoreFromJson(context, tempFile.inputStream())
+                    tempFile.delete()
+                } else if (entry.name.startsWith("files/")) {
+                    val fileName = entry.name.substring(6)
+                    val outFile = File(context.filesDir, fileName)
+                    FileOutputStream(outFile).use { zipIn.copyTo(it) }
+                }
+                zipIn.closeEntry()
+                entry = zipIn.getNextEntry()
+            }
+            zipIn.close()
+        } else {
+            restoreFromJson(context, bis)
+        }
+    }
+
+    private fun restoreFromJson(context: Context, inputStream: InputStream) {
         val reader = JsonReader(InputStreamReader(inputStream))
         val gson = Gson()
 

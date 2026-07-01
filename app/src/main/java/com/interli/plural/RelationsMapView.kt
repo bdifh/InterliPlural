@@ -93,6 +93,54 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
     })
 
+    private val smartLayoutRunnable = object : Runnable {
+        override fun run() {
+            if (data.smartLayoutEnabled) {
+                for (i in 0 until 50) {
+                    applySmartLayout()
+                }
+                invalidate()
+                postDelayed(this, 100) 
+            }
+        }
+    }
+
+    private fun applySmartLayout() {
+        val repulsionConstant = 1500f
+        val minDistance = nodeRadius * 3.5f
+        val damping = 0.2f
+
+        val nodes = data.nodes
+        val nodeCount = nodes.size
+
+        for (i in 0 until nodeCount) {
+            val nodeA = nodes[i]
+            if (nodeA.id == draggedNodeId) continue
+
+            var forceX = 0f
+            var forceY = 0f
+
+            for (j in 0 until nodeCount) {
+                if (i == j) continue
+                val nodeB = nodes[j]
+                
+                val dx = nodeA.x - nodeB.x
+                val dy = nodeA.y - nodeB.y
+                val distanceSq = dx * dx + dy * dy
+                
+                if (distanceSq < minDistance * minDistance) {
+                    val distance = sqrt(distanceSq)
+                    val force = repulsionConstant / (distanceSq + 500f)
+                    forceX += (dx / (distance + 0.1f)) * force
+                    forceY += (dy / (distance + 0.1f)) * force
+                }
+            }
+            
+            nodeA.x += forceX * damping
+            nodeA.y += forceY * damping
+        }
+    }
+
     var onNodeLongClicked: ((RelationNode) -> Unit)? = null
     var onGroupLongClicked: ((RelationGroup) -> Unit)? = null
     var onDataChanged: (() -> Unit)? = null
@@ -100,7 +148,56 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
     fun setData(newData: RelationsData) {
         data = newData
         preloadImages()
+        removeCallbacks(smartLayoutRunnable)
+        if (data.smartLayoutEnabled) {
+            post(smartLayoutRunnable)
+        }
         invalidate()
+    }
+
+    private fun getGroupCenter(group: RelationGroup): PointF? {
+        val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
+        return if (memberNodes.isNotEmpty()) {
+            PointF(memberNodes.map { it.x }.average().toFloat(), memberNodes.map { it.y }.average().toFloat())
+        } else {
+            null
+        }
+    }
+
+    private fun getGroupBoundaryPoint(center: PointF, target: PointF, group: RelationGroup): PointF {
+        val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
+        if (memberNodes.isEmpty()) return center
+        
+        val dx = target.x - center.x
+        val dy = target.y - center.y
+        
+        if (memberNodes.size == 1) {
+            val radius = nodeRadius * 2.5f
+            val angle = Math.atan2(dy.toDouble(), dx.toDouble())
+            return PointF(
+                (center.x + radius * Math.cos(angle)).toFloat(),
+                (center.y + radius * Math.sin(angle)).toFloat()
+            )
+        } else {
+            val minX = memberNodes.minOf { it.x } - nodeRadius * 1.5f
+            val maxX = memberNodes.maxOf { it.x } + nodeRadius * 1.5f
+            val minY = memberNodes.minOf { it.y } - nodeRadius * 1.5f
+            val maxY = memberNodes.maxOf { it.y } + nodeRadius * 1.5f
+            
+            if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return center
+
+            var tMinX = (minX - center.x) / dx
+            var tMaxX = (maxX - center.x) / dx
+            if (tMinX > tMaxX) { val tmp = tMinX; tMinX = tMaxX; tMaxX = tmp }
+
+            var tMinY = (minY - center.y) / dy
+            var tMaxY = (maxY - center.y) / dy
+            if (tMinY > tMaxY) { val tmp = tMinY; tMinY = tMaxY; tMaxY = tmp }
+
+            val t = Math.max(tMinX, tMinY)
+            
+            return PointF(center.x + t * dx, center.y + t * dy)
+        }
     }
 
     private fun preloadImages() {
@@ -129,10 +226,10 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
 
         data.groups.forEach { group ->
             val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
+            groupPaint.color = group.color
+            
             if (memberNodes.isNotEmpty()) {
-                groupPaint.color = group.color
                 groupPaint.alpha = 40
-                
                 if (memberNodes.size == 1) {
                     canvas.drawCircle(memberNodes[0].x, memberNodes[0].y, nodeRadius * 2.5f, groupPaint)
                 } else {
@@ -143,7 +240,6 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     bubbleRect.set(minX, minY, maxX, maxY)
                     canvas.drawRoundRect(bubbleRect, nodeRadius * 2, nodeRadius * 2, groupPaint)
                 }
-
                 val centerX = memberNodes.map { it.x }.average().toFloat()
                 val minY = memberNodes.minOf { it.y } - nodeRadius * 2f
                 textPaint.color = ColorHelper.getTextColor(context)
@@ -152,15 +248,63 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
 
         data.edges.forEach { edge ->
-            val nodes = edge.getSafeNodeIds().mapNotNull { id -> data.nodes.find { it.id == id } }
-            if (nodes.size >= 2) {
-                for (i in 0 until nodes.size - 1) {
-                    canvas.drawLine(nodes[i].x, nodes[i].y, nodes[i + 1].x, nodes[i + 1].y, edgePaint)
+            val points = mutableListOf<PointF>()
+            
+            edge.getSafeNodeIds().forEach { id ->
+                data.nodes.find { it.id == id }?.let { points.add(PointF(it.x, it.y)) }
+            }
+            
+            edge.groupIds.forEach { id ->
+                data.groups.find { it.id == id }?.let { group ->
+                    getGroupCenter(group)?.let { points.add(it) }
+                }
+            }
+            
+            if (points.size >= 2) {
+                for (i in 0 until points.size - 1) {
+                    val p1 = points[i]
+                    val p2 = points[i+1]
+                    
+                    var startX = p1.x
+                    var startY = p1.y
+                    var endX = p2.x
+                    var endY = p2.y
+
+                    val node1 = data.nodes.find { it.x == p1.x && it.y == p1.y }
+                    val node2 = data.nodes.find { it.x == p2.x && it.y == p2.y }
+                    
+                    if (node1 != null) {
+                        val angle = Math.atan2((p2.y - p1.y).toDouble(), (p2.x - p1.x).toDouble())
+                        startX += (nodeRadius * Math.cos(angle)).toFloat()
+                        startY += (nodeRadius * Math.sin(angle)).toFloat()
+                    } else {
+                        val group1 = data.groups.find { g -> getGroupCenter(g)?.let { it.x == p1.x && it.y == p1.y } ?: false }
+                        if (group1 != null) {
+                            val boundary = getGroupBoundaryPoint(p1, p2, group1)
+                            startX = boundary.x
+                            startY = boundary.y
+                        }
+                    }
+                    
+                    if (node2 != null) {
+                        val angle = Math.atan2((p1.y - p2.y).toDouble(), (p1.x - p2.x).toDouble())
+                        endX += (nodeRadius * Math.cos(angle)).toFloat()
+                        endY += (nodeRadius * Math.sin(angle)).toFloat()
+                    } else {
+                        val group2 = data.groups.find { g -> getGroupCenter(g)?.let { it.x == p2.x && it.y == p2.y } ?: false }
+                        if (group2 != null) {
+                            val boundary = getGroupBoundaryPoint(p2, p1, group2)
+                            endX = boundary.x
+                            endY = boundary.y
+                        }
+                    }
+
+                    canvas.drawLine(startX, startY, endX, endY, edgePaint)
                 }
 
                 edge.tag?.let { tag ->
-                    val midX = nodes.map { it.x }.average().toFloat()
-                    val midY = nodes.map { it.y }.average().toFloat()
+                    val midX = points.map { it.x }.average().toFloat()
+                    val midY = points.map { it.y }.average().toFloat()
                     tagPaint.color = ColorHelper.getTextColor(context)
                     canvas.drawText(tag, midX, midY - 10f, tagPaint)
                 }
@@ -301,8 +445,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         
         val width = (maxX - minX + padding * 2).toInt()
         val height = (maxY - minY + padding * 2).toInt()
-        
-        // Limit bitmap size to prevent OOM
+
         val maxDim = 4000
         var scale = 1.0f
         if (width > maxDim || height > maxDim) {
@@ -314,8 +457,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         canvas.drawColor(ColorHelper.getBgColor(context))
         canvas.scale(scale, scale)
         canvas.translate(-minX + padding, -minY + padding)
-        
-        // Temporarily override scale and offsets for onDraw
+
         val oldOffsetX = offsetX
         val oldOffsetY = offsetY
         val oldScale = scaleFactor

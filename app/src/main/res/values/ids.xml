@@ -4,4 +4,5 @@
     <item name="ivPostImagePreview" type="id" />
     <item name="action_add_person" type="id" />
     <item name="action_add_group" type="id" />
+    <item name="envSpinner" type="id" />
 </resources>

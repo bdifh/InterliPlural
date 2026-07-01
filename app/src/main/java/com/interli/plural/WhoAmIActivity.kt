@@ -47,6 +47,9 @@ class WhoAmIActivity : BaseActivity() {
         cardsContainer = findViewById(R.id.cardsContainer)
         etActivitySearch = findViewById(R.id.etActivitySearch)
 
+        val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        dataSourceMode = sharedPref.getString("who_am_i_data_source", "BOTH") ?: "BOTH"
+
         findViewById<Button>(R.id.btnAddItem).setOnClickListener { showAddItemDialog() }
         findViewById<Button>(R.id.btnManageGroups).setOnClickListener { showManageGroupsDialog() }
         findViewById<Button>(R.id.btnDataSource).setOnClickListener { showDataSourceDialog() }
@@ -98,6 +101,11 @@ class WhoAmIActivity : BaseActivity() {
     private fun saveIdentityGroups(groups: List<IdentityGroup>) {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         prefs.edit().putString("identity_groups", gson.toJson(groups)).apply()
+    }
+
+    private fun persistMoodActivityGroups(list: List<MoodActivity.ActivityGroup>) {
+        val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
+        prefs.edit().putString("activity_groups", gson.toJson(list)).apply()
     }
 
     private fun loadCollapsedMoodGroups(): Set<String> {
@@ -195,6 +203,18 @@ class WhoAmIActivity : BaseActivity() {
                     renderAll(etActivitySearch.text.toString())
                 }
             }
+        }
+        headerLayout.setOnLongClickListener {
+            if (isMoodGroup) {
+                loadMoodActivityGroups().find { it.id == groupId }?.let {
+                    showEditMoodGroupDialog(it)
+                }
+            } else {
+                loadIdentityGroups().find { it.id == groupId }?.let {
+                    showEditGroupDialog(it)
+                }
+            }
+            true
         }
         contentLayout.addView(headerLayout)
 
@@ -515,6 +535,7 @@ class WhoAmIActivity : BaseActivity() {
             .setTitle(R.string.action_data_source)
             .setSingleChoiceItems(options, currentIndex) { dialog, which ->
                 dataSourceMode = values[which]
+                getSharedPreferences("settings_prefs", MODE_PRIVATE).edit().putString("who_am_i_data_source", dataSourceMode).apply()
                 dialog.dismiss()
                 renderAll(etActivitySearch.text.toString())
                 updateRanking()
@@ -564,14 +585,26 @@ class WhoAmIActivity : BaseActivity() {
     private fun showManageGroupsDialog() {
         val options = arrayOf(
             getString(R.string.action_new_group),
-            getString(R.string.action_reorder)
+            getString(R.string.action_reorder),
+            getString(R.string.edit_groups)
         )
 
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.action_manage_groups)
             .setItems(options) { _, which ->
-                if (which == 0) showCreateGroupDialog()
-                else showReorderGroupsDialog()
+                when (which) {
+                    0 -> showCreateGroupDialog()
+                    1 -> showReorderGroupsDialog()
+                    2 -> {
+                        val groups = loadIdentityGroups()
+                        val names = groups.map { it.name }.toTypedArray()
+                        androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle(R.string.edit_groups)
+                            .setItems(names) { _, idx -> showEditGroupDialog(groups[idx]) }
+                            .show()
+                            .let { ColorHelper.styleSupportAlertDialog(it, this) }
+                    }
+                }
             }
             .show()
             .let { ColorHelper.styleSupportAlertDialog(it, this) }
@@ -660,6 +693,7 @@ class WhoAmIActivity : BaseActivity() {
         val input = EditText(this).apply { 
             hint = getString(R.string.hint_group_name)
             setText(group.name)
+            setTextColor(ColorHelper.getTextColor(this@WhoAmIActivity))
         }
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -667,7 +701,7 @@ class WhoAmIActivity : BaseActivity() {
             addView(input)
         }
 
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.dialog_edit_group_title)
             .setView(container)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -679,9 +713,100 @@ class WhoAmIActivity : BaseActivity() {
                     renderAll(etActivitySearch.text.toString())
                 }
             }
+            .setNeutralButton(R.string.delete, null)
             .setNegativeButton(R.string.cancel, null)
-            .show()
-            .let { ColorHelper.styleSupportAlertDialog(it, this) }
+            .create()
+
+        dialog.setOnShowListener {
+            val btnDelete = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+            var deleteClicks = 0
+            btnDelete.setOnClickListener {
+                deleteClicks++
+                if (deleteClicks >= 8) {
+                    val groups = loadIdentityGroups().toMutableList()
+                    groups.removeAll { it.id == group.id }
+                    saveIdentityGroups(groups)
+                    renderAll(etActivitySearch.text.toString())
+                    dialog.dismiss()
+                } else {
+                    btnDelete.text = getString(R.string.delete_group_8x, 8 - deleteClicks)
+                }
+            }
+        }
+
+        dialog.show()
+        ColorHelper.styleSupportAlertDialog(dialog, this)
+    }
+
+    private fun showEditMoodGroupDialog(group: MoodActivity.ActivityGroup) {
+        val input = EditText(this).apply { 
+            hint = getString(R.string.hint_group_name)
+            setText(group.name)
+            setTextColor(ColorHelper.getTextColor(this@WhoAmIActivity))
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24.dpToPx(), 8.dpToPx(), 24.dpToPx(), 8.dpToPx())
+            addView(input)
+        }
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_edit_group_title))
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val newName = input.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    val groups = loadMoodActivityGroups()
+                    groups.find { it.id == group.id }?.name = newName
+                    persistMoodActivityGroups(groups)
+                    renderAll(etActivitySearch.text.toString())
+                }
+            }
+            .setNeutralButton(getString(R.string.delete), null)
+            .setNegativeButton(getString(R.string.cancel), null)
+            .create()
+
+        dialog.setOnShowListener {
+            val btnDelete = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL)
+            var deleteClicks = 0
+            btnDelete.setOnClickListener {
+                deleteClicks++
+                if (deleteClicks >= 8) {
+                    val groups = loadMoodActivityGroups().toMutableList()
+                    val groupToDelete = groups.find { it.id == group.id }
+                    if (groupToDelete != null) {
+                        val activitiesToMove = groupToDelete.activityNames.toList()
+                        groups.remove(groupToDelete)
+                        
+                        if (activitiesToMove.isNotEmpty()) {
+                            val generalName = getString(R.string.group_general)
+                            var fallbackGroup = groups.find { it.name.equals(generalName, ignoreCase = true) }
+                            if (fallbackGroup == null && groups.isNotEmpty()) {
+                                fallbackGroup = groups[0]
+                            }
+                            if (fallbackGroup == null) {
+                                fallbackGroup = MoodActivity.ActivityGroup(name = generalName)
+                                groups.add(fallbackGroup)
+                            }
+                            
+                            activitiesToMove.forEach { act ->
+                                if (!fallbackGroup.activityNames.contains(act)) {
+                                    fallbackGroup.activityNames.add(act)
+                                }
+                            }
+                        }
+                    }
+                    persistMoodActivityGroups(groups)
+                    renderAll(etActivitySearch.text.toString())
+                    dialog.dismiss()
+                } else {
+                    btnDelete.text = getString(R.string.delete_group_8x, 8 - deleteClicks)
+                }
+            }
+        }
+            
+        dialog.show()
+        ColorHelper.styleSupportAlertDialog(dialog, this)
     }
 
     private fun showEditItemDialog(groupId: String, oldName: String) {
