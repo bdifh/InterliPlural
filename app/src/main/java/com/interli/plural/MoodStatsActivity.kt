@@ -91,6 +91,10 @@ class MoodStatsActivity : BaseActivity() {
         setupPeriodSpinner()
         setupDatePickers()
         setupNavigationDrawer()
+
+        val savedPeriod = sp.getInt("mood_stats_period_pref", 1) // 1 = 30 dagen
+        findViewById<Spinner>(R.id.spinnerMoodPeriod).setSelection(savedPeriod)
+        updateFilteredData(savedPeriod)
         loadAndRender()
     }
 
@@ -129,6 +133,7 @@ class MoodStatsActivity : BaseActivity() {
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 updateFilteredData(position)
+                getSharedPreferences("settings_prefs", MODE_PRIVATE).edit().putInt("mood_stats_period_pref", position).apply()
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }

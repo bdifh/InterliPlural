@@ -439,6 +439,19 @@ object DialogHelper {
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_member_selection, null)
         val etSearch = view.findViewById<EditText>(R.id.etSearch)
         val rvItems = view.findViewById<RecyclerView>(R.id.rvMembers)
+        val btnSelectAll = view.findViewById<Button>(R.id.btnSelectEveryone)
+
+        btnSelectAll.text = context.getString(R.string.all_activities)
+
+        btnSelectAll.setOnClickListener {
+            if (selectedItems.size == items.size) {
+                selectedItems.clear()
+            } else {
+                selectedItems.clear()
+                selectedItems.addAll(items)
+            }
+            rvItems.adapter?.notifyDataSetChanged()
+        }
 
         val adapter = object : RecyclerView.Adapter<SearchableItemViewHolder>() {
             var filteredItems = items

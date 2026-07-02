@@ -56,10 +56,15 @@ class CustomFieldsActivity : BaseActivity() {
 
         findViewById<Button>(R.id.btnSaveCustomFields).setOnClickListener {
             customFields.forEach { it.getUniqueId() }
-            
+
             sharedPref.edit {
                 putString("custom_fields", Gson().toJson(customFields))
             }
+
+            val allPeople = MemberHelper.loadAllPeople(this)
+            MemberHelper.migrateFields(this, allPeople)
+            MemberHelper.savePeople(this, allPeople)
+
             Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
             finish()
         }
@@ -99,7 +104,7 @@ class CustomFieldsActivity : BaseActivity() {
             val field = fields[position]
             holder.editName.setText(field.name)
             holder.editTemplate.setText(field.template)
-            
+
             holder.nameWatcher?.let { holder.editName.removeTextChangedListener(it) }
             holder.templateWatcher?.let { holder.editTemplate.removeTextChangedListener(it) }
 
@@ -117,6 +122,17 @@ class CustomFieldsActivity : BaseActivity() {
             }
             holder.editTemplate.addTextChangedListener(holder.templateWatcher)
 
+            @Suppress("ClickableViewAccessibility")
+            holder.editTemplate.setOnTouchListener { v, event ->
+                if (v.hasFocus()) {
+                    v.parent.requestDisallowInterceptTouchEvent(true)
+                    if ((event.action and android.view.MotionEvent.ACTION_MASK) == android.view.MotionEvent.ACTION_UP) {
+                        v.parent.requestDisallowInterceptTouchEvent(false)
+                    }
+                }
+                false
+            }
+
             holder.btnDelete.setOnClickListener {
                 val pos = holder.bindingAdapterPosition
                 if (pos != RecyclerView.NO_POSITION) {
@@ -127,7 +143,7 @@ class CustomFieldsActivity : BaseActivity() {
 
             val textColor = ColorHelper.getTextColor(this@CustomFieldsActivity)
             val frontColor = ColorHelper.getFrontColor(this@CustomFieldsActivity)
-            
+
             holder.card.setCardBackgroundColor(frontColor)
             holder.editName.setTextColor(textColor)
             holder.editTemplate.setTextColor(textColor)

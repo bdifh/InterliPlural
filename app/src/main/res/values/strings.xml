@@ -295,8 +295,10 @@
     <string name="hint_sp_token">Simply Plural Token</string>
     <string name="action_import_sp">Import Simply Plural</string>
     <string name="action_import_daylio">Import Daylio CSV</string>
+    <string name="action_import_ps">Import PluralSpace JSON</string>
+    <string name="action_import_hm">Import Hivemind JSON</string>
     <string name="action_pdf_export">PDF Export</string>
-    <string name="action_3rd_party_import">PluralKit / Simply Plural / Daylio Import</string>
+    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Hivemind / Daylio Import</string>
     <string name="import_success">Import successful!</string>
     <string name="import_error">Import failed: %1$s</string>
     <string name="settings_section_management">Management</string>

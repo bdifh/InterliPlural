@@ -376,7 +376,7 @@
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
+                        android:layout_marginBottom="28dp"
                         android:text="@string/action_3rd_party_import" />
 
                     <LinearLayout
@@ -405,6 +405,17 @@
                     </LinearLayout>
 
                     <Button
+                        android:id="@+id/btnConfigAutoBackup"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="28dp"
+                        android:text="@string/auto_backup_settings"
+                        android:textAlignment="viewStart"
+                        app:icon="@android:drawable/ic_popup_sync"
+                        app:iconGravity="textStart" />
+
+                    <Button
                         android:id="@+id/btnPdfExport"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
@@ -412,23 +423,14 @@
                         android:layout_marginBottom="8dp"
                         android:text="@string/action_pdf_export" />
 
-                    <Button
-                        android:id="@+id/btnConfigAutoBackup"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="@string/auto_backup_settings"
-                        android:textAlignment="viewStart"
-                        app:icon="@android:drawable/ic_popup_sync"
-                        app:iconGravity="textStart" />
+
 
                     <LinearLayout
                         android:id="@+id/deleteDataContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
-                        android:layout_marginTop="16dp" />
+                        android:layout_marginTop="20dp" />
                 </LinearLayout>
 
                 <!-- Category: Members & Fields -->

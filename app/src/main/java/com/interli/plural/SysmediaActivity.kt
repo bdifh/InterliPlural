@@ -711,11 +711,10 @@ class SysmediaActivity : BaseActivity() {
                 startActivity(intent)
             }
             holder.itemView.setOnClickListener {
-                showPostOptions(post, position)
-                true
+                openPostDetail(post.id)
             }
             holder.itemView.setOnLongClickListener {
-                openPostDetail(post.id)
+                showPostOptions(post, position)
                 true
             }
         }

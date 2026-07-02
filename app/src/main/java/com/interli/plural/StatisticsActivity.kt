@@ -32,7 +32,7 @@ class StatisticsActivity : BaseActivity() {
         setupNavigationDrawer()
         setupPeriodSpinner()
         setupDatePickers()
-        
+
         findViewById<Button>(R.id.btnOpenFullVisualTimeline).setOnClickListener {
             val intent = android.content.Intent(this, TimelineVisualActivity::class.java)
             startActivity(intent)
@@ -90,6 +90,7 @@ class StatisticsActivity : BaseActivity() {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 findViewById<LinearLayout>(R.id.layoutCustomRange).visibility = if (position == 6) View.VISIBLE else View.GONE
                 updateFilteredData(position)
+                getSharedPreferences("settings_prefs", MODE_PRIVATE).edit().putInt("stats_period_pref", position).apply()
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
@@ -230,9 +231,14 @@ class StatisticsActivity : BaseActivity() {
             }
         }
         filteredSessions = allSessions
-        
+
         runOnUiThread {
-            renderAll()
+            val spinner = findViewById<Spinner>(R.id.spinnerStatsPeriod)
+            val settingsSp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+            val savedPeriod = settingsSp.getInt("stats_period_pref", 1)
+
+            spinner.setSelection(savedPeriod)
+            updateFilteredData(savedPeriod)
         }
     }
 

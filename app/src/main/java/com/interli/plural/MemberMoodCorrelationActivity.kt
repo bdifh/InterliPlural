@@ -159,7 +159,7 @@ class MemberMoodCorrelationActivity : BaseActivity() {
 
         findViewById<Button>(R.id.btnSelectActivities).setOnClickListener {
             val allActivities = allEntries.flatMap { it.activities }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
-            
+
             DialogHelper.showSearchableMultiSelectDialog(
                 this,
                 getString(R.string.select_activities),
@@ -168,6 +168,7 @@ class MemberMoodCorrelationActivity : BaseActivity() {
             ) { newList ->
                 selectedActivities.clear()
                 selectedActivities.addAll(newList)
+
                 findViewById<Button>(R.id.btnSelectActivities).text = if (selectedActivities.isEmpty()) {
                     getString(R.string.all_activities)
                 } else {
@@ -204,8 +205,13 @@ class MemberMoodCorrelationActivity : BaseActivity() {
     }
 
     private fun render() {
-        val filtered = allEntries.filter { it.timestamp in currentPeriodStart..currentPeriodEnd }
-        
+        val filtered = allEntries.filter { entry ->
+            val matchesPeriod = entry.timestamp in currentPeriodStart..currentPeriodEnd
+            val matchesMembers = selectedMemberIds.isEmpty() || entry.memberIds.any { selectedMemberIds.contains(it) }
+            val matchesActivities = selectedActivities.isEmpty() || entry.activities.any { selectedActivities.contains(it) }
+            matchesPeriod && matchesMembers && matchesActivities
+        }
+
         renderRecentFrontingActivity(filtered)
         renderMemberMoodAverages(filtered)
         renderMemberActivityMatrix(filtered)

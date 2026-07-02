@@ -9,7 +9,7 @@ object MemberHelper {
     fun loadAllPeople(context: Context): MutableList<Person> {
         val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val gson = Gson()
-        
+
         val peopleJson = sharedPref.getString("people_list", "[]")
         val normalPeople: List<Person> = gson.fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
 
@@ -17,7 +17,7 @@ object MemberHelper {
         val sysmediaOnlyPeople: List<Person> = gson.fromJson(sysmediaPeopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
 
         val people = (normalPeople + sysmediaOnlyPeople).distinctBy { it.id }.toMutableList()
-        people.forEach { 
+        people.forEach {
             if (it.sysmediaProfile == null) it.sysmediaProfile = SysmediaProfile()
             if (it.groupIds == null) it.groupIds = mutableListOf()
             if (it.customFields == null) it.customFields = mutableMapOf()
@@ -25,6 +25,41 @@ object MemberHelper {
             if (it.preferences == null) it.preferences = mutableListOf()
         }
         return people
+    }
+
+    fun migrateFields(context: Context, people: List<Person>) {
+        val settingsPref = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
+        val fieldsJson = settingsPref.getString("custom_fields", "[]") ?: "[]"
+        val customFields: List<CustomField> = Gson().fromJson(fieldsJson, object : TypeToken<List<CustomField>>() {}.type) ?: emptyList()
+
+        people.forEach { person ->
+            val fields = person.customFields ?: return@forEach
+            val newFields = fields.toMutableMap()
+            val hidden = person.hiddenFields ?: mutableListOf()
+            val newHidden = hidden.toMutableList()
+            var changed = false
+
+            customFields.forEach { fieldDef ->
+                val id = fieldDef.id
+                if (id != null) {
+                    if (!fields.containsKey(id) && fields.containsKey(fieldDef.name)) {
+                        newFields[id] = fields[fieldDef.name] ?: ""
+                        newFields.remove(fieldDef.name)
+                        changed = true
+                    }
+
+                    if (!hidden.contains(id) && hidden.contains(fieldDef.name)) {
+                        newHidden.add(id)
+                        newHidden.remove(fieldDef.name)
+                        changed = true
+                    }
+                }
+            }
+            if (changed) {
+                person.customFields = newFields
+                person.hiddenFields = newHidden
+            }
+        }
     }
 
     fun savePeople(context: Context, people: List<Person>) {
@@ -61,26 +96,26 @@ object MemberHelper {
         } else {
             people.filter { !it.isArchived && !it.isSysmediaOnly }
         }
-        
+
         val unassigned = filteredPeople.filter { it.safeGroupIds.isEmpty() }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
         sortedList.addAll(unassigned)
-        
+
         val rootGroups = groups.filter { it.parentGroupId == null }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
-            
+
         rootGroups.forEach { group ->
             addPeopleFromGroup(group, filteredPeople, groups, sortedList)
         }
-        
+
         return sortedList
     }
-    
+
     private fun addPeopleFromGroup(group: Group, people: List<Person>, groups: List<Group>, result: MutableList<Person>) {
         val groupMembers = people.filter { it.safeGroupIds.contains(group.id) }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
         result.addAll(groupMembers)
-        
+
         val subGroups = groups.filter { it.parentGroupId == group.id }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
         subGroups.forEach { subGroup ->

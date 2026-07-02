@@ -284,8 +284,10 @@
     <string name="hint_sp_token">Simply Plural Token</string>
     <string name="action_import_sp">Simply Plural Importeren</string>
     <string name="action_import_daylio">Daylio CSV Importeren</string>
+    <string name="action_import_ps">PluralSpace JSON importeren</string>
+    <string name="action_import_hm">Hivemind JSON importeren</string>
     <string name="action_pdf_export">PDF Export</string>
-    <string name="action_3rd_party_import">PluralKit / Simply Plural / Daylio Import</string>
+    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Hivemind / Daylio Importeren</string>
     <string name="import_success">Import succesvol!</string>
     <string name="import_error">Import mislukt: %1$s</string>
     <string name="settings_section_management">Beheer</string>
@@ -457,4 +459,5 @@
 
     <string name="no_group_bubble">Geen groep (losstaand)</string>
     <string name="connect_to_group_bubble">Verbinden met groep (niet toevoegen)</string>
+    <string name="recurrence_yearly">Jaarlijks</string>
 </resources>

@@ -65,6 +65,18 @@ class SettingsActivity : BaseActivity() {
         uri?.let { importFromPkJson(it) }
     }
 
+    private val spAvatarZipLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { importSpAvatars(it) }
+    }
+
+    private val psJsonLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { importFromPsJson(it) }
+    }
+
+    private val hmJsonLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let { importFromHivemindJson(it) }
+    }
+
     private var initialBg = ""
     private var initialBtn = ""
     private var initialBtnText = ""
@@ -928,6 +940,17 @@ class SettingsActivity : BaseActivity() {
             spJsonLauncher.launch("application/json")
             dialog.dismiss()
         }
+
+        view.findViewById<Button>(R.id.btnImportSpAvatars)?.setOnClickListener {
+            spAvatarZipLauncher.launch("*/*")
+            dialog.dismiss()
+        }
+
+        view.findViewById<Button>(R.id.btnImportHm).setOnClickListener {
+            hmJsonLauncher.launch("application/json")
+            dialog.dismiss()
+        }
+
         view.findViewById<Button>(R.id.btnImportPk).setOnClickListener {
             val token = etPkToken.text.toString()
             sharedPref.edit().putString("pk_token", token).apply()
@@ -940,6 +963,15 @@ class SettingsActivity : BaseActivity() {
         }
         view.findViewById<Button>(R.id.btnImportDaylio).setOnClickListener {
             daylioLauncher.launch("*/*")
+            dialog.dismiss()
+        }
+        view.findViewById<Button>(R.id.btnImportPs).setOnClickListener {
+            psJsonLauncher.launch("application/json")
+            dialog.dismiss()
+        }
+
+        view.findViewById<Button>(R.id.btnImportHm).setOnClickListener {
+            hmJsonLauncher.launch("application/json")
             dialog.dismiss()
         }
 
@@ -1104,17 +1136,273 @@ class SettingsActivity : BaseActivity() {
         }.start()
     }
 
+    private fun importFromPsJson(uri: Uri) {
+        Thread {
+            try {
+                val json = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: return@Thread
+                val root = Gson().fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+
+                runOnUiThread {
+                    processPsImport(root)
+                }
+            } catch (e: Exception) {
+                runOnUiThread { Toast.makeText(this, "PluralSpace Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+            }
+        }.start()
+    }
+
+    private fun processPsImport(root: Map<String, Any>) {
+        val people = loadPeopleList()
+        val psAlters = root["tid_alters"] as? List<Map<String, Any>> ?: emptyList()
+        val psTracker = root["tid_tracker"] as? List<Map<String, Any>> ?: emptyList()
+        val psFronting = root["tid_fronting"] as? List<Map<String, Any>> ?: emptyList()
+
+        var altersCount = 0
+        var moodCount = 0
+        var sessionsCount = 0
+
+        psAlters.forEach { alter ->
+            val psId = alter["id"] as? String ?: ""
+            val name = alter["name"] as? String ?: "Unknown"
+            if (psId.isNotEmpty() && people.none { it.manualId == psId }) {
+                val pronouns = alter["pronouns"] as? String ?: ""
+                val desc = alter["description"] as? String ?: ""
+                val colorHex = alter["color"] as? String
+                val avatarBase64 = alter["avatarImg"] as? String // data:image/jpeg;base64,...
+
+                var profileColor = -6934396
+                if (!colorHex.isNullOrBlank()) {
+                    try { profileColor = android.graphics.Color.parseColor(colorHex) } catch (_: Exception) {}
+                }
+
+                val person = Person(
+                    name = name,
+                    manualId = psId,
+                    profileInfo = if (pronouns.isNotEmpty()) "Pronouns: $pronouns\n$desc" else desc,
+                    profileColor = profileColor,
+                    sysmediaProfile = SysmediaProfile(handle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), ""))
+                )
+
+                if (avatarBase64?.startsWith("data:image") == true) {
+                    try {
+                        val base64Data = avatarBase64.substringAfter("base64,")
+                        val imageBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                        val file = File(filesDir, "profile_${person.id}_${System.currentTimeMillis()}.jpg")
+                        file.writeBytes(imageBytes)
+                        person.profilePictureUri = Uri.fromFile(file).toString()
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+
+                people.add(person)
+                altersCount++
+            }
+        }
+        MemberHelper.savePeople(this, people)
+
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val entriesJson = sharedPref.getString("mood_entries", "[]") ?: "[]"
+        val entries: MutableList<MoodActivity.MoodEntry> = Gson().fromJson(entriesJson, object : TypeToken<MutableList<MoodActivity.MoodEntry>>() {}.type) ?: mutableListOf()
+
+        psTracker.forEach { log ->
+            val ts = (log["ts"] as? Number)?.toLong() ?: 0L
+            if (ts > 0 && entries.none { it.timestamp == ts }) {
+                val psMood = (log["mood"] as? String)?.lowercase() ?: ""
+                val psAlterId = log["alterId"] as? String
+                val note = log["note"] as? String ?: ""
+
+                val (label, emoji, color) = when (psMood) {
+                    "increíble", "muy bien" -> Triple("Rad", "🤩", Color.parseColor(moodColors[0]))
+                    "bien" -> Triple("Good", "😊", Color.parseColor(moodColors[1]))
+                    "neutro", "normal" -> Triple("Meh", "😐", Color.parseColor(moodColors[2]))
+                    "mal" -> Triple("Bad", "😟", Color.parseColor(moodColors[3]))
+                    "muy mal", "horrible" -> Triple("Awful", "😢", Color.parseColor(moodColors[4]))
+                    else -> Triple("Meh", "😐", Color.parseColor(moodColors[2]))
+                }
+
+                val targetMemberId = people.find { it.manualId == psAlterId }?.id
+
+                entries.add(MoodActivity.MoodEntry(
+                    timestamp = ts,
+                    moodEmoji = emoji,
+                    moodRotation = (if (label == "Rad") 2f else if (label == "Good") 1f else 0f) * 15f,
+                    moodLabel = label.lowercase(), // matches mood_awful, etc keys if mapped correctly
+                    moodColor = color,
+                    note = note,
+                    memberIds = if (targetMemberId != null) listOf(targetMemberId) else emptyList()
+                ))
+                moodCount++
+            }
+        }
+        sharedPref.edit().putString("mood_entries", Gson().toJson(entries)).apply()
+
+        val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
+        val sessions: MutableList<FrontSession> = Gson().fromJson(sessionsJson, object : TypeToken<MutableList<FrontSession>>() {}.type) ?: mutableListOf()
+
+        psFronting.forEach { f ->
+            val start = (f["start"] as? Number)?.toLong() ?: 0L
+            if (start > 0 && sessions.none { it.startTime == start }) {
+                val psAlterId = f["alterId"] as? String
+                val end = (f["end"] as? Number)?.toLong()
+                val note = f["note"] as? String
+                val person = people.find { it.manualId == psAlterId }
+
+                if (person != null) {
+                    sessions.add(FrontSession(
+                        personName = person.name,
+                        startTime = start,
+                        endTime = end,
+                        personId = person.id,
+                        note = note
+                    ))
+                    sessionsCount++
+                }
+            }
+        }
+        sharedPref.edit().putString("sessions_list", Gson().toJson(sessions)).apply()
+
+        Toast.makeText(this, "Imported $altersCount alters, $moodCount mood logs and $sessionsCount sessions", Toast.LENGTH_LONG).show()
+        recreate()
+    }
+
+    private fun importFromHivemindJson(uri: Uri) {
+        Thread {
+            try {
+                val json = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: return@Thread
+                val root = Gson().fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+
+                runOnUiThread {
+                    processHivemindImport(root)
+                }
+            } catch (e: Exception) {
+                runOnUiThread { Toast.makeText(this, "Hivemind Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+            }
+        }.start()
+    }
+
+    private fun processHivemindImport(root: Map<String, Any>) {
+        val people = loadPeopleList()
+        val hmAlters = root["alters"] as? List<Map<String, Any>> ?: emptyList()
+        val hmSubsystems = root["subsystems"] as? List<Map<String, Any>> ?: emptyList()
+        val hmFronting = root["front_entries"] as? List<Map<String, Any>> ?: emptyList()
+        val hmJournal = root["journal_entries"] as? List<Map<String, Any>> ?: emptyList()
+
+        var altersCount = 0
+        var groupsCount = 0
+        var sessionsCount = 0
+        var journalCount = 0
+
+        hmAlters.forEach { alter ->
+            val hmId = (alter["alter_id"] as? Number)?.toInt()?.toString() ?: ""
+            val name = alter["name"] as? String ?: "Unknown"
+
+            if (hmId.isNotEmpty() && people.none { it.manualId == hmId }) {
+                val profile = alter["profile"] as? String ?: ""
+                val colorHex = alter["color"] as? String
+                val avatarData = alter["avatar_data"] as? String // Base64
+
+                var profileColor = -6934396
+                if (!colorHex.isNullOrBlank()) {
+                    try { profileColor = android.graphics.Color.parseColor(colorHex) } catch (_: Exception) {}
+                }
+
+                val person = Person(
+                    name = name,
+                    manualId = hmId,
+                    profileInfo = profile,
+                    profileColor = profileColor,
+                    sysmediaProfile = SysmediaProfile(handle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), ""))
+                )
+
+                if (!avatarData.isNullOrBlank()) {
+                    try {
+                        val imageBytes = android.util.Base64.decode(avatarData, android.util.Base64.DEFAULT)
+                        val file = File(filesDir, "profile_${person.id}_${System.currentTimeMillis()}.jpg")
+                        file.writeBytes(imageBytes)
+                        person.profilePictureUri = Uri.fromFile(file).toString()
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+
+                people.add(person)
+                altersCount++
+            }
+        }
+        MemberHelper.savePeople(this, people)
+
+        val groups = loadGroupsList().toMutableList()
+        hmSubsystems.forEach { sub ->
+            val subName = sub["name"] as? String ?: "Unknown Subsystem"
+            if (groups.none { it.name == subName }) {
+                groups.add(Group(name = subName))
+                groupsCount++
+            }
+        }
+        val spApp = getSharedPreferences("my_app", MODE_PRIVATE)
+        spApp.edit().putString("groups_list", Gson().toJson(groups)).apply()
+
+        val sessionsJson = spApp.getString("sessions_list", "[]") ?: "[]"
+        val sessions: MutableList<FrontSession> = Gson().fromJson(sessionsJson, object : TypeToken<MutableList<FrontSession>>() {}.type) ?: mutableListOf()
+
+        hmFronting.forEach { f ->
+            val start = (f["start_time"] as? Number)?.toLong() ?: 0L
+            if (start > 0 && sessions.none { it.startTime == start }) {
+                val hmAlterId = (f["alter_id"] as? Number)?.toInt()?.toString()
+                val end = (f["end_time"] as? Number)?.toLong()
+                val person = people.find { it.manualId == hmAlterId }
+
+                if (person != null) {
+                    sessions.add(FrontSession(
+                        personName = person.name,
+                        startTime = start,
+                        endTime = if (end != null && end > 0) end else null,
+                        personId = person.id
+                    ))
+                    sessionsCount++
+                }
+            }
+        }
+        spApp.edit().putString("sessions_list", Gson().toJson(sessions)).apply()
+
+        val notesJson = spApp.getString("diary_notes", "[]") ?: "[]"
+        val notes: MutableList<DiaryNote> = Gson().fromJson(notesJson, object : TypeToken<MutableList<DiaryNote>>() {}.type) ?: mutableListOf()
+
+        hmJournal.forEach { j ->
+            val ts = (j["timestamp"] as? Number)?.toLong() ?: 0L
+            if (ts > 0 && notes.none { it.timestamp == ts }) {
+                val title = j["title"] as? String ?: "Unnamed Entry"
+                val content = j["content"] as? String ?: ""
+                val hmAlterId = (j["alter_id"] as? Number)?.toInt()?.toString()
+
+                val targetMemberId = people.find { it.manualId == hmAlterId }?.id
+
+                notes.add(DiaryNote(
+                    title = title,
+                    content = content,
+                    timestamp = ts,
+                    linkedMemberIds = if (targetMemberId != null) mutableListOf(targetMemberId) else mutableListOf()
+                ))
+                journalCount++
+            }
+        }
+        spApp.edit().putString("diary_notes", Gson().toJson(notes)).apply()
+
+        Toast.makeText(this, "Imported $altersCount alters, $groupsCount groups, $sessionsCount front sessions and $journalCount journal entries", Toast.LENGTH_LONG).show()
+        recreate()
+    }
+
     private fun processSpMembers(spMembers: List<Map<String, Any>>) {
         runOnUiThread {
             val people = loadPeopleList()
             var count = 0
             spMembers.forEach { spm ->
-                val id = spm["id"] as? String ?: spm["uid"] as? String ?: ""
+                val id = spm["_id"] as? String ?: spm["id"] as? String ?: spm["uid"] as? String ?: ""
                 val content = spm["content"] as? Map<*, *>
 
                 val name = content?.get("name") as? String ?: spm["name"] as? String ?: "SP Member"
                 val desc = content?.get("desc") as? String ?: spm["description"] as? String ?: ""
-                val avatar = content?.get("avatarUrl") as? String ?: spm["avatar_url"] as? String
+
+                val avatar = content?.get("avatarUrl") as? String
+                    ?: spm["avatarUrl"] as? String
+                    ?: spm["avatar_url"] as? String
 
                 val colorHex = content?.get("color") as? String ?: spm["color"] as? String
                 var profileColor = -6934396
@@ -1127,6 +1415,9 @@ class SettingsActivity : BaseActivity() {
 
                 if (id.isNotEmpty() && people.none { it.manualId == id }) {
                     val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+
+                    val avatarUuid = spm["avatarUuid"] as? String
+
                     people.add(Person(
                         name = name,
                         manualId = id,
@@ -1260,6 +1551,44 @@ class SettingsActivity : BaseActivity() {
                 }
             } catch (e: Exception) {
                 runOnUiThread { Toast.makeText(this, "Daylio Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+            }
+        }.start()
+    }
+
+    private fun importSpAvatars(uri: Uri) {
+        Thread {
+            try {
+                val people = loadPeopleList()
+                val avatarDir = filesDir
+                var count = 0
+                contentResolver.openInputStream(uri)?.use { input ->
+                    java.util.zip.ZipInputStream(input).use { zis ->
+                        var entry = zis.nextEntry
+                        while (entry != null) {
+                            if (!entry.isDirectory) {
+                                val fileName = entry.name.substringAfterLast("/")
+                                val idInFile = fileName.substringBeforeLast(".")
+                                val person = people.find { it.manualId == idInFile }
+                                if (person != null) {
+                                    val localFile = File(avatarDir, "profile_${person.id}_${System.currentTimeMillis()}.png")
+                                    avatarDir.listFiles { f -> f.name.startsWith("profile_${person.id}_") }?.forEach { it.delete() }
+                                    FileOutputStream(localFile).use { out -> zis.copyTo(out) }
+                                    person.profilePictureUri = Uri.fromFile(localFile).toString()
+                                    count++
+                                }
+                            }
+                            zis.closeEntry()
+                            entry = zis.nextEntry
+                        }
+                    }
+                }
+                runOnUiThread {
+                    MemberHelper.savePeople(this, people)
+                    Toast.makeText(this, "Imported $count avatars from ZIP", Toast.LENGTH_SHORT).show()
+                    recreate()
+                }
+            } catch (e: Exception) {
+                runOnUiThread { Toast.makeText(this, "Avatar ZIP Error: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
         }.start()
     }

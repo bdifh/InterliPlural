@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="40dp">
 
         <!-- Simply Plural Section -->
         <TextView
@@ -32,6 +32,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/action_import"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportSpAvatars"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Simply Plural Avatars (ZIP)"
             android:layout_marginBottom="8dp" />
 
         <Button
@@ -73,7 +81,39 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="PluralKit JSON"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="8dp" />
+
+        <!-- PluralSpace Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="PluralSpace"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportPs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_import_ps" />
+
+        <!-- Hivemind Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Hivemind (Multiplicity)"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportHm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_import_hm" />
 
         <!-- Daylio Section -->
         <TextView
@@ -82,6 +122,7 @@
             android:text="@string/action_import_daylio"
             android:textStyle="bold"
             android:textSize="16sp"
+            android:layout_marginTop="24dp"
             android:layout_marginBottom="8dp" />
 
         <Button

@@ -46,14 +46,14 @@ class ProfileActivity : BaseActivity() {
     private var selectedImageUri: Uri? = null
     private var selectedGroupIds: MutableList<String> = mutableListOf()
     private var selectedThemeId: String? = null
-    
+
     private val customFieldEdits = mutableMapOf<String, EditText>()
     private val customFieldVisibilities = mutableMapOf<String, Boolean>()
-    
+
     private var isEditMode = false
     private lateinit var markwon: Markwon
     private lateinit var customFieldsSettings: List<CustomField>
-    
+
     private var initialName = ""
     private var initialColor = 0
     private var initialImageUri: String? = null
@@ -99,7 +99,7 @@ class ProfileActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_profile)
-        
+
         onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (hasChanges()) {
@@ -147,19 +147,19 @@ class ProfileActivity : BaseActivity() {
         val profileImage = findViewById<ImageView>(R.id.profileImage)
         val switchIncludeInStats = findViewById<SwitchCompat>(R.id.switchIncludeInStats)
         val tvSelectedTheme = findViewById<TextView>(R.id.tvSelectedTheme)
-        
+
         profileImageCard.setCardBackgroundColor(ColorHelper.getBgColor(this))
 
         val selectedGroupsText = findViewById<TextView>(R.id.selectedGroupsText)
         val customFieldsContainer = findViewById<LinearLayout>(R.id.customFieldsProfileContainer)
         val btnToggleEdit = findViewById<Button>(R.id.btnToggleEditMode)
-        
+
         nameEdit.setText(person.name)
         selectedColor = person.profileColor
         selectedGroupIds = person.safeGroupIds.toMutableList()
         selectedThemeId = person.linkedThemeId
         switchIncludeInStats.isChecked = !person.excludeFromStats
-        
+
         val sharedPrefSettings = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val fieldsJson = sharedPrefSettings.getString("custom_fields", "[]")
         customFieldsSettings = try {
@@ -170,7 +170,7 @@ class ProfileActivity : BaseActivity() {
         }
 
         var needsSettingsSave = false
-        customFieldsSettings.forEach { 
+        customFieldsSettings.forEach {
             if (it.id == null) {
                 it.getUniqueId()
                 needsSettingsSave = true
@@ -186,13 +186,13 @@ class ProfileActivity : BaseActivity() {
             val fieldId = field.getUniqueId()
             val hasValue = person.safeCustomFields.containsKey(fieldId) || person.safeCustomFields.containsKey(field.name)
             val isExplicitlyHidden = person.safeHiddenFields.contains(fieldId) || person.safeHiddenFields.contains(field.name)
-            
-            val isVisible = if (isExplicitlyHidden) {
+
+            val isVisible = if (!hasValue && !isExplicitlyHidden) {
                 false
             } else {
-                hasValue
+                !isExplicitlyHidden
             }
-            
+
             customFieldVisibilities[fieldId] = isVisible
         }
 
@@ -200,13 +200,13 @@ class ProfileActivity : BaseActivity() {
         updateGroupsText(selectedGroupsText)
         updateThemeText(tvSelectedTheme)
         renderCustomFields(customFieldsContainer, person)
-        
+
         captureInitialState()
 
         colorPreviewCard.setOnClickListener {
             showHexColorDialog(colorPreview)
         }
-        
+
         val existingUri = person.profilePictureUri
         if (!existingUri.isNullOrBlank()) {
             selectedImageUri = Uri.parse(existingUri)
@@ -309,18 +309,18 @@ class ProfileActivity : BaseActivity() {
         val currentIncludeInStats = findViewById<SwitchCompat>(R.id.switchIncludeInStats).isChecked
         val currentCustomFields = mutableMapOf<String, String>()
         customFieldEdits.forEach { (id, edit) -> currentCustomFields[id] = edit.text.toString().trim() }
-        
+
         val currentHidden = mutableListOf<String>()
         customFieldVisibilities.forEach { (id, visible) -> if (!visible) currentHidden.add(id) }
 
         return currentName != initialName ||
-               selectedColor != initialColor ||
-               selectedImageUri?.toString() != initialImageUri ||
-               selectedGroupIds != initialGroupIds ||
-               selectedThemeId != initialThemeId ||
-               currentCustomFields.any { initialCustomFields[it.key] != it.value } ||
-               currentHidden != initialHiddenFields ||
-               currentIncludeInStats != initialIncludeInStats
+                selectedColor != initialColor ||
+                selectedImageUri?.toString() != initialImageUri ||
+                selectedGroupIds != initialGroupIds ||
+                selectedThemeId != initialThemeId ||
+                currentCustomFields.any { initialCustomFields[it.key] != it.value } ||
+                currentHidden != initialHiddenFields ||
+                currentIncludeInStats != initialIncludeInStats
     }
 
     private var initialThemeId: String? = null
@@ -335,12 +335,12 @@ class ProfileActivity : BaseActivity() {
 
         customFieldEdits.forEach { (fieldId, editText) ->
             val newValue = editText.text.toString().trim()
-            val fieldSetting = customFieldsSettings.find { it.getUniqueId() == fieldId }
-            val wasAlreadySaved = person.safeCustomFields.containsKey(fieldId) || person.safeCustomFields.containsKey(fieldSetting?.name ?: "")
             val isVisible = customFieldVisibilities[fieldId] ?: false
-            
-            if (wasAlreadySaved || (fieldSetting != null && newValue != fieldSetting.template) || isVisible) {
+
+            if (isVisible) {
                 updatedCustomFields[fieldId] = newValue
+            } else {
+                updatedCustomFields.remove(fieldId)
             }
         }
 
@@ -362,8 +362,8 @@ class ProfileActivity : BaseActivity() {
         )
 
         people[personIndex] = updatedPerson
-        
-        sessions.forEach { 
+
+        sessions.forEach {
             if (it.personId == person.id) {
                 it.personName = newName
             } else if (it.personId == null && it.personName == oldName) {
@@ -386,7 +386,7 @@ class ProfileActivity : BaseActivity() {
         nameEdit.isFocusable = isEditMode
         nameEdit.isFocusableInTouchMode = isEditMode
         nameEdit.setTextColor(textColor)
-        
+
         val nameLayout = nameEdit.parent.parent as? com.google.android.material.textfield.TextInputLayout
         nameLayout?.let {
             it.defaultHintTextColor = android.content.res.ColorStateList.valueOf(textColor)
@@ -399,7 +399,7 @@ class ProfileActivity : BaseActivity() {
         findViewById<Button>(R.id.btnSelectGroups).visibility = if (isEditMode) View.VISIBLE else View.GONE
         findViewById<Button>(R.id.btnSelectTheme).visibility = if (isEditMode) View.VISIBLE else View.GONE
         findViewById<TextView>(R.id.tvSelectedTheme).visibility = if (isEditMode || selectedThemeId != null) View.VISIBLE else View.GONE
-        
+
         findViewById<TextView>(R.id.labelGroepen).visibility = if (isEditMode || selectedGroupIds.isNotEmpty()) View.VISIBLE else View.GONE
         findViewById<Button>(R.id.btnDeletePerson).visibility = if (isEditMode) View.VISIBLE else View.GONE
         findViewById<Button>(R.id.btnArchivePerson).let { btn ->
@@ -408,7 +408,7 @@ class ProfileActivity : BaseActivity() {
             btn.text = if (person.isArchived) getString(R.string.unarchive_member) else getString(R.string.archive_member_5x)
         }
         findViewById<SwitchCompat>(R.id.switchIncludeInStats).visibility = if (isEditMode) View.VISIBLE else View.GONE
-        
+
         findViewById<TextView>(R.id.selectedGroupsText).setTextColor(textColor)
         findViewById<TextView>(R.id.labelGroepen).setTextColor(textColor)
         findViewById<SwitchCompat>(R.id.switchIncludeInStats).setTextColor(textColor)
@@ -422,7 +422,7 @@ class ProfileActivity : BaseActivity() {
                 intent.putExtra("person_name", person.name)
                 startActivity(intent)
             }
-            
+
             val btnViewMood = findViewById<Button>(R.id.btnViewMood)
             btnViewMood.setOnClickListener {
                 val person = people.getOrNull(personIndex) ?: return@setOnClickListener
@@ -465,7 +465,7 @@ class ProfileActivity : BaseActivity() {
             val fieldId = field.getUniqueId()
             val fieldName = if (field.name.isEmpty()) getString(R.string.unnamed_field) else field.name
             val isVisible = customFieldVisibilities[fieldId] ?: false
-            
+
             val savedValue = person.safeCustomFields[fieldId] ?: person.safeCustomFields[field.name]
             var displayValue = savedValue ?: ""
 
@@ -645,9 +645,9 @@ class ProfileActivity : BaseActivity() {
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .create()
-            
+
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
         input.setTextColor(ColorHelper.getTextColor(this))
         applyTextColorToLabels(container)
     }
@@ -679,7 +679,6 @@ class ProfileActivity : BaseActivity() {
                     person.sourcePictureUri = localUri.toString()
                     startCropActivity(localUri)
                 } else {
-                    // Fallback to URL if download fails, though we want local
                     selectedImageUri = uri
                     person.sourcePictureUri = uri.toString()
                     profileImage.load(uri.toString()) {
@@ -712,20 +711,20 @@ class ProfileActivity : BaseActivity() {
     private fun showPhotoOptionsPopup() {
         val person = people.getOrNull(personIndex)
         val imageView = findViewById<ImageView>(R.id.profileImage)
-        
-        val hasImage = !selectedImageUri?.toString().isNullOrBlank() || 
-                       !person?.profilePictureUri.isNullOrBlank()
+
+        val hasImage = !selectedImageUri?.toString().isNullOrBlank() ||
+                !person?.profilePictureUri.isNullOrBlank()
 
         val options = mutableListOf<String>()
         options.add(getString(R.string.upload_new_photo))
         options.add(getString(R.string.paste_link_url))
-        
+
         if (hasImage) {
             options.add(getString(R.string.edit_current_picture))
             options.add(getString(R.string.download_png))
             options.add(getString(R.string.download_jpg))
         }
-        
+
         options.add(getString(R.string.delete_photo))
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
@@ -736,9 +735,9 @@ class ProfileActivity : BaseActivity() {
                     getString(R.string.upload_new_photo) -> pickImage.launch("image/*")
                     getString(R.string.paste_link_url) -> showUrlInputDialog()
                     getString(R.string.edit_current_picture) -> {
-                        val uri = person?.sourcePictureUri?.let { Uri.parse(it) } 
-                                  ?: selectedImageUri 
-                                  ?: person?.profilePictureUri?.let { Uri.parse(it) }
+                        val uri = person?.sourcePictureUri?.let { Uri.parse(it) }
+                            ?: selectedImageUri
+                            ?: person?.profilePictureUri?.let { Uri.parse(it) }
                         uri?.let { startCropActivity(it) }
                     }
                     getString(R.string.download_png) -> {
@@ -753,9 +752,9 @@ class ProfileActivity : BaseActivity() {
                 }
             }
             .create()
-            
+
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun saveImageToUri(uri: Uri, format: Bitmap.CompressFormat) {
@@ -787,9 +786,9 @@ class ProfileActivity : BaseActivity() {
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .create()
-            
+
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
         input.setTextColor(ColorHelper.getTextColor(this))
     }
 
@@ -806,9 +805,9 @@ class ProfileActivity : BaseActivity() {
             }
             .setPositiveButton(getString(R.string.done)) { _, _ -> updateGroupsText(textView) }
             .create()
-            
+
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, this)
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun updateGroupsText(textView: TextView) {
@@ -839,7 +838,7 @@ class ProfileActivity : BaseActivity() {
                 d.dismiss()
             }
             .show()
-            .let { ColorHelper.styleSupportAlertDialog(it, this) }
+            .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun updateThemeText(textView: TextView) {
@@ -856,7 +855,7 @@ class ProfileActivity : BaseActivity() {
 
     private fun loadData() {
         people = MemberHelper.loadAllPeople(this)
-        
+
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val gson = Gson()
         val groupsJson = sharedPref.getString("groups_list", "[]")
@@ -867,7 +866,7 @@ class ProfileActivity : BaseActivity() {
 
     private fun saveData() {
         MemberHelper.savePeople(this, people)
-        
+
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val gson = com.google.gson.GsonBuilder().disableHtmlEscaping().create()
         sharedPref.edit(commit = true) {
