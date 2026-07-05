@@ -446,9 +446,9 @@ class CalendarActivity : BaseActivity() {
 
         val updateLinks = {
             if (selectedMemberIds.isNotEmpty()) {
-                val names = people.filter { selectedMemberIds.contains(it.id) }.map { it.name }
+                val names = people.filter { selectedMemberIds.contains(it.id) && !it.isArchived }.map { it.name }
                 tvLinkedMember.text = names.joinToString(", ")
-                tvLinkedMember.visibility = View.VISIBLE
+                tvLinkedMember.visibility = if (names.isEmpty()) View.GONE else View.VISIBLE
             } else {
                 tvLinkedMember.visibility = View.GONE
             }

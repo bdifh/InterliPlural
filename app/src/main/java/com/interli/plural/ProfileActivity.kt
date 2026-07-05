@@ -277,8 +277,10 @@ class ProfileActivity : BaseActivity() {
                     currentPerson.isArchived = true
                     if (currentPerson.isFront) {
                         currentPerson.isFront = false
-                        sessions.find { (it.personId == currentPerson.id || it.personName == currentPerson.name) && it.endTime == null }?.let {
-                            it.endTime = System.currentTimeMillis()
+                        sessions.forEach {
+                            if ((it.personId == currentPerson.id || (it.personId == null && it.personName == currentPerson.name)) && it.endTime == null) {
+                                it.endTime = System.currentTimeMillis()
+                            }
                         }
                     }
                     saveData()
@@ -358,7 +360,8 @@ class ProfileActivity : BaseActivity() {
             linkedThemeId = selectedThemeId,
             customFields = updatedCustomFields,
             hiddenFields = hiddenList,
-            excludeFromStats = !findViewById<SwitchCompat>(R.id.switchIncludeInStats).isChecked
+            excludeFromStats = !findViewById<SwitchCompat>(R.id.switchIncludeInStats).isChecked,
+            isArchived = person.isArchived
         )
 
         people[personIndex] = updatedPerson

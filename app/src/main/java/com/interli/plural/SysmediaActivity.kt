@@ -188,7 +188,7 @@ class SysmediaActivity : BaseActivity() {
     }
 
     private fun showDeleteAccountsDialog() {
-        val sysmediaPeople = people.filter { it.isSysmediaOnly || it.sysmediaProfile?.handle != null || it.sysmediaProfile?.profilePictureUri != null }
+        val sysmediaPeople = people.filter { !it.isArchived && (it.isSysmediaOnly || it.sysmediaProfile?.handle != null || it.sysmediaProfile?.profilePictureUri != null) }
         val names = sysmediaPeople.map { "${it.name}${if (it.sysmediaProfile?.handle != null) " (@${it.sysmediaProfile?.handle})" else ""}" }.toTypedArray()
         
         if (names.isEmpty()) {
@@ -404,7 +404,7 @@ class SysmediaActivity : BaseActivity() {
 
                 val currentId = activeMemberId
                 val activePeople = people.filter { person ->
-                    if (currentId == null || person.id == currentId) return@filter false
+                    if (currentId == null || person.id == currentId || person.isArchived) return@filter false
                     val chatId = listOf(currentId, person.id).sorted().let { "${it[0]}_${it[1]}" }
                     allMessages.any { it.chatId == chatId }
                 }
@@ -516,7 +516,7 @@ class SysmediaActivity : BaseActivity() {
     }
 
     private fun showFollowingDialog(person: Person) {
-        val otherPeople = people.filter { it.id != person.id }
+        val otherPeople = people.filter { it.id != person.id && !it.isArchived }
         val names = otherPeople.map { it.name }.toTypedArray()
         val checked = BooleanArray(otherPeople.size) { i ->
             person.sysmediaProfile?.followingIds?.contains(otherPeople[i].id) ?: false
@@ -921,7 +921,7 @@ class SysmediaActivity : BaseActivity() {
     }
 
     private fun showNewChatDialog() {
-        val otherPeople = people.filter { it.id != activeMemberId }
+        val otherPeople = people.filter { it.id != activeMemberId && !it.isArchived }
         val names = otherPeople.map { it.name }.toTypedArray()
         AlertDialog.Builder(this).setTitle("New Chat").setItems(names) { _, which ->
             val target = otherPeople[which]

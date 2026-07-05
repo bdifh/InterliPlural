@@ -99,7 +99,7 @@ class CalendarTimelineView @JvmOverloads constructor(
 
             if (relativeY > 20 * density) {
                 val links = mutableListOf<Triple<String, String, String>>()
-                clickedEvent.linkedMemberIds.forEach { id -> people.find { it.id == id }?.let { links.add(Triple("MEMBER", it.id, it.name)) } }
+                clickedEvent.linkedMemberIds.forEach { id -> people.find { it.id == id && !it.isArchived }?.let { links.add(Triple("MEMBER", it.id, it.name)) } }
                 clickedEvent.linkedNoteId?.let { id -> notes.find { it.id == id }?.let { links.add(Triple("NOTE", it.id, it.title.ifEmpty { "Note" })) } }
                 clickedEvent.linkedTodoListId?.let { id -> todoLists.find { it.id == id }?.let { links.add(Triple("TODO", it.id, it.title.ifEmpty { "Todo" })) } }
 
@@ -273,7 +273,7 @@ class CalendarTimelineView @JvmOverloads constructor(
             if (bottom - top > 30 * density) {
                 textPaint.textSize = 10 * density
                 val links = mutableListOf<Triple<String, String, String>>()
-                event.linkedMemberIds.forEach { id -> people.find { it.id == id }?.let { links.add(Triple("MEMBER", it.id, it.name)) } }
+                event.linkedMemberIds.forEach { id -> people.find { it.id == id && !it.isArchived }?.let { links.add(Triple("MEMBER", it.id, it.name)) } }
                 event.linkedNoteId?.let { id -> notes.find { it.id == id }?.let { links.add(Triple("NOTE", it.id, it.title.ifEmpty { "Note" })) } }
                 event.linkedTodoListId?.let { id -> todoLists.find { it.id == id }?.let { links.add(Triple("TODO", it.id, it.title.ifEmpty { "Todo" })) } }
 

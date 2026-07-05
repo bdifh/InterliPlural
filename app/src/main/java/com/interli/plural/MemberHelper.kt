@@ -111,6 +111,19 @@ object MemberHelper {
         return sortedList
     }
 
+    fun restoreDeletedMember(context: Context, name: String, id: String?) {
+        val people = loadAllPeople(context)
+        if (people.any { it.id == id || it.name == name }) return
+
+        val newPerson = Person(
+            id = id ?: java.util.UUID.randomUUID().toString(),
+            name = name,
+            isArchived = false
+        )
+        people.add(newPerson)
+        savePeople(context, people)
+    }
+
     private fun addPeopleFromGroup(group: Group, people: List<Person>, groups: List<Group>, result: MutableList<Person>) {
         val groupMembers = people.filter { it.safeGroupIds.contains(group.id) }
             .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })

@@ -273,7 +273,7 @@ object ColorHelper {
                     if (theme != null) return theme
                 }
 
-                val frontingPeople = people.filter { it.isFront }
+                val frontingPeople = people.filter { it.isFront && !it.isArchived }
                 val themeCounts = mutableMapOf<String, Int>()
                 frontingPeople.forEach { p ->
                     p.linkedThemeId?.let { themeId ->

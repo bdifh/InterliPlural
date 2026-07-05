@@ -62,7 +62,7 @@ class SysmediaGhostActivity : BaseActivity() {
     }
 
     private fun scanForGhosts() {
-        val activeIds = people.map { it.id }.toSet()
+        val activeIds = people.filter { !it.isArchived }.map { it.id }.toSet()
         val ghosts = posts.groupBy { it.senderId }
             .filter { it.key !in activeIds }
             .map { GhostAccount(it.key, it.value.size) }
@@ -100,11 +100,12 @@ class SysmediaGhostActivity : BaseActivity() {
     }
 
     private fun mergePosts(ghost: GhostAccount) {
-        val names = people.map { it.name }.toTypedArray()
+        val mergePeople = people.filter { !it.isArchived }
+        val names = mergePeople.map { it.name }.toTypedArray()
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.dialog_merge_title)
             .setItems(names) { _, which ->
-                val targetPerson = people[which]
+                val targetPerson = mergePeople[which]
                 posts.filter { it.senderId == ghost.id }.forEach {
                     it.senderId = targetPerson.id
                 }

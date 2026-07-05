@@ -35,47 +35,66 @@ class SettingsActivity : BaseActivity() {
     private var btnTextHex = "#D2B8F5"
     private var frontHex = "#FCF09F"
     private var textHex = "#1A1811"
-    
+
     private val moodColors = mutableListOf("#fffa94", "#54bd44", "#8844bd", "#4446bd", "#3a3a47")
 
     private var selectedLangCode = "en"
     private var selectedStartPage = "members"
 
-    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
-        uri?.let { performExport(it) }
-    }
+    private val exportLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+            uri?.let { performExport(it) }
+        }
 
-    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let { performImport(it) }
-    }
+    private val importLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            uri?.let { performImport(it) }
+        }
 
-    private val pdfLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
-        uri?.let { performPdfExport(it) }
-    }
+    private val pdfLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+            uri?.let { performPdfExport(it) }
+        }
 
-    private val daylioLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { importFromDaylio(it) }
-    }
+    private val daylioLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importFromDaylio(it) }
+        }
 
-    private val spJsonLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { importFromSpJson(it) }
-    }
+    private val spJsonLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importFromSpJson(it) }
+        }
 
-    private val pkJsonLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { importFromPkJson(it) }
-    }
+    private val pkJsonLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importFromPkJson(it) }
+        }
 
-    private val spAvatarZipLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { importSpAvatars(it) }
-    }
+    private val spAvatarZipLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importSpAvatars(it) }
+        }
 
-    private val psJsonLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { importFromPsJson(it) }
-    }
+    private val psJsonLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importFromPsJson(it) }
+        }
 
-    private val hmJsonLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { importFromHivemindJson(it) }
-    }
+    private val hmJsonLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importFromHivemindJson(it) }
+        }
+
+    private val ampersandPickerLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { handleAmpersandFile(it) }
+        }
+
+    private val pluralStarLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importFromPluralStar(it) }
+        }
 
     private var initialBg = ""
     private var initialBtn = ""
@@ -92,13 +111,13 @@ class SettingsActivity : BaseActivity() {
         setContentView(R.layout.activity_settings)
 
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        
+
         bgHex = sharedPref.getString("bg_color", "#FFFDF0") ?: "#FFFDF0"
         btnHex = sharedPref.getString("btn_color", "#7D4EBA") ?: "#7D4EBA"
         btnTextHex = sharedPref.getString("btn_text_color", "#D2B8F5") ?: "#D2B8F5"
         frontHex = sharedPref.getString("front_color", "#FCF09F") ?: "#FCF09F"
         textHex = sharedPref.getString("text_color", "#1A1811") ?: "#1A1811"
-        
+
         moodColors[0] = sharedPref.getString("mood_color_1", "#fffa94") ?: "#fffa94"
         moodColors[1] = sharedPref.getString("mood_color_2", "#54bd44") ?: "#54bd44"
         moodColors[2] = sharedPref.getString("mood_color_3", "#8844bd") ?: "#8844bd"
@@ -107,7 +126,7 @@ class SettingsActivity : BaseActivity() {
 
         selectedLangCode = sharedPref.getString("app_language", "en") ?: "en"
         val rawStartPage = sharedPref.getString("start_page", "members") ?: "members"
-        selectedStartPage = when(rawStartPage.uppercase()) {
+        selectedStartPage = when (rawStartPage.uppercase()) {
             "FRONT" -> "members"
             "STATS" -> "stats"
             "DIARY" -> "diary"
@@ -116,31 +135,73 @@ class SettingsActivity : BaseActivity() {
             "CALENDAR" -> "calendar"
             else -> rawStartPage.lowercase()
         }
-        
+
         captureInitialState()
         updatePreviews()
 
         findViewById<MaterialCardView>(R.id.cardBgColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_bg_color), bgHex, "#FFFDF0") { bgHex = it; updatePreviews() }
+            showColorDialog(getString(R.string.hint_bg_color), bgHex, "#FFFDF0") {
+                bgHex = it; updatePreviews()
+            }
         }
         findViewById<MaterialCardView>(R.id.cardBtnColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_btn_color), btnHex, "#7D4EBA") { btnHex = it; updatePreviews() }
+            showColorDialog(getString(R.string.hint_btn_color), btnHex, "#7D4EBA") {
+                btnHex = it; updatePreviews()
+            }
         }
         findViewById<MaterialCardView>(R.id.cardBtnTextColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_btn_text_color), btnTextHex, "#D2B8F5") { btnTextHex = it; updatePreviews() }
+            showColorDialog(
+                getString(R.string.hint_btn_text_color),
+                btnTextHex,
+                "#D2B8F5"
+            ) { btnTextHex = it; updatePreviews() }
         }
         findViewById<MaterialCardView>(R.id.cardFrontColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_front_color), frontHex, "#FCF09F") { frontHex = it; updatePreviews() }
+            showColorDialog(getString(R.string.hint_front_color), frontHex, "#FCF09F") {
+                frontHex = it; updatePreviews()
+            }
         }
         findViewById<MaterialCardView>(R.id.cardTextColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_text_color), textHex, "#1A1811") { textHex = it; updatePreviews() }
+            showColorDialog(getString(R.string.hint_text_color), textHex, "#1A1811") {
+                textHex = it; updatePreviews()
+            }
         }
 
-        findViewById<MaterialCardView>(R.id.cardMood1).setOnClickListener { showColorDialog("Mood 1 (Rad)", moodColors[0], "#fffa94") { moodColors[0] = it; updatePreviews() } }
-        findViewById<MaterialCardView>(R.id.cardMood2).setOnClickListener { showColorDialog("Mood 2 (Good)", moodColors[1], "#54bd44") { moodColors[1] = it; updatePreviews() } }
-        findViewById<MaterialCardView>(R.id.cardMood3).setOnClickListener { showColorDialog("Mood 3 (Meh)", moodColors[2], "#8844bd") { moodColors[2] = it; updatePreviews() } }
-        findViewById<MaterialCardView>(R.id.cardMood4).setOnClickListener { showColorDialog("Mood 4 (Bad)", moodColors[3], "#4446bd") { moodColors[3] = it; updatePreviews() } }
-        findViewById<MaterialCardView>(R.id.cardMood5).setOnClickListener { showColorDialog("Mood 5 (Awful)", moodColors[4], "#3a3a47") { moodColors[4] = it; updatePreviews() } }
+        findViewById<MaterialCardView>(R.id.cardMood1).setOnClickListener {
+            showColorDialog(
+                "Mood 1 (Rad)",
+                moodColors[0],
+                "#fffa94"
+            ) { moodColors[0] = it; updatePreviews() }
+        }
+        findViewById<MaterialCardView>(R.id.cardMood2).setOnClickListener {
+            showColorDialog(
+                "Mood 2 (Good)",
+                moodColors[1],
+                "#54bd44"
+            ) { moodColors[1] = it; updatePreviews() }
+        }
+        findViewById<MaterialCardView>(R.id.cardMood3).setOnClickListener {
+            showColorDialog(
+                "Mood 3 (Meh)",
+                moodColors[2],
+                "#8844bd"
+            ) { moodColors[2] = it; updatePreviews() }
+        }
+        findViewById<MaterialCardView>(R.id.cardMood4).setOnClickListener {
+            showColorDialog(
+                "Mood 4 (Bad)",
+                moodColors[3],
+                "#4446bd"
+            ) { moodColors[3] = it; updatePreviews() }
+        }
+        findViewById<MaterialCardView>(R.id.cardMood5).setOnClickListener {
+            showColorDialog(
+                "Mood 5 (Awful)",
+                moodColors[4],
+                "#3a3a47"
+            ) { moodColors[4] = it; updatePreviews() }
+        }
 
         findViewById<Button>(R.id.btnChangeLanguage).setOnClickListener { showLanguageDialog() }
         findViewById<Button>(R.id.btnChangeFontSize).setOnClickListener { showFontSizeDialog() }
@@ -158,7 +219,9 @@ class SettingsActivity : BaseActivity() {
 
         findViewById<Button>(R.id.btnSaveAsTheme).setOnClickListener {
             val themesJson = sharedPref.getString("saved_themes", "[]") ?: "[]"
-            val themes: MutableList<AppTheme> = Gson().fromJson(themesJson, object : TypeToken<MutableList<AppTheme>>() {}.type) ?: mutableListOf()
+            val themes: MutableList<AppTheme> =
+                Gson().fromJson(themesJson, object : TypeToken<MutableList<AppTheme>>() {}.type)
+                    ?: mutableListOf()
             val newTheme = AppTheme(
                 name = "Theme ${themes.size + 1}",
                 bgColor = bgHex,
@@ -218,19 +281,37 @@ class SettingsActivity : BaseActivity() {
         }
 
         findViewById<Button>(R.id.btnExport).setOnClickListener { exportLauncher.launch("plural_app_backup.zip") }
-        findViewById<Button>(R.id.btnImport).setOnClickListener { importLauncher.launch(arrayOf("application/json", "application/zip")) }
+        findViewById<Button>(R.id.btnImport).setOnClickListener {
+            importLauncher.launch(
+                arrayOf(
+                    "application/json",
+                    "application/zip"
+                )
+            )
+        }
         findViewById<Button>(R.id.btnOpenImportDialog).setOnClickListener { showImportDialog() }
-        
+
         findViewById<Button>(R.id.btnBulkMove).setOnClickListener { showBulkMoveDialog() }
         findViewById<Button>(R.id.btnViewArchived).setOnClickListener { showArchivedMembersDialog() }
         findViewById<Button>(R.id.btnPdfExport).setOnClickListener { showPdfExportDialog() }
+        
+        findViewById<Button>(R.id.btnRestoreDeleted).setOnClickListener {
+            restoreClicks++
+            if (restoreClicks >= 5) {
+                restoreClicks = 0
+                showRestoreMemberDialog()
+            } else {
+                Toast.makeText(this, getString(R.string.restore_archived_deleted_clicks, 5 - restoreClicks), Toast.LENGTH_SHORT).show()
+            }
+        }
 
         val mainMenu = findViewById<LinearLayout>(R.id.settingsMainMenu)
         val layoutGroup = findViewById<LinearLayout>(R.id.layoutSettingsGroup)
         val appSettingsGroup = findViewById<LinearLayout>(R.id.appSettingsGroup)
         val backupGroup = findViewById<LinearLayout>(R.id.backupSettingsGroup)
         val membersGroup = findViewById<LinearLayout>(R.id.memberSettingsGroup)
-        val topAppBar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
+        val topAppBar =
+            findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
         val topAppBarTitle = topAppBar.getChildAt(0) as? TextView
 
         fun showGroup(group: LinearLayout, title: String) {
@@ -239,7 +320,7 @@ class SettingsActivity : BaseActivity() {
             appSettingsGroup.visibility = View.GONE
             backupGroup.visibility = View.GONE
             membersGroup.visibility = View.GONE
-            
+
             group.visibility = View.VISIBLE
             topAppBarTitle?.text = title
             topAppBar.setNavigationIcon(android.R.drawable.ic_menu_revert)
@@ -247,21 +328,47 @@ class SettingsActivity : BaseActivity() {
                 showGroup(mainMenu, getString(R.string.settings))
                 topAppBar.setNavigationIcon(android.R.drawable.ic_menu_sort_by_size)
                 topAppBar.setNavigationOnClickListener {
-                    findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawerLayout).openDrawer(android.view.Gravity.LEFT)
+                    findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawerLayout).openDrawer(
+                        android.view.Gravity.LEFT
+                    )
                 }
             }
         }
 
-        findViewById<Button>(R.id.btnCategoryLayout).setOnClickListener { showGroup(layoutGroup, getString(R.string.settings_category_layout)) }
-        findViewById<Button>(R.id.btnCategoryAppSettings).setOnClickListener { showGroup(appSettingsGroup, getString(R.string.settings_category_app)) }
-        findViewById<Button>(R.id.btnCategoryBackup).setOnClickListener { showGroup(backupGroup, getString(R.string.settings_category_backup)) }
-        findViewById<Button>(R.id.btnCategoryMembers).setOnClickListener { showGroup(membersGroup, getString(R.string.settings_category_members)) }
+        findViewById<Button>(R.id.btnCategoryLayout).setOnClickListener {
+            showGroup(
+                layoutGroup,
+                getString(R.string.settings_category_layout)
+            )
+        }
+        findViewById<Button>(R.id.btnCategoryAppSettings).setOnClickListener {
+            showGroup(
+                appSettingsGroup,
+                getString(R.string.settings_category_app)
+            )
+        }
+        findViewById<Button>(R.id.btnCategoryBackup).setOnClickListener {
+            showGroup(
+                backupGroup,
+                getString(R.string.settings_category_backup)
+            )
+        }
+        findViewById<Button>(R.id.btnCategoryMembers).setOnClickListener {
+            showGroup(
+                membersGroup,
+                getString(R.string.settings_category_members)
+            )
+        }
 
-        val btnDeleteData = Button(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+        val btnDeleteData = Button(
+            this,
+            null,
+            com.google.android.material.R.attr.materialButtonOutlinedStyle
+        ).apply {
             id = View.generateViewId()
             text = getString(R.string.action_delete_all, 8)
             setTextColor(Color.RED)
-            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { 
+            layoutParams = LinearLayout.LayoutParams(-1, -2).apply {
                 topMargin = 16.dpToPx()
                 bottomMargin = 24.dpToPx()
             }
@@ -292,7 +399,10 @@ class SettingsActivity : BaseActivity() {
         val btnColor = ColorHelper.getBtnColor(this)
 
         val discordListener = View.OnClickListener {
-            val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(discordUrl))
+            val intent = android.content.Intent(
+                android.content.Intent.ACTION_VIEW,
+                android.net.Uri.parse(discordUrl)
+            )
             startActivity(intent)
         }
 
@@ -309,7 +419,8 @@ class SettingsActivity : BaseActivity() {
             val appSettingsGroup = findViewById<LinearLayout>(R.id.appSettingsGroup)
             val backupGroup = findViewById<LinearLayout>(R.id.backupSettingsGroup)
             val membersGroup = findViewById<LinearLayout>(R.id.memberSettingsGroup)
-            val topAppBar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
+            val topAppBar =
+                findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
             val topAppBarTitle = topAppBar.getChildAt(0) as? TextView
 
             mainMenu.visibility = View.VISIBLE
@@ -321,7 +432,9 @@ class SettingsActivity : BaseActivity() {
             topAppBarTitle?.text = getString(R.string.settings)
             topAppBar.setNavigationIcon(android.R.drawable.ic_menu_sort_by_size)
             topAppBar.setNavigationOnClickListener {
-                findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawerLayout).openDrawer(android.view.Gravity.LEFT)
+                findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawerLayout).openDrawer(
+                    android.view.Gravity.LEFT
+                )
             }
         } else {
             super.onBackPressed()
@@ -345,7 +458,7 @@ class SettingsActivity : BaseActivity() {
         findViewById<View>(R.id.btnTextPreview).setBackgroundColor(Color.parseColor(btnTextHex))
         findViewById<View>(R.id.frontPreview).setBackgroundColor(Color.parseColor(frontHex))
         findViewById<View>(R.id.textPreview).setBackgroundColor(Color.parseColor(textHex))
-        
+
         findViewById<View>(R.id.mood1Preview).setBackgroundColor(Color.parseColor(moodColors[0]))
         findViewById<View>(R.id.mood2Preview).setBackgroundColor(Color.parseColor(moodColors[1]))
         findViewById<View>(R.id.mood3Preview).setBackgroundColor(Color.parseColor(moodColors[2]))
@@ -353,7 +466,12 @@ class SettingsActivity : BaseActivity() {
         findViewById<View>(R.id.mood5Preview).setBackgroundColor(Color.parseColor(moodColors[4]))
     }
 
-    private fun showColorDialog(title: String, currentHex: String, defaultHex: String, onColorChosen: (String) -> Unit) {
+    private fun showColorDialog(
+        title: String,
+        currentHex: String,
+        defaultHex: String,
+        onColorChosen: (String) -> Unit
+    ) {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val p = (24 * resources.displayMetrics.density).toInt()
@@ -361,10 +479,17 @@ class SettingsActivity : BaseActivity() {
         }
 
         val dialogPreview = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (40 * resources.displayMetrics.density).toInt()).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (40 * resources.displayMetrics.density).toInt()
+            ).apply {
                 bottomMargin = (16 * resources.displayMetrics.density).toInt()
             }
-            try { setBackgroundColor(Color.parseColor(currentHex)) } catch (_: Exception) { setBackgroundColor(Color.GRAY) }
+            try {
+                setBackgroundColor(Color.parseColor(currentHex))
+            } catch (_: Exception) {
+                setBackgroundColor(Color.GRAY)
+            }
         }
         container.addView(dialogPreview)
 
@@ -376,23 +501,47 @@ class SettingsActivity : BaseActivity() {
         container.addView(input)
 
         val hsv = FloatArray(3)
-        try { Color.colorToHSV(Color.parseColor(currentHex), hsv) } catch (_: Exception) {}
+        try {
+            Color.colorToHSV(Color.parseColor(currentHex), hsv)
+        } catch (_: Exception) {
+        }
 
         val hueSeek = SeekBar(this).apply { max = 360; progress = hsv[0].toInt() }
         val satSeek = SeekBar(this).apply { max = 100; progress = (hsv[1] * 100).toInt() }
         val valSeek = SeekBar(this).apply { max = 100; progress = (hsv[2] * 100).toInt() }
 
-        container.addView(TextView(this).apply { text = "Hue"; setPadding(0, 8.dpToPx(), 0, 0); setTextColor(ColorHelper.getTextColor(this@SettingsActivity)) })
+        container.addView(TextView(this).apply {
+            text = "Hue"; setPadding(
+            0,
+            8.dpToPx(),
+            0,
+            0
+        ); setTextColor(ColorHelper.getTextColor(this@SettingsActivity))
+        })
         container.addView(hueSeek)
-        container.addView(TextView(this).apply { text = "Saturation"; setPadding(0, 8.dpToPx(), 0, 0); setTextColor(ColorHelper.getTextColor(this@SettingsActivity)) })
+        container.addView(TextView(this).apply {
+            text = "Saturation"; setPadding(
+            0,
+            8.dpToPx(),
+            0,
+            0
+        ); setTextColor(ColorHelper.getTextColor(this@SettingsActivity))
+        })
         container.addView(satSeek)
-        container.addView(TextView(this).apply { text = "Brightness"; setPadding(0, 8.dpToPx(), 0, 0); setTextColor(ColorHelper.getTextColor(this@SettingsActivity)) })
+        container.addView(TextView(this).apply {
+            text = "Brightness"; setPadding(
+            0,
+            8.dpToPx(),
+            0,
+            0
+        ); setTextColor(ColorHelper.getTextColor(this@SettingsActivity))
+        })
         container.addView(valSeek)
 
         val btnReset = Button(this).apply {
             text = getString(R.string.action_reset)
-            setOnClickListener { 
-                input.setText(defaultHex) 
+            setOnClickListener {
+                input.setText(defaultHex)
             }
         }
         container.addView(btnReset)
@@ -408,9 +557,11 @@ class SettingsActivity : BaseActivity() {
                         hueSeek.progress = hsv[0].toInt()
                         satSeek.progress = (hsv[1] * 100).toInt()
                         valSeek.progress = (hsv[2] * 100).toInt()
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
                 }
             }
+
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         }
@@ -430,6 +581,7 @@ class SettingsActivity : BaseActivity() {
                     input.addTextChangedListener(watcher)
                 }
             }
+
             override fun onStartTrackingTouch(s: SeekBar?) {}
             override fun onStopTrackingTouch(s: SeekBar?) {}
         }
@@ -448,7 +600,8 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun showLanguageDialog() {
-        val options = arrayOf(getString(R.string.language_english), getString(R.string.language_dutch))
+        val options =
+            arrayOf(getString(R.string.language_english), getString(R.string.language_dutch))
         val codes = arrayOf("en", "nl")
         val currentIdx = codes.indexOf(selectedLangCode).coerceAtLeast(0)
 
@@ -465,8 +618,11 @@ class SettingsActivity : BaseActivity() {
     private fun showThemePriorityDialog() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val currentPriority = sharedPref.getString("theme_priority", "newest") ?: "newest"
-        
-        val options = arrayOf(getString(R.string.theme_priority_newest), getString(R.string.theme_priority_oldest))
+
+        val options = arrayOf(
+            getString(R.string.theme_priority_newest),
+            getString(R.string.theme_priority_oldest)
+        )
         val codes = arrayOf("newest", "oldest")
         val currentIdx = codes.indexOf(currentPriority).coerceAtLeast(0)
 
@@ -513,7 +669,7 @@ class SettingsActivity : BaseActivity() {
             options.add(getString(R.string.module_relations))
             codes.add("relations")
         }
-        
+
         if (moodLogSub) {
             options.add(getString(R.string.mood_tracker))
             codes.add("mood")
@@ -523,12 +679,12 @@ class SettingsActivity : BaseActivity() {
             options.add(getString(R.string.mood_insights))
             codes.add("mood_insights")
         }
-        
+
         if (notesEnabled) {
             options.add(getString(R.string.diary))
             codes.add("diary")
         }
-        
+
         if (todoEnabled) {
             options.add(getString(R.string.todo))
             codes.add("todo")
@@ -538,12 +694,12 @@ class SettingsActivity : BaseActivity() {
             options.add(getString(R.string.calendar))
             codes.add("calendar")
         }
-        
+
         if (sysmediaSub) {
             options.add(getString(R.string.sysmedia))
             codes.add("sysmedia")
         }
-        
+
         val currentIdx = codes.indexOf(selectedStartPage).coerceAtLeast(0)
 
         AlertDialog.Builder(this)
@@ -560,28 +716,32 @@ class SettingsActivity : BaseActivity() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
 
         val hierarchy = listOf(
-            ModuleGroup("module_fronting_enabled", getString(R.string.module_fronting), listOf(
-                ModuleSub("sub_front_page", getString(R.string.front_page)),
-                ModuleSub("sub_statistics", getString(R.string.statistics)),
-                ModuleSub("sub_who_am_i", getString(R.string.who_am_i)),
-                ModuleSub("sub_relations_enabled", getString(R.string.module_relations)),
-                ModuleSub("module_sysmedia_enabled", getString(R.string.sysmedia))
-            )),
+            ModuleGroup(
+                "module_fronting_enabled", getString(R.string.module_fronting), listOf(
+                    ModuleSub("sub_front_page", getString(R.string.front_page)),
+                    ModuleSub("sub_statistics", getString(R.string.statistics)),
+                    ModuleSub("sub_who_am_i", getString(R.string.who_am_i)),
+                    ModuleSub("sub_relations_enabled", getString(R.string.module_relations)),
+                    ModuleSub("module_sysmedia_enabled", getString(R.string.sysmedia))
+                )
+            ),
             ModuleGroup("module_notes_enabled", getString(R.string.module_notes)),
             ModuleGroup("module_todo_enabled", getString(R.string.module_todo)),
             ModuleGroup("module_calendar_enabled", getString(R.string.module_calendar)),
-            ModuleGroup("module_mood_enabled", getString(R.string.module_mood), listOf(
-                ModuleSub("sub_mood_log_enabled", getString(R.string.mood_tracker)),
-                ModuleSub("sub_mood_stats_enabled", getString(R.string.mood_stats)),
-                ModuleSub("sub_mood_insights", getString(R.string.mood_insights))
-            ))
+            ModuleGroup(
+                "module_mood_enabled", getString(R.string.module_mood), listOf(
+                    ModuleSub("sub_mood_log_enabled", getString(R.string.mood_tracker)),
+                    ModuleSub("sub_mood_stats_enabled", getString(R.string.mood_stats)),
+                    ModuleSub("sub_mood_insights", getString(R.string.mood_insights))
+                )
+            )
         )
 
         val scrollView = ScrollView(this)
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val p = (24 * resources.displayMetrics.density).toInt()
-            setPadding(p, p/2, p, p)
+            setPadding(p, p / 2, p, p)
         }
         scrollView.addView(container)
 
@@ -638,7 +798,12 @@ class SettingsActivity : BaseActivity() {
             .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    private data class ModuleGroup(val key: String, val label: String, val subs: List<ModuleSub> = emptyList())
+    private data class ModuleGroup(
+        val key: String,
+        val label: String,
+        val subs: List<ModuleSub> = emptyList()
+    )
+
     private data class ModuleSub(val key: String, val label: String)
 
     private data class PageItem(
@@ -657,9 +822,12 @@ class SettingsActivity : BaseActivity() {
         val sysmediaDmsEnabled = sharedPref.getBoolean("sysmedia_dm_notif_enabled", true)
         val moodEnabled = sharedPref.getBoolean("mood_notif_enabled", false)
         val timesJson = sharedPref.getString("mood_notif_times", "[]") ?: "[]"
-        val moodTimes: MutableList<String> = try { 
-            Gson().fromJson(timesJson, object : TypeToken<MutableList<String>>() {}.type) ?: mutableListOf()
-        } catch (_: Exception) { mutableListOf() }
+        val moodTimes: MutableList<String> = try {
+            Gson().fromJson(timesJson, object : TypeToken<MutableList<String>>() {}.type)
+                ?: mutableListOf()
+        } catch (_: Exception) {
+            mutableListOf()
+        }
 
         val scrollView = androidx.core.widget.NestedScrollView(this)
         val layout = LinearLayout(this).apply {
@@ -672,35 +840,50 @@ class SettingsActivity : BaseActivity() {
         val swFront = SwitchCompat(this).apply {
             text = getString(R.string.notification_front_toggle)
             isChecked = frontEnabled
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 24 }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 24 }
         }
         layout.addView(swFront)
 
         val swTodo = SwitchCompat(this).apply {
             text = getString(R.string.notification_todo_toggle)
             isChecked = todoEnabled
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 24 }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 24 }
         }
         layout.addView(swTodo)
 
         val swSysmediaNotis = SwitchCompat(this).apply {
             text = getString(R.string.notification_sysmedia_notif_toggle)
             isChecked = sysmediaNotisEnabled
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 24 }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 24 }
         }
         layout.addView(swSysmediaNotis)
 
         val swSysmediaDms = SwitchCompat(this).apply {
             text = getString(R.string.notification_sysmedia_dm_toggle)
             isChecked = sysmediaDmsEnabled
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 24 }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 24 }
         }
         layout.addView(swSysmediaDms)
 
         val swMood = SwitchCompat(this).apply {
             text = getString(R.string.notification_mood_toggle)
             isChecked = moodEnabled
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { bottomMargin = 16 }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 16 }
         }
         layout.addView(swMood)
 
@@ -712,7 +895,7 @@ class SettingsActivity : BaseActivity() {
 
         fun refreshTimes() {
             timesContainer.removeAllViews()
-            
+
             val label = TextView(this).apply {
                 text = getString(R.string.notification_times_label)
                 setPadding(0, 16, 0, 8)
@@ -726,23 +909,25 @@ class SettingsActivity : BaseActivity() {
                     gravity = android.view.Gravity.CENTER_VERTICAL
                     setPadding(0, 4, 0, 4)
                 }
-                
+
                 val tv = TextView(this).apply {
                     text = time
                     textSize = 18f
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    layoutParams =
+                        LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     setTextColor(ColorHelper.getTextColor(this@SettingsActivity))
                 }
                 row.addView(tv)
 
-                val btnRemove = Button(this, null, androidx.appcompat.R.attr.borderlessButtonStyle).apply {
-                    text = getString(R.string.action_remove_notification)
-                    setTextColor(Color.RED)
-                    setOnClickListener {
-                        moodTimes.remove(time)
-                        refreshTimes()
+                val btnRemove =
+                    Button(this, null, androidx.appcompat.R.attr.borderlessButtonStyle).apply {
+                        text = getString(R.string.action_remove_notification)
+                        setTextColor(Color.RED)
+                        setOnClickListener {
+                            moodTimes.remove(time)
+                            refreshTimes()
+                        }
                     }
-                }
                 row.addView(btnRemove)
                 timesContainer.addView(row)
             }
@@ -783,7 +968,7 @@ class SettingsActivity : BaseActivity() {
                 }
                 NotificationReceiver.cancelAllMoodAlarms(this)
                 if (swMood.isChecked) NotificationReceiver.rescheduleAlarms(this)
-                
+
                 Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(R.string.cancel, null)
@@ -793,7 +978,7 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun performExport(uri: Uri) {
-        contentResolver.openOutputStream(uri)?.use { 
+        contentResolver.openOutputStream(uri)?.use {
             BackupHelper.createBackupZip(this, it)
         }
         Toast.makeText(this, getString(R.string.backup_saved), Toast.LENGTH_SHORT).show()
@@ -811,7 +996,7 @@ class SettingsActivity : BaseActivity() {
             getString(R.string.export_todo_data)
         )
         val selected = booleanArrayOf(true, true, true, true)
-        
+
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24.dpToPx(), 16.dpToPx(), 24.dpToPx(), 8.dpToPx())
@@ -843,7 +1028,11 @@ class SettingsActivity : BaseActivity() {
         var tempEnd: Long? = null
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
-        val btnStart = Button(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+        val btnStart = Button(
+            this,
+            null,
+            com.google.android.material.R.attr.materialButtonOutlinedStyle
+        ).apply {
             text = getString(R.string.start_date)
             setOnClickListener {
                 val cal = Calendar.getInstance()
@@ -851,12 +1040,17 @@ class SettingsActivity : BaseActivity() {
                     cal.set(y, m, d, 0, 0, 0)
                     tempStart = cal.timeInMillis
                     text = "${getString(R.string.start_date)}: ${sdf.format(cal.time)}"
-                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+                    .show()
             }
         }
         dateContainer.addView(btnStart)
 
-        val btnEnd = Button(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle).apply {
+        val btnEnd = Button(
+            this,
+            null,
+            com.google.android.material.R.attr.materialButtonOutlinedStyle
+        ).apply {
             text = getString(R.string.end_date)
             setOnClickListener {
                 val cal = Calendar.getInstance()
@@ -864,15 +1058,22 @@ class SettingsActivity : BaseActivity() {
                     cal.set(y, m, d, 23, 59, 59)
                     tempEnd = cal.timeInMillis
                     text = "${getString(R.string.end_date)}: ${sdf.format(cal.time)}"
-                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+                    .show()
             }
         }
         dateContainer.addView(btnEnd)
 
         spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+            override fun onItemSelected(
+                parent: AdapterView<*>?,
+                view: View?,
+                position: Int,
+                id: Long
+            ) {
                 dateContainer.visibility = if (position == 1) View.VISIBLE else View.GONE
             }
+
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
@@ -926,7 +1127,7 @@ class SettingsActivity : BaseActivity() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val etSpToken = view.findViewById<EditText>(R.id.etSpToken)
         val etPkToken = view.findViewById<EditText>(R.id.etPkToken)
-        
+
         etSpToken.setText(sharedPref.getString("sp_token", ""))
         etPkToken.setText(sharedPref.getString("pk_token", ""))
 
@@ -937,7 +1138,7 @@ class SettingsActivity : BaseActivity() {
             dialog.dismiss()
         }
         view.findViewById<Button>(R.id.btnImportSpJson).setOnClickListener {
-            spJsonLauncher.launch("application/json")
+            spJsonLauncher.launch("*/*")
             dialog.dismiss()
         }
 
@@ -947,7 +1148,7 @@ class SettingsActivity : BaseActivity() {
         }
 
         view.findViewById<Button>(R.id.btnImportHm).setOnClickListener {
-            hmJsonLauncher.launch("application/json")
+            hmJsonLauncher.launch("*/*")
             dialog.dismiss()
         }
 
@@ -958,7 +1159,7 @@ class SettingsActivity : BaseActivity() {
             dialog.dismiss()
         }
         view.findViewById<Button>(R.id.btnImportPkJson).setOnClickListener {
-            pkJsonLauncher.launch("application/json")
+            pkJsonLauncher.launch("*/*")
             dialog.dismiss()
         }
         view.findViewById<Button>(R.id.btnImportDaylio).setOnClickListener {
@@ -966,14 +1167,21 @@ class SettingsActivity : BaseActivity() {
             dialog.dismiss()
         }
         view.findViewById<Button>(R.id.btnImportPs).setOnClickListener {
-            psJsonLauncher.launch("application/json")
+            psJsonLauncher.launch("*/*")
             dialog.dismiss()
         }
 
-        view.findViewById<Button>(R.id.btnImportHm).setOnClickListener {
-            hmJsonLauncher.launch("application/json")
+        view.findViewById<Button>(R.id.btnImportAmpersand).setOnClickListener {
+            ampersandPickerLauncher.launch("*/*")
             dialog.dismiss()
         }
+
+        view.findViewById<Button>(R.id.btnImportPluralStar)?.setOnClickListener {
+            pluralStarLauncher.launch("*/*")
+            dialog.dismiss()
+        }
+
+        dialog.show()
 
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
@@ -998,7 +1206,10 @@ class SettingsActivity : BaseActivity() {
 
                 if (meConn.responseCode == 200) {
                     val meJson = meConn.inputStream.bufferedReader().use { it.readText() }
-                    val meData = Gson().fromJson<Map<String, Any>>(meJson, object : TypeToken<Map<String, Any>>() {}.type)
+                    val meData = Gson().fromJson<Map<String, Any>>(
+                        meJson,
+                        object : TypeToken<Map<String, Any>>() {}.type
+                    )
                     val userId = meData["id"] as? String
 
                     if (userId != null) {
@@ -1014,14 +1225,32 @@ class SettingsActivity : BaseActivity() {
                             val spMembers: List<Map<String, Any>> = Gson().fromJson(json, type)
                             processSpMembers(spMembers)
                         } else {
-                            runOnUiThread { Toast.makeText(this, "SP Error: ${conn.responseCode}", Toast.LENGTH_LONG).show() }
+                            runOnUiThread {
+                                Toast.makeText(
+                                    this,
+                                    "SP Error: ${conn.responseCode}",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     }
                 } else {
-                    runOnUiThread { Toast.makeText(this, "SP Auth Error: ${meConn.responseCode}", Toast.LENGTH_LONG).show() }
+                    runOnUiThread {
+                        Toast.makeText(
+                            this,
+                            "SP Auth Error: ${meConn.responseCode}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "Connection error: ${e.message}", Toast.LENGTH_LONG).show() }
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Connection error: ${e.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
             }
         }.start()
     }
@@ -1036,7 +1265,10 @@ class SettingsActivity : BaseActivity() {
                 conn.setRequestProperty("Authorization", token)
                 if (conn.responseCode == 200) {
                     val json = conn.inputStream.bufferedReader().use { it.readText() }
-                    val pkMembers = Gson().fromJson<List<Map<String, Any>>>(json, object : TypeToken<List<Map<String, Any>>>() {}.type)
+                    val pkMembers = Gson().fromJson<List<Map<String, Any>>>(
+                        json,
+                        object : TypeToken<List<Map<String, Any>>>() {}.type
+                    )
                     runOnUiThread {
                         val people = loadPeopleList()
                         pkMembers.forEach { pkm ->
@@ -1049,32 +1281,45 @@ class SettingsActivity : BaseActivity() {
                             var profileColor = -6934396
                             if (!colorHex.isNullOrBlank()) {
                                 try {
-                                    val formattedHex = if (colorHex.startsWith("#")) colorHex else "#$colorHex"
+                                    val formattedHex =
+                                        if (colorHex.startsWith("#")) colorHex else "#$colorHex"
                                     profileColor = android.graphics.Color.parseColor(formattedHex)
-                                } catch (_: Exception) {}
+                                } catch (_: Exception) {
+                                }
                             }
 
                             if (pkId.isNotEmpty() && people.none { it.manualId == pkId }) {
-                                val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+                                val initialHandle = name.replace(" ", "_").lowercase()
+                                    .replace(Regex("[^a-z0-9_]"), "")
 
-                                people.add(Person(
-                                    name = name,
-                                    manualId = pkId,
-                                    profileInfo = desc,
-                                    profilePictureUri = avatar,
-                                    profileColor = profileColor,
-                                    sysmediaProfile = SysmediaProfile(handle = initialHandle)
-                                ))
+                                people.add(
+                                    Person(
+                                        name = name,
+                                        manualId = pkId,
+                                        profileInfo = desc,
+                                        profilePictureUri = avatar,
+                                        profileColor = profileColor,
+                                        sysmediaProfile = SysmediaProfile(handle = initialHandle)
+                                    )
+                                )
                             }
                         }
                         MemberHelper.savePeople(this@SettingsActivity, people)
                         Toast.makeText(this, R.string.import_success, Toast.LENGTH_SHORT).show()
                     }
                 } else {
-                    runOnUiThread { Toast.makeText(this, "PK Error: ${conn.responseCode}", Toast.LENGTH_SHORT).show() }
+                    runOnUiThread {
+                        Toast.makeText(
+                            this,
+                            "PK Error: ${conn.responseCode}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "PK Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+                runOnUiThread {
+                    Toast.makeText(this, "PK Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }.start()
     }
@@ -1082,9 +1327,11 @@ class SettingsActivity : BaseActivity() {
     private fun importFromSpJson(uri: Uri) {
         Thread {
             try {
-                val json = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: return@Thread
+                val json =
+                    contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        ?: return@Thread
                 val root = Gson().fromJson<Any>(json, object : TypeToken<Any>() {}.type)
-                
+
                 val membersToProcess = mutableListOf<Map<String, Any>>()
 
                 fun extractMembers(obj: Any?) {
@@ -1102,6 +1349,7 @@ class SettingsActivity : BaseActivity() {
                                 }
                             }
                         }
+
                         is Map<*, *> -> {
                             val members = obj["members"]
                             if (members != null) {
@@ -1123,15 +1371,25 @@ class SettingsActivity : BaseActivity() {
 
                 if (membersToProcess.isEmpty()) {
                     try {
-                        val directList = Gson().fromJson<List<Map<String, Any>>>(json, object : TypeToken<List<Map<String, Any>>>() {}.type)
+                        val directList = Gson().fromJson<List<Map<String, Any>>>(
+                            json,
+                            object : TypeToken<List<Map<String, Any>>>() {}.type
+                        )
                         processSpMembers(directList)
                         return@Thread
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
                 }
 
                 processSpMembers(membersToProcess)
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "SP JSON Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "SP JSON Error: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }.start()
     }
@@ -1139,14 +1397,25 @@ class SettingsActivity : BaseActivity() {
     private fun importFromPsJson(uri: Uri) {
         Thread {
             try {
-                val json = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: return@Thread
-                val root = Gson().fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+                val json =
+                    contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        ?: return@Thread
+                val root = Gson().fromJson<Map<String, Any>>(
+                    json,
+                    object : TypeToken<Map<String, Any>>() {}.type
+                )
 
                 runOnUiThread {
                     processPsImport(root)
                 }
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "PluralSpace Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "PluralSpace Error: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }.start()
     }
@@ -1168,11 +1437,14 @@ class SettingsActivity : BaseActivity() {
                 val pronouns = alter["pronouns"] as? String ?: ""
                 val desc = alter["description"] as? String ?: ""
                 val colorHex = alter["color"] as? String
-                val avatarBase64 = alter["avatarImg"] as? String // data:image/jpeg;base64,...
+                val avatarBase64 = alter["avatarImg"] as? String
 
                 var profileColor = -6934396
                 if (!colorHex.isNullOrBlank()) {
-                    try { profileColor = android.graphics.Color.parseColor(colorHex) } catch (_: Exception) {}
+                    try {
+                        profileColor = android.graphics.Color.parseColor(colorHex)
+                    } catch (_: Exception) {
+                    }
                 }
 
                 val person = Person(
@@ -1180,17 +1452,23 @@ class SettingsActivity : BaseActivity() {
                     manualId = psId,
                     profileInfo = if (pronouns.isNotEmpty()) "Pronouns: $pronouns\n$desc" else desc,
                     profileColor = profileColor,
-                    sysmediaProfile = SysmediaProfile(handle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), ""))
+                    sysmediaProfile = SysmediaProfile(
+                        handle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+                    )
                 )
 
                 if (avatarBase64?.startsWith("data:image") == true) {
                     try {
                         val base64Data = avatarBase64.substringAfter("base64,")
-                        val imageBytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
-                        val file = File(filesDir, "profile_${person.id}_${System.currentTimeMillis()}.jpg")
+                        val imageBytes =
+                            android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                        val file =
+                            File(filesDir, "profile_${person.id}_${System.currentTimeMillis()}.jpg")
                         file.writeBytes(imageBytes)
                         person.profilePictureUri = Uri.fromFile(file).toString()
-                    } catch (e: Exception) { e.printStackTrace() }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
 
                 people.add(person)
@@ -1201,7 +1479,10 @@ class SettingsActivity : BaseActivity() {
 
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val entriesJson = sharedPref.getString("mood_entries", "[]") ?: "[]"
-        val entries: MutableList<MoodActivity.MoodEntry> = Gson().fromJson(entriesJson, object : TypeToken<MutableList<MoodActivity.MoodEntry>>() {}.type) ?: mutableListOf()
+        val entries: MutableList<MoodActivity.MoodEntry> = Gson().fromJson(
+            entriesJson,
+            object : TypeToken<MutableList<MoodActivity.MoodEntry>>() {}.type
+        ) ?: mutableListOf()
 
         psTracker.forEach { log ->
             val ts = (log["ts"] as? Number)?.toLong() ?: 0L
@@ -1221,22 +1502,26 @@ class SettingsActivity : BaseActivity() {
 
                 val targetMemberId = people.find { it.manualId == psAlterId }?.id
 
-                entries.add(MoodActivity.MoodEntry(
-                    timestamp = ts,
-                    moodEmoji = emoji,
-                    moodRotation = (if (label == "Rad") 2f else if (label == "Good") 1f else 0f) * 15f,
-                    moodLabel = label.lowercase(), // matches mood_awful, etc keys if mapped correctly
-                    moodColor = color,
-                    note = note,
-                    memberIds = if (targetMemberId != null) listOf(targetMemberId) else emptyList()
-                ))
+                entries.add(
+                    MoodActivity.MoodEntry(
+                        timestamp = ts,
+                        moodEmoji = emoji,
+                        moodRotation = (if (label == "Rad") 2f else if (label == "Good") 1f else 0f) * 15f,
+                        moodLabel = label.lowercase(),
+                        moodColor = color,
+                        note = note,
+                        memberIds = if (targetMemberId != null) listOf(targetMemberId) else emptyList()
+                    )
+                )
                 moodCount++
             }
         }
         sharedPref.edit().putString("mood_entries", Gson().toJson(entries)).apply()
 
         val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
-        val sessions: MutableList<FrontSession> = Gson().fromJson(sessionsJson, object : TypeToken<MutableList<FrontSession>>() {}.type) ?: mutableListOf()
+        val sessions: MutableList<FrontSession> =
+            Gson().fromJson(sessionsJson, object : TypeToken<MutableList<FrontSession>>() {}.type)
+                ?: mutableListOf()
 
         psFronting.forEach { f ->
             val start = (f["start"] as? Number)?.toLong() ?: 0L
@@ -1247,34 +1532,51 @@ class SettingsActivity : BaseActivity() {
                 val person = people.find { it.manualId == psAlterId }
 
                 if (person != null) {
-                    sessions.add(FrontSession(
-                        personName = person.name,
-                        startTime = start,
-                        endTime = end,
-                        personId = person.id,
-                        note = note
-                    ))
+                    sessions.add(
+                        FrontSession(
+                            personName = person.name,
+                            startTime = start,
+                            endTime = end,
+                            personId = person.id,
+                            note = note
+                        )
+                    )
                     sessionsCount++
                 }
             }
         }
         sharedPref.edit().putString("sessions_list", Gson().toJson(sessions)).apply()
 
-        Toast.makeText(this, "Imported $altersCount alters, $moodCount mood logs and $sessionsCount sessions", Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            this,
+            "Imported $altersCount alters, $moodCount mood logs and $sessionsCount sessions",
+            Toast.LENGTH_LONG
+        ).show()
         recreate()
     }
 
     private fun importFromHivemindJson(uri: Uri) {
         Thread {
             try {
-                val json = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: return@Thread
-                val root = Gson().fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+                val json =
+                    contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        ?: return@Thread
+                val root = Gson().fromJson<Map<String, Any>>(
+                    json,
+                    object : TypeToken<Map<String, Any>>() {}.type
+                )
 
                 runOnUiThread {
                     processHivemindImport(root)
                 }
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "Hivemind Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Hivemind Error: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }.start()
     }
@@ -1302,7 +1604,10 @@ class SettingsActivity : BaseActivity() {
 
                 var profileColor = -6934396
                 if (!colorHex.isNullOrBlank()) {
-                    try { profileColor = android.graphics.Color.parseColor(colorHex) } catch (_: Exception) {}
+                    try {
+                        profileColor = android.graphics.Color.parseColor(colorHex)
+                    } catch (_: Exception) {
+                    }
                 }
 
                 val person = Person(
@@ -1310,16 +1615,22 @@ class SettingsActivity : BaseActivity() {
                     manualId = hmId,
                     profileInfo = profile,
                     profileColor = profileColor,
-                    sysmediaProfile = SysmediaProfile(handle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), ""))
+                    sysmediaProfile = SysmediaProfile(
+                        handle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+                    )
                 )
 
                 if (!avatarData.isNullOrBlank()) {
                     try {
-                        val imageBytes = android.util.Base64.decode(avatarData, android.util.Base64.DEFAULT)
-                        val file = File(filesDir, "profile_${person.id}_${System.currentTimeMillis()}.jpg")
+                        val imageBytes =
+                            android.util.Base64.decode(avatarData, android.util.Base64.DEFAULT)
+                        val file =
+                            File(filesDir, "profile_${person.id}_${System.currentTimeMillis()}.jpg")
                         file.writeBytes(imageBytes)
                         person.profilePictureUri = Uri.fromFile(file).toString()
-                    } catch (e: Exception) { e.printStackTrace() }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
 
                 people.add(person)
@@ -1340,7 +1651,9 @@ class SettingsActivity : BaseActivity() {
         spApp.edit().putString("groups_list", Gson().toJson(groups)).apply()
 
         val sessionsJson = spApp.getString("sessions_list", "[]") ?: "[]"
-        val sessions: MutableList<FrontSession> = Gson().fromJson(sessionsJson, object : TypeToken<MutableList<FrontSession>>() {}.type) ?: mutableListOf()
+        val sessions: MutableList<FrontSession> =
+            Gson().fromJson(sessionsJson, object : TypeToken<MutableList<FrontSession>>() {}.type)
+                ?: mutableListOf()
 
         hmFronting.forEach { f ->
             val start = (f["start_time"] as? Number)?.toLong() ?: 0L
@@ -1350,12 +1663,14 @@ class SettingsActivity : BaseActivity() {
                 val person = people.find { it.manualId == hmAlterId }
 
                 if (person != null) {
-                    sessions.add(FrontSession(
-                        personName = person.name,
-                        startTime = start,
-                        endTime = if (end != null && end > 0) end else null,
-                        personId = person.id
-                    ))
+                    sessions.add(
+                        FrontSession(
+                            personName = person.name,
+                            startTime = start,
+                            endTime = if (end != null && end > 0) end else null,
+                            personId = person.id
+                        )
+                    )
                     sessionsCount++
                 }
             }
@@ -1363,7 +1678,9 @@ class SettingsActivity : BaseActivity() {
         spApp.edit().putString("sessions_list", Gson().toJson(sessions)).apply()
 
         val notesJson = spApp.getString("diary_notes", "[]") ?: "[]"
-        val notes: MutableList<DiaryNote> = Gson().fromJson(notesJson, object : TypeToken<MutableList<DiaryNote>>() {}.type) ?: mutableListOf()
+        val notes: MutableList<DiaryNote> =
+            Gson().fromJson(notesJson, object : TypeToken<MutableList<DiaryNote>>() {}.type)
+                ?: mutableListOf()
 
         hmJournal.forEach { j ->
             val ts = (j["timestamp"] as? Number)?.toLong() ?: 0L
@@ -1374,18 +1691,24 @@ class SettingsActivity : BaseActivity() {
 
                 val targetMemberId = people.find { it.manualId == hmAlterId }?.id
 
-                notes.add(DiaryNote(
-                    title = title,
-                    content = content,
-                    timestamp = ts,
-                    linkedMemberIds = if (targetMemberId != null) mutableListOf(targetMemberId) else mutableListOf()
-                ))
+                notes.add(
+                    DiaryNote(
+                        title = title,
+                        content = content,
+                        timestamp = ts,
+                        linkedMemberIds = if (targetMemberId != null) mutableListOf(targetMemberId) else mutableListOf()
+                    )
+                )
                 journalCount++
             }
         }
         spApp.edit().putString("diary_notes", Gson().toJson(notes)).apply()
 
-        Toast.makeText(this, "Imported $altersCount alters, $groupsCount groups, $sessionsCount front sessions and $journalCount journal entries", Toast.LENGTH_LONG).show()
+        Toast.makeText(
+            this,
+            "Imported $altersCount alters, $groupsCount groups, $sessionsCount front sessions and $journalCount journal entries",
+            Toast.LENGTH_LONG
+        ).show()
         recreate()
     }
 
@@ -1394,7 +1717,8 @@ class SettingsActivity : BaseActivity() {
             val people = loadPeopleList()
             var count = 0
             spMembers.forEach { spm ->
-                val id = spm["_id"] as? String ?: spm["id"] as? String ?: spm["uid"] as? String ?: ""
+                val id =
+                    spm["_id"] as? String ?: spm["id"] as? String ?: spm["uid"] as? String ?: ""
                 val content = spm["content"] as? Map<*, *>
 
                 val name = content?.get("name") as? String ?: spm["name"] as? String ?: "SP Member"
@@ -1410,52 +1734,78 @@ class SettingsActivity : BaseActivity() {
                     try {
                         val formattedHex = if (colorHex.startsWith("#")) colorHex else "#$colorHex"
                         profileColor = android.graphics.Color.parseColor(formattedHex)
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
                 }
 
                 if (id.isNotEmpty() && people.none { it.manualId == id }) {
-                    val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+                    val initialHandle =
+                        name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
 
                     val avatarUuid = spm["avatarUuid"] as? String
 
-                    people.add(Person(
-                        name = name,
-                        manualId = id,
-                        profileInfo = desc,
-                        profilePictureUri = avatar,
-                        profileColor = profileColor,
-                        sysmediaProfile = SysmediaProfile(handle = initialHandle)
-                    ))
+                    people.add(
+                        Person(
+                            name = name,
+                            manualId = id,
+                            profileInfo = desc,
+                            profilePictureUri = avatar,
+                            profileColor = profileColor,
+                            sysmediaProfile = SysmediaProfile(handle = initialHandle)
+                        )
+                    )
                     count++
                 }
             }
             MemberHelper.savePeople(this, people)
-            Toast.makeText(this, "Imported $count members from Simply Plural", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Imported $count members from Simply Plural", Toast.LENGTH_SHORT)
+                .show()
         }
     }
 
     private fun importFromPkJson(uri: Uri) {
         Thread {
             try {
-                val json = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: return@Thread
-                val root = Gson().fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
-                
+                val json =
+                    contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        ?: return@Thread
+                val root = Gson().fromJson<Map<String, Any>>(
+                    json,
+                    object : TypeToken<Map<String, Any>>() {}.type
+                )
+
                 @Suppress("UNCHECKED_CAST")
                 val membersList = root["members"] as? List<Map<String, Any>>
 
                 if (membersList == null) {
                     try {
-                        val directList = Gson().fromJson<List<Map<String, Any>>>(json, object : TypeToken<List<Map<String, Any>>>() {}.type)
+                        val directList = Gson().fromJson<List<Map<String, Any>>>(
+                            json,
+                            object : TypeToken<List<Map<String, Any>>>() {}.type
+                        )
                         processPkMembers(directList)
                         return@Thread
-                    } catch (_: Exception) {}
-                    runOnUiThread { Toast.makeText(this, "No members found in PluralKit JSON", Toast.LENGTH_SHORT).show() }
+                    } catch (_: Exception) {
+                    }
+                    runOnUiThread {
+                        Toast.makeText(
+                            this,
+                            "No members found in PluralKit JSON",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                     return@Thread
                 }
 
                 processPkMembers(membersList)
             } catch (e: Exception) {
-                runOnUiThread { Toast.makeText(this, "PK JSON Error: ${e.message}", Toast.LENGTH_SHORT).show() }
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "PK JSON Error: ${e.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }.start()
     }
@@ -1476,25 +1826,246 @@ class SettingsActivity : BaseActivity() {
                     try {
                         val formattedHex = if (colorHex.startsWith("#")) colorHex else "#$colorHex"
                         profileColor = android.graphics.Color.parseColor(formattedHex)
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
                 }
 
                 if (id.isNotEmpty() && people.none { it.manualId == id }) {
-                    val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
-                    people.add(Person(
-                        name = name, 
-                        manualId = id, 
-                        profileInfo = desc, 
-                        profilePictureUri = avatar,
-                        profileColor = profileColor,
-                        sysmediaProfile = SysmediaProfile(handle = initialHandle)
-                    ))
+                    val initialHandle =
+                        name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+                    people.add(
+                        Person(
+                            name = name,
+                            manualId = id,
+                            profileInfo = desc,
+                            profilePictureUri = avatar,
+                            profileColor = profileColor,
+                            sysmediaProfile = SysmediaProfile(handle = initialHandle)
+                        )
+                    )
                     count++
                 }
             }
             MemberHelper.savePeople(this, people)
-            Toast.makeText(this, "Imported $count members from PluralKit JSON", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Imported $count members from PluralKit JSON", Toast.LENGTH_SHORT)
+                .show()
         }
+    }
+
+    private fun handleAmpersandFile(uri: Uri) {
+        Thread {
+            val success = AmpersandImportHelper.importFromUri(this, uri)
+
+            runOnUiThread {
+                if (success) {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.import_ampersand_success),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    recreate()
+                } else {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.import_ampersand_decode_error),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }.start()
+    }
+
+    private fun importFromPluralStar(uri: Uri) {
+        Thread {
+            try {
+                val people = loadPeopleList()
+                val avatarDir = filesDir
+                var membersCount = 0
+                var historyCount = 0
+                var foundDataJson = false
+
+                contentResolver.openInputStream(uri)?.use { input ->
+                    java.util.zip.ZipInputStream(input).use { zis ->
+                        var entry = zis.nextEntry
+                        var jsonData: String? = null
+                        val tempAvatars = mutableMapOf<String, ByteArray>()
+
+                        while (entry != null) {
+                            val entryName = entry.name
+                            val fileName =
+                                entryName.substringAfterLast('/').substringAfterLast('\\')
+
+                            if (fileName.equals(
+                                    "data.json",
+                                    ignoreCase = true
+                                ) && !entry.isDirectory
+                            ) {
+                                foundDataJson = true
+                                jsonData = zis.readBytes().toString(Charsets.UTF_8)
+                            } else if (entryName.contains(
+                                    "media/",
+                                    ignoreCase = true
+                                ) && !entry.isDirectory
+                            ) {
+                                tempAvatars[fileName] = zis.readBytes()
+                            }
+                            zis.closeEntry()
+                            entry = zis.nextEntry
+                        }
+
+                        if (jsonData != null) {
+                            val root = try {
+                                Gson().fromJson<Map<String, Any>>(
+                                    jsonData,
+                                    object : TypeToken<Map<String, Any>>() {}.type
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
+
+                            if (root != null) {
+                                val membersList =
+                                    root["members"] as? List<Map<String, Any>> ?: emptyList()
+                                val historyList =
+                                    root["frontHistory"] as? List<Map<String, Any>> ?: emptyList()
+
+                                membersList.forEach { m ->
+                                    val id = m["id"] as? String ?: ""
+                                    val name = m["name"] as? String ?: "Unknown"
+                                    val pronouns = m["pronouns"] as? String ?: ""
+                                    val role = m["role"] as? String ?: ""
+                                    val desc = m["description"] as? String ?: ""
+                                    val colorHex = m["color"] as? String
+                                    val archived = m["archived"] as? Boolean ?: false
+                                    val avatarPath = m["avatar_media_path"] as? String
+
+                                    if (id.isNotEmpty() && people.none { it.manualId == id }) {
+                                        var profileColor = -6934396
+                                        if (!colorHex.isNullOrBlank()) {
+                                            try {
+                                                profileColor = Color.parseColor(colorHex)
+                                            } catch (_: Exception) {
+                                            }
+                                        }
+
+                                        val bio = StringBuilder()
+                                        if (pronouns.isNotEmpty()) bio.append("Pronouns: $pronouns\n")
+                                        if (role.isNotEmpty()) bio.append("Role: $role\n")
+                                        bio.append(desc)
+
+                                        val person = Person(
+                                            name = name,
+                                            manualId = id,
+                                            profileInfo = bio.toString().trim(),
+                                            profileColor = profileColor,
+                                            isArchived = archived,
+                                            sysmediaProfile = SysmediaProfile(
+                                                handle = name.replace(
+                                                    " ",
+                                                    "_"
+                                                ).lowercase().replace(Regex("[^a-z0-9_]"), "")
+                                            )
+                                        )
+
+                                        val avatarFileName = avatarPath?.substringAfterLast('/')
+                                            ?.substringAfterLast('\\')
+                                        if (avatarFileName != null && tempAvatars.containsKey(
+                                                avatarFileName
+                                            )
+                                        ) {
+                                            val localFile = File(
+                                                avatarDir,
+                                                "profile_${person.id}_${System.currentTimeMillis()}.png"
+                                            )
+                                            localFile.writeBytes(tempAvatars[avatarFileName]!!)
+                                            person.profilePictureUri =
+                                                Uri.fromFile(localFile).toString()
+                                        }
+
+                                        people.add(person)
+                                        membersCount++
+                                    }
+                                }
+                                MemberHelper.savePeople(this@SettingsActivity, people)
+
+                                val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+                                val sessionsJson =
+                                    sharedPref.getString("sessions_list", "[]") ?: "[]"
+                                val sessions: MutableList<FrontSession> = Gson().fromJson(
+                                    sessionsJson,
+                                    object : TypeToken<MutableList<FrontSession>>() {}.type
+                                ) ?: mutableListOf()
+
+                                historyList.forEach { h ->
+                                    val memberIds = h["memberIds"] as? List<String> ?: emptyList()
+                                    val start = (h["startTime"] as? Number)?.toLong() ?: 0L
+                                    val end = (h["endTime"] as? Number)?.toLong()
+                                    val note = h["note"] as? String
+                                    val changeType = h["changeType"] as? String
+
+                                    if (changeType != null && changeType != "front") return@forEach
+
+                                    if (start > 0 && sessions.none { it.startTime == start }) {
+                                        memberIds.forEach { mid ->
+                                            val person = people.find { it.manualId == mid }
+                                            if (person != null) {
+                                                sessions.add(
+                                                    FrontSession(
+                                                        personName = person.name,
+                                                        startTime = start,
+                                                        endTime = if (end != null && end > 0) end else null,
+                                                        personId = person.id,
+                                                        note = note
+                                                    )
+                                                )
+                                                historyCount++
+                                            }
+                                        }
+                                    }
+                                }
+                                sharedPref.edit()
+                                    .putString("sessions_list", Gson().toJson(sessions)).apply()
+                            }
+                        }
+                    }
+                }
+
+                runOnUiThread {
+                    if (membersCount > 0 || historyCount > 0) {
+                        Toast.makeText(
+                            this,
+                            getString(
+                                R.string.import_plural_star_success,
+                                membersCount,
+                                historyCount
+                            ),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        recreate()
+                    } else if (!foundDataJson) {
+                        Toast.makeText(
+                            this,
+                            "Could not find data.json inside the ZIP",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            this,
+                            getString(R.string.import_plural_star_no_new_data),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.plural_star_error, e.message),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }.start()
     }
 
     private fun importFromDaylio(uri: Uri) {
@@ -1636,6 +2207,62 @@ class SettingsActivity : BaseActivity() {
     private fun showArchivedMembersDialog() {
         DialogHelper.showArchivedMembersDialog(this) {
         }
+    }
+
+    private var restoreClicks = 0
+    private fun showRestoreMemberDialog() {
+        val people = loadPeopleList()
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
+        val type = object : TypeToken<List<FrontSession>>() {}.type
+        val sessions: List<FrontSession> = try {
+            Gson().fromJson(sessionsJson, type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        val archivedMembers = people.filter { it.isArchived }
+
+        val currentNames = people.map { it.name.lowercase() }.toSet()
+        val currentIds = people.map { it.id }.toSet()
+
+        val historyMembers = sessions.filter {
+            it.personName.lowercase() !in currentNames && (it.personId == null || it.personId !in currentIds)
+        }.distinctBy { it.personName.lowercase() }
+
+        val items = mutableListOf<Triple<String, String?, Boolean>>() // Name, ID, isArchived
+        archivedMembers.forEach { items.add(Triple(it.name, it.id, true)) }
+        historyMembers.forEach { items.add(Triple(it.personName, it.personId, false)) }
+
+        if (items.isEmpty()) {
+            Toast.makeText(this, R.string.no_restorable_members, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val names = items.map {
+            val prefix = if (it.third) "[Archived] " else "[Deleted] "
+            prefix + it.first
+        }.toTypedArray()
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.restore_dialog_title)
+            .setItems(names) { _, which ->
+                val selected = items[which]
+                if (selected.third) {
+                    val person = people.find { it.id == selected.second }
+                    if (person != null) {
+                        person.isArchived = false
+                        MemberHelper.savePeople(this, people)
+                        Toast.makeText(this, getString(R.string.restore_member_success, selected.first), Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    MemberHelper.restoreDeletedMember(this, selected.first, selected.second)
+                    Toast.makeText(this, getString(R.string.restore_member_success, selected.first), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+            .let { ColorHelper.styleSupportAlertDialog(it, this) }
     }
 
     private fun showBackupManagementDialog() {
@@ -1852,7 +2479,7 @@ class SettingsActivity : BaseActivity() {
             getString(R.string.delete_mood),
             getString(R.string.delete_notes),
             getString(R.string.delete_todo),
-            getString(R.string.delete_settings)
+            getString(R.string.delete_settings),
         )
         val checked = BooleanArray(labels.size) { false }
 

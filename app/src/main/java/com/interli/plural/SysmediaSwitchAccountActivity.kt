@@ -27,7 +27,7 @@ class SysmediaSwitchAccountActivity : BaseActivity() {
         setContentView(R.layout.activity_sysmedia_switch_account)
 
         loadData()
-        filteredPeople = people
+        filteredPeople = people.filter { !it.isArchived }
 
         val rv = findViewById<RecyclerView>(R.id.rvAccounts)
         rv.layoutManager = LinearLayoutManager(this)
@@ -57,13 +57,15 @@ class SysmediaSwitchAccountActivity : BaseActivity() {
                 val query = s.toString().lowercase()
                 filteredPeople = if (query.isEmpty()) {
                     tvHint.visibility = View.VISIBLE
-                    people
+                    people.filter { !it.isArchived }
                 } else {
                     tvHint.visibility = View.GONE
                     people.filter { 
+                        !it.isArchived && (
                         it.name.lowercase().contains(query) || 
                         it.sysmediaProfile?.handle?.lowercase()?.contains(query) == true ||
                         it.sysmediaProfile?.displayName?.lowercase()?.contains(query) == true
+                        )
                     }
                 }
                 adapter.updateItems(filteredPeople)

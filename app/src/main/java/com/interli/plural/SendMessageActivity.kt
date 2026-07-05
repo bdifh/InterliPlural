@@ -186,7 +186,7 @@ class SendMessageActivity : BaseActivity() {
 
     private fun sendMessage() {
         val fromNames = if (cbAnonymous.isChecked) listOf(getString(R.string.action_anonymous)) 
-                        else people.filter { selectedSenderIds.contains(it.id) }.map { it.name }
+                        else people.filter { selectedSenderIds.contains(it.id) && !it.isArchived }.map { it.name }
         
         if (fromNames.isEmpty() && !cbAnonymous.isChecked) {
             Toast.makeText(this, "Please select at least one sender", Toast.LENGTH_SHORT).show()

@@ -408,8 +408,10 @@ class DiaryActivity : BaseActivity() {
                     val recipientsLine = if (note.nextFronterRecipient != null) {
                         getString(R.string.message_to_placeholder, getString(R.string.next_fronter_format, note.nextFronterRecipient))
                     } else if (note.linkedMemberIds.isNotEmpty()) {
-                        val names = note.linkedMemberIds.map { id -> people.find { it.id == id }?.name ?: id }
-                        getString(R.string.message_to_placeholder, names.joinToString(", "))
+                        val names = note.linkedMemberIds.mapNotNull { id -> people.find { it.id == id && !it.isArchived }?.name }
+                        if (names.isNotEmpty()) {
+                            getString(R.string.message_to_placeholder, names.joinToString(", "))
+                        } else null
                     } else {
                         null
                     }

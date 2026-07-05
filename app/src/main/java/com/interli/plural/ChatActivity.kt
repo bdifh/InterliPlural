@@ -174,7 +174,7 @@ class ChatActivity : BaseActivity() {
 
     private fun showManageGroupDialog() {
         val group = chatGroups.find { it.id == chatId } ?: return
-        val memberNames = people.filter { group.participantIds.contains(it.id) }.map { it.name }.toMutableList()
+        val memberNames = people.filter { group.participantIds.contains(it.id) && !it.isArchived }.map { it.name }.toMutableList()
         
         val options = mutableListOf<String>()
         options.add("+ Add Member")
@@ -186,7 +186,8 @@ class ChatActivity : BaseActivity() {
                 if (which == 0) {
                     showAddMemberDialog(group)
                 } else {
-                    val personToRemove = people.filter { group.participantIds.contains(it.id) }[which - 1]
+                    val participants = people.filter { group.participantIds.contains(it.id) && !it.isArchived }
+                    val personToRemove = participants[which - 1]
                     group.participantIds.remove(personToRemove.id)
                     saveGroups()
                     showManageGroupDialog()
@@ -197,7 +198,7 @@ class ChatActivity : BaseActivity() {
     }
 
     private fun showAddMemberDialog(group: ChatGroup) {
-        val nonParticipants = people.filter { !group.participantIds.contains(it.id) }
+        val nonParticipants = people.filter { !group.participantIds.contains(it.id) && !it.isArchived }
         if (nonParticipants.isEmpty()) {
             Toast.makeText(this, "No more members to add", Toast.LENGTH_SHORT).show()
             return
@@ -388,7 +389,7 @@ class ChatActivity : BaseActivity() {
 
     private fun showSwitchSenderDialog(msg: DirectMessage, position: Int) {
         val group = chatGroups.find { it.id == chatId } ?: return
-        val participants = people.filter { group.participantIds.contains(it.id) }
+        val participants = people.filter { group.participantIds.contains(it.id) && !it.isArchived }
         val names = participants.map { it.sysmediaProfile?.displayName ?: it.name }.toTypedArray()
         
         androidx.appcompat.app.AlertDialog.Builder(this)
@@ -416,7 +417,7 @@ class ChatActivity : BaseActivity() {
 
     private fun showSwitchActiveUserDialog() {
         val group = chatGroups.find { it.id == chatId } ?: return
-        val participants = people.filter { group.participantIds.contains(it.id) }
+        val participants = people.filter { group.participantIds.contains(it.id) && !it.isArchived }
         val names = participants.map { it.sysmediaProfile?.displayName ?: it.name }.toTypedArray()
         
         androidx.appcompat.app.AlertDialog.Builder(this)

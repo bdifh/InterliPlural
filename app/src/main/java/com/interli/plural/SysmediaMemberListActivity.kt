@@ -29,7 +29,7 @@ class SysmediaMemberListActivity : BaseActivity() {
 
         val rv = findViewById<RecyclerView>(R.id.rvMembers)
         rv.layoutManager = LinearLayoutManager(this)
-        adapter = MemberAdapter(people)
+        adapter = MemberAdapter(people.filter { !it.isArchived })
         rv.adapter = adapter
 
         setupToolbar()

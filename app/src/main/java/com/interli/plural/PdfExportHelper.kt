@@ -293,8 +293,9 @@ object PdfExportHelper {
 
                     moods.reversed().take(500).forEach { mood ->
                         val time = sdf.format(Date(mood.timestamp))
-                        val members = mood.memberIds.map { id -> people.find { it.id == id }?.name ?: id }.joinToString(", ")
-                        drawText("[$time] ${mood.moodEmoji} ${mood.moodLabel} - $members", textPaint, 2f)
+                        val memberNames = mood.memberIds.mapNotNull { id -> people.find { it.id == id && !it.isArchived }?.name }
+                        val membersStr = if (memberNames.isNotEmpty()) " - ${memberNames.joinToString(", ")}" else ""
+                        drawText("[$time] ${mood.moodEmoji} ${mood.moodLabel}$membersStr", textPaint, 2f)
                         if (mood.note.isNotEmpty()) {
                             drawText("  Note: ${mood.note}", textPaint, 5f)
                         } else {

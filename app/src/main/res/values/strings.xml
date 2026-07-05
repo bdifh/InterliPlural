@@ -297,8 +297,18 @@
     <string name="action_import_daylio">Import Daylio CSV</string>
     <string name="action_import_ps">Import PluralSpace JSON</string>
     <string name="action_import_hm">Import Hivemind JSON</string>
+    <string name="import_ampersand_success">Ampersand import successful!</string>
+    <string name="import_ampersand_decode_error">Decoding error. Is this Base64?</string>
+    <string name="label_unknown">Unknown</string>
+    <string name="label_pronouns_colon">Pronouns: %1$s</string>
+    <string name="label_imported_group">Imported Group</string>
+    <string name="plural_star_import_label">Plural Star</string>
+    <string name="action_import_plural_star">Import Plural Star (ZIP)</string>
+    <string name="import_plural_star_success">Imported: %1$d members and %2$d sessions</string>
+    <string name="import_plural_star_no_new_data">No new data found (might already exist)</string>
+    <string name="plural_star_error">Plural Star Error: %1$s</string>
     <string name="action_pdf_export">PDF Export</string>
-    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Hivemind / Daylio Import</string>
+    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Pluralstar / Hivemind / ampersand / Daylio Import</string>
     <string name="import_success">Import successful!</string>
     <string name="import_error">Import failed: %1$s</string>
     <string name="settings_section_management">Management</string>
@@ -593,4 +603,9 @@
 
     <string name="no_group_bubble">No group (standalone)</string>
     <string name="connect_to_group_bubble">Connect to group (don\'t add)</string>
+    <string name="restore_archived_deleted">Restore archived/deleted member</string>
+    <string name="restore_archived_deleted_clicks">Restore archived/deleted (click %1$d)</string>
+    <string name="no_restorable_members">No restorable members found in history.</string>
+    <string name="restore_member_success">Member %1$s restored!</string>
+    <string name="restore_dialog_title">Select member to restore</string>
 </resources>

@@ -99,6 +99,23 @@
             android:layout_height="wrap_content"
             android:text="@string/action_import_ps" />
 
+        <!-- Plural Star Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Plural Star"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportPluralStar"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Import Plural Star (ZIP)" />
+
         <!-- Hivemind Section -->
         <TextView
             android:layout_width="match_parent"
@@ -114,6 +131,24 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/action_import_hm" />
+
+        <!-- Ampresand Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ampersand"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportAmpersand"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ampersand Json (Base64)"
+            android:layout_marginBottom="8dp" />
 
         <!-- Daylio Section -->
         <TextView

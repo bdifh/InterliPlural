@@ -175,7 +175,7 @@ class MoodActivity : BaseActivity() {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         val peopleJson = prefs.getString("people_list", "[]") ?: "[]"
         val people: List<Person> = gson.fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type)
-        val selectedNames = people.filter { selectedMemberIds.contains(it.id) }.map { it.name }
+        val selectedNames = people.filter { selectedMemberIds.contains(it.id) && !it.isArchived }.map { it.name }
         selectedMembersText.text = if (selectedNames.isEmpty()) "" else selectedNames.joinToString(", ")
 
         updateLinkedItemsText()

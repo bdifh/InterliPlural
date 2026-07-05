@@ -72,7 +72,7 @@ class PersonAdapter(
         val groupMembers = filteredPeople.filter { it.safeGroupIds.contains(group.id) }
         val subGroups = groups.filter { it.parentGroupId == group.id }
         
-        if (filterQuery.isBlank() || groupMembers.isNotEmpty() || subGroups.any { hasMembersRecursive(it, filteredPeople) }) {
+        if (groupMembers.isNotEmpty() || subGroups.any { hasMembersRecursive(it, filteredPeople) }) {
             list.add(MainItem.GroupHeader(group, depth))
             
             if (group.isExpanded || filterQuery.isNotEmpty()) {

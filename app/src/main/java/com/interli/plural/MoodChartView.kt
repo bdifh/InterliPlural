@@ -518,8 +518,10 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
                 message.append(context.getString(R.string.stats_activities, entry.activities.joinToString(", "))).append("\n")
             }
             if (entry.memberIds.isNotEmpty()) {
-                val names = entry.memberIds.map { id -> people.find { it.id == id }?.name ?: id }
-                message.append(context.getString(R.string.stats_members, names.joinToString(", "))).append("\n")
+                val names = entry.memberIds.mapNotNull { id -> people.find { it.id == id && !it.isArchived }?.name }
+                if (names.isNotEmpty()) {
+                    message.append(context.getString(R.string.stats_members, names.joinToString(", "))).append("\n")
+                }
             }
             if (!entry.note.isNullOrBlank()) {
                 message.append(context.getString(R.string.stats_note, entry.note)).append("\n")

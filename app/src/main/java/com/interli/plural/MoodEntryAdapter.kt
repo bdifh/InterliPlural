@@ -139,7 +139,7 @@ class MoodEntryAdapter(
         }
 
         if (entry.memberIds.isNotEmpty()) {
-            val memberNames = people.filter { entry.memberIds.contains(it.id) }.map { it.name }
+            val memberNames = people.filter { entry.memberIds.contains(it.id) && !it.isArchived }.map { it.name }
             if (memberNames.isNotEmpty()) {
                 holder.tvMembers.visibility = View.VISIBLE
                 holder.tvMembers.text = context.getString(R.string.stats_members, memberNames.joinToString(", "))

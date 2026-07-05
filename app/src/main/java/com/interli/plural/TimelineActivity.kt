@@ -52,21 +52,23 @@ class TimelineActivity : BaseActivity() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val sessionsJson = sharedPref.getString("sessions_list", null)
         val peopleJson = sharedPref.getString("people_list", "[]")
-        
-        val allPeople: List<Person> = Gson().fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
-        people = allPeople.filter { !it.isArchived && !it.isSysmediaOnly }
+
+        val allPeople = MemberHelper.loadAllPeople(this)
+        people = allPeople
 
         val newSessions = if (sessionsJson != null) {
             val type = object : TypeToken<MutableList<FrontSession>>() {}.type
             val rawSessions: MutableList<FrontSession> = Gson().fromJson(sessionsJson, type) ?: mutableListOf()
+
             val excludedIds = allPeople.filter { it.isArchived || it.isSysmediaOnly }.map { it.id }.toSet()
             val excludedNames = allPeople.filter { it.isArchived || it.isSysmediaOnly }.map { it.name }.toSet()
 
-            val filteredSessions = rawSessions.filter { 
+            val filteredSessions = rawSessions.filter {
                 val pId = it.personId
                 if (pId != null) !excludedIds.contains(pId)
                 else !excludedNames.contains(it.personName)
             }
+
             filteredSessions.asSequence().sortedWith { s1, s2 ->
                 when {
                     s1.endTime == null && s2.endTime == null -> s2.startTime.compareTo(s1.startTime)
