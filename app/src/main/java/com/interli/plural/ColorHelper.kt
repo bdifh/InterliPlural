@@ -325,6 +325,98 @@ object ColorHelper {
         }
     }
 
+    fun getEffectiveMoodTheme(context: android.content.Context): MoodTheme? {
+        val sp = context.getSharedPreferences("my_app", android.content.Context.MODE_PRIVATE)
+        val settingsSp = context.getSharedPreferences("settings_prefs", android.content.Context.MODE_PRIVATE)
+        
+        val peopleJson = sp.getString("people_list", null) ?: return null
+        val sessionsJson = sp.getString("sessions_list", null) ?: return null
+        val gson = Gson()
+        
+        return try {
+            val peopleType = object : TypeToken<MutableList<Person>>() {}.type
+            val people: List<Person> = gson.fromJson(peopleJson, peopleType) ?: emptyList()
+            
+            val sessionsType = object : TypeToken<MutableList<FrontSession>>() {}.type
+            val sessions: List<FrontSession> = gson.fromJson(sessionsJson, sessionsType) ?: emptyList()
+
+            val frontingPeopleIds = people.filter { it.isFront && !it.isArchived }
+                .map { it.id }
+                .distinct()
+                .sorted()
+            
+            val themesJson = settingsSp.getString("saved_mood_themes", "[]") ?: "[]"
+            val themesType = object : TypeToken<MutableList<MoodTheme>>() {}.type
+            val themes: List<MoodTheme> = gson.fromJson(themesJson, themesType) ?: emptyList()
+
+            if (frontingPeopleIds.isEmpty()) {
+                val defaultThemeId = settingsSp.getString("default_mood_theme_id", null)
+                return themes.find { it.id == defaultThemeId }
+            }
+
+            if (frontingPeopleIds.size > 1) {
+                val coFrontThemesJson = settingsSp.getString("co_front_mood_themes", "[]") ?: "[]"
+                val coFrontThemesType = object : TypeToken<MutableList<CoFrontMoodTheme>>() {}.type
+                val coFrontThemes: List<CoFrontMoodTheme> = gson.fromJson(coFrontThemesJson, coFrontThemesType) ?: emptyList()
+                
+                val specificThemeId = coFrontThemes.find { it.memberIds.sorted() == frontingPeopleIds }?.moodThemeId
+                if (specificThemeId != null) {
+                    val theme = themes.find { it.id == specificThemeId }
+                    if (theme != null) return theme
+                }
+
+                val frontingPeople = people.filter { it.isFront && !it.isArchived }
+                val themeCounts = mutableMapOf<String, Int>()
+                frontingPeople.forEach { p ->
+                    p.linkedMoodThemeId?.let { themeId ->
+                        themeCounts[themeId] = (themeCounts[themeId] ?: 0) + 1
+                    }
+                }
+                
+                val majorityThemeEntry = themeCounts.entries.find { it.value > frontingPeopleIds.size * 0.51 }
+                if (majorityThemeEntry != null) {
+                    val theme = themes.find { it.id == majorityThemeEntry.key }
+                    if (theme != null) return theme
+                }
+
+                val multiThemeId = settingsSp.getString("multi_front_mood_theme_id", null)
+                val multiTheme = themes.find { it.id == multiThemeId }
+                if (multiTheme != null) return multiTheme
+            }
+
+            val priority = settingsSp.getString("theme_priority", "newest")
+            
+            val activeSessionsMap = mutableMapOf<String, FrontSession>()
+            sessions.filter { it.endTime == null && it.personId != null && frontingPeopleIds.contains(it.personId) }
+                .forEach { session ->
+                    val pid = session.personId!!
+                    val existing = activeSessionsMap[pid]
+                    if (existing == null || session.startTime > existing.startTime) {
+                        activeSessionsMap[pid] = session
+                    }
+                }
+            
+            val activeSessions = if (priority == "oldest") {
+                activeSessionsMap.values.sortedBy { it.startTime }
+            } else {
+                activeSessionsMap.values.sortedByDescending { it.startTime }
+            }
+
+            for (session in activeSessions) {
+                val person = people.find { it.id == session.personId }
+                if (person?.linkedMoodThemeId != null) {
+                    val theme = themes.find { it.id == person.linkedMoodThemeId }
+                    if (theme != null) return theme
+                }
+            }
+            
+            val fallbackThemeId = settingsSp.getString("default_mood_theme_id", null)
+            themes.find { it.id == fallbackThemeId }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun getBgColor(context: android.content.Context): Int {
         val effectiveTheme = getEffectiveTheme(context)
         if (effectiveTheme != null) return try { effectiveTheme.bgColor.toColorInt() } catch(_: Exception) { "#FFFDF0".toColorInt() }
@@ -507,11 +599,24 @@ object ColorHelper {
         if (index == -1) index = moodLabels.indexOf(moodLabel)
         if (index == -1) return Color.GRAY
         
-        val colorKeyIndex = 5 - index 
+        val moodIndex = 5 - index // 1=Rad, 2=Good, 3=Meh, 4=Bad, 5=Awful
         
-        val colorKey = "mood_color_$colorKeyIndex"
+        val effectiveMoodTheme = getEffectiveMoodTheme(context)
+        if (effectiveMoodTheme != null) {
+            val hex = when(moodIndex) {
+                1 -> effectiveMoodTheme.mood1
+                2 -> effectiveMoodTheme.mood2
+                3 -> effectiveMoodTheme.mood3
+                4 -> effectiveMoodTheme.mood4
+                5 -> effectiveMoodTheme.mood5
+                else -> null
+            }
+            if (hex != null) return try { Color.parseColor(hex) } catch (_: Exception) { Color.GRAY }
+        }
+
+        val colorKey = "mood_color_$moodIndex"
         val defaultColors = listOf("#fffa94", "#54bd44", "#8844bd", "#4446bd", "#3a3a47")
-        val colorHex = sp.getString(colorKey, defaultColors[colorKeyIndex - 1]) ?: defaultColors[colorKeyIndex - 1]
+        val colorHex = sp.getString(colorKey, defaultColors[moodIndex - 1]) ?: defaultColors[moodIndex - 1]
         return try { Color.parseColor(colorHex) } catch (_: Exception) { Color.GRAY }
     }
 

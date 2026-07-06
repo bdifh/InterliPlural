@@ -22,9 +22,9 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
     private var lastTouchX = 0f
     private var lastTouchY = 0f
     
-    private var offsetX = 0f
-    private var offsetY = 0f
-    private var scaleFactor = 1.0f
+    private var offsetX = 100f
+    private var offsetY = 100f
+    private var scaleFactor = 0.7f
 
     private val nodePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
 
@@ -54,6 +54,17 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         textAlign = Paint.Align.CENTER
         textSize = 36f
         color = Color.DKGRAY
+    }
+    private val noteIconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = Color.YELLOW
+        alpha = 180
+    }
+    private val noteStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f
+        color = Color.BLACK
+        alpha = 150
     }
 
     private val commonPath = Path()
@@ -88,6 +99,11 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                 val clickedGroup = findGroupAt(worldX, worldY)
                 if (clickedGroup != null) {
                     onGroupLongClicked?.invoke(clickedGroup)
+                } else {
+                    val clickedEdge = findEdgeAt(worldX, worldY)
+                    if (clickedEdge != null) {
+                        onEdgeLongClicked?.invoke(clickedEdge)
+                    }
                 }
             }
         }
@@ -143,6 +159,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
 
     var onNodeLongClicked: ((RelationNode) -> Unit)? = null
     var onGroupLongClicked: ((RelationGroup) -> Unit)? = null
+    var onEdgeLongClicked: ((RelationEdge) -> Unit)? = null
     var onDataChanged: (() -> Unit)? = null
 
     fun setData(newData: RelationsData) {
@@ -167,10 +184,11 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
     private fun getGroupBoundaryPoint(center: PointF, target: PointF, group: RelationGroup): PointF {
         val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
         if (memberNodes.isEmpty()) return center
-        
+
         val dx = target.x - center.x
         val dy = target.y - center.y
-        
+        if (Math.abs(dx) < 0.01f && Math.abs(dy) < 0.01f) return center
+
         if (memberNodes.size == 1) {
             val radius = nodeRadius * 2.5f
             val angle = Math.atan2(dy.toDouble(), dx.toDouble())
@@ -183,20 +201,20 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             val maxX = memberNodes.maxOf { it.x } + nodeRadius * 1.5f
             val minY = memberNodes.minOf { it.y } - nodeRadius * 1.5f
             val maxY = memberNodes.maxOf { it.y } + nodeRadius * 1.5f
-            
-            if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return center
 
-            var tMinX = (minX - center.x) / dx
-            var tMaxX = (maxX - center.x) / dx
-            if (tMinX > tMaxX) { val tmp = tMinX; tMinX = tMaxX; tMaxX = tmp }
+            val tX = if (dx > 0) (maxX - center.x) / dx else if (dx < 0) (minX - center.x) / dx else Float.MAX_VALUE
+            val tY = if (dy > 0) (maxY - center.y) / dy else if (dy < 0) (minY - center.y) / dy else Float.MAX_VALUE
 
-            var tMinY = (minY - center.y) / dy
-            var tMaxY = (maxY - center.y) / dy
-            if (tMinY > tMaxY) { val tmp = tMinY; tMinY = tMaxY; tMaxY = tmp }
+            val t = Math.min(tX, tY).coerceIn(0f, 1f)
 
-            val t = Math.max(tMinX, tMinY)
-            
-            return PointF(center.x + t * dx, center.y + t * dy)
+            val bx = center.x + t * dx
+            val by = center.y + t * dy
+
+            val angle = Math.atan2(dy.toDouble(), dx.toDouble())
+            return PointF(
+                (bx + 5f * Math.cos(angle)).toFloat(),
+                (by + 5f * Math.sin(angle)).toFloat()
+            )
         }
     }
 
@@ -270,32 +288,31 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     var endX = p2.x
                     var endY = p2.y
 
-                    val node1 = data.nodes.find { it.x == p1.x && it.y == p1.y }
-                    val node2 = data.nodes.find { it.x == p2.x && it.y == p2.y }
-                    
-                    if (node1 != null) {
-                        val angle = Math.atan2((p2.y - p1.y).toDouble(), (p2.x - p1.x).toDouble())
-                        startX += (nodeRadius * Math.cos(angle)).toFloat()
-                        startY += (nodeRadius * Math.sin(angle)).toFloat()
+                    val group1 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p1.x) < 5f && Math.abs(it.y - p1.y) < 5f } ?: false }
+                    if (group1 != null) {
+                        val boundary = getGroupBoundaryPoint(p1, p2, group1)
+                        startX = boundary.x
+                        startY = boundary.y
                     } else {
-                        val group1 = data.groups.find { g -> getGroupCenter(g)?.let { it.x == p1.x && it.y == p1.y } ?: false }
-                        if (group1 != null) {
-                            val boundary = getGroupBoundaryPoint(p1, p2, group1)
-                            startX = boundary.x
-                            startY = boundary.y
+                        val node1 = data.nodes.find { Math.abs(it.x - p1.x) < 5f && Math.abs(it.y - p1.y) < 5f }
+                        if (node1 != null) {
+                            val angle = Math.atan2((p2.y - p1.y).toDouble(), (p2.x - p1.x).toDouble())
+                            startX += (nodeRadius * Math.cos(angle)).toFloat()
+                            startY += (nodeRadius * Math.sin(angle)).toFloat()
                         }
                     }
                     
-                    if (node2 != null) {
-                        val angle = Math.atan2((p1.y - p2.y).toDouble(), (p1.x - p2.x).toDouble())
-                        endX += (nodeRadius * Math.cos(angle)).toFloat()
-                        endY += (nodeRadius * Math.sin(angle)).toFloat()
+                    val group2 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p2.x) < 5f && Math.abs(it.y - p2.y) < 5f } ?: false }
+                    if (group2 != null) {
+                        val boundary = getGroupBoundaryPoint(p2, p1, group2)
+                        endX = boundary.x
+                        endY = boundary.y
                     } else {
-                        val group2 = data.groups.find { g -> getGroupCenter(g)?.let { it.x == p2.x && it.y == p2.y } ?: false }
-                        if (group2 != null) {
-                            val boundary = getGroupBoundaryPoint(p2, p1, group2)
-                            endX = boundary.x
-                            endY = boundary.y
+                        val node2 = data.nodes.find { Math.abs(it.x - p2.x) < 5f && Math.abs(it.y - p2.y) < 5f }
+                        if (node2 != null) {
+                            val angle = Math.atan2((p1.y - p2.y).toDouble(), (p1.x - p2.x).toDouble())
+                            endX += (nodeRadius * Math.cos(angle)).toFloat()
+                            endY += (nodeRadius * Math.sin(angle)).toFloat()
                         }
                     }
 
@@ -307,6 +324,16 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     val midY = points.map { it.y }.average().toFloat()
                     tagPaint.color = ColorHelper.getTextColor(context)
                     canvas.drawText(tag, midX, midY - 10f, tagPaint)
+                }
+
+                if (!edge.note.isNullOrBlank()) {
+                    val midX = points.map { it.x }.average().toFloat()
+                    val midY = points.map { it.y }.average().toFloat()
+                    val size = 15f
+                    canvas.drawRect(midX - size, midY + 10f, midX + size, midY + 40f, noteIconPaint)
+                    canvas.drawRect(midX - size, midY + 10f, midX + size, midY + 40f, noteStrokePaint)
+                    canvas.drawLine(midX - size + 5f, midY + 20f, midX + size - 5f, midY + 20f, noteStrokePaint)
+                    canvas.drawLine(midX - size + 5f, midY + 30f, midX + size - 5f, midY + 30f, noteStrokePaint)
                 }
             }
         }
@@ -412,6 +439,28 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             val dy = it.y - y
             sqrt(dx * dx + dy * dy) <= nodeRadius * 1.5f
         }
+    }
+
+    private fun findEdgeAt(x: Float, y: Float): RelationEdge? {
+        data.edges.forEach { edge ->
+            val points = mutableListOf<PointF>()
+            edge.getSafeNodeIds().forEach { id ->
+                data.nodes.find { it.id == id }?.let { points.add(PointF(it.x, it.y)) }
+            }
+            edge.groupIds.forEach { id ->
+                data.groups.find { it.id == id }?.let { group ->
+                    getGroupCenter(group)?.let { points.add(it) }
+                }
+            }
+            if (points.size >= 2) {
+                val midX = points.map { it.x }.average().toFloat()
+                val midY = points.map { it.y }.average().toFloat()
+                if (Math.abs(x - midX) < 40f && Math.abs(y - midY) < 40f) {
+                    return edge
+                }
+            }
+        }
+        return null
     }
 
     private fun findGroupAt(x: Float, y: Float): RelationGroup? {

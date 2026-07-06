@@ -112,98 +112,14 @@
                         android:textColor="?attr/colorPrimary"
                         android:layout_marginBottom="8dp" />
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center"
-                        android:layout_marginTop="16dp"
-                        android:layout_marginBottom="16dp">
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/cardBgColor"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_margin="8dp"
-                            app:cardElevation="2dp"
-                            app:cardCornerRadius="20dp"
-                            app:strokeWidth="1dp"
-                            app:strokeColor="#20000000">
-                            <View
-                                android:id="@+id/bgPreview"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/cardBtnColor"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_margin="8dp"
-                            app:cardElevation="2dp"
-                            app:cardCornerRadius="20dp"
-                            app:strokeWidth="1dp"
-                            app:strokeColor="#20000000">
-                            <View
-                                android:id="@+id/btnPreview"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/cardBtnTextColor"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_margin="8dp"
-                            app:cardElevation="2dp"
-                            app:cardCornerRadius="20dp"
-                            app:strokeWidth="1dp"
-                            app:strokeColor="#20000000">
-                            <View
-                                android:id="@+id/btnTextPreview"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/cardFrontColor"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_margin="8dp"
-                            app:cardElevation="2dp"
-                            app:cardCornerRadius="20dp"
-                            app:strokeWidth="1dp"
-                            app:strokeColor="#20000000">
-                            <View
-                                android:id="@+id/frontPreview"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent" />
-                        </com.google.android.material.card.MaterialCardView>
-
-                        <com.google.android.material.card.MaterialCardView
-                            android:id="@+id/cardTextColor"
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            android:layout_margin="8dp"
-                            app:cardElevation="2dp"
-                            app:cardCornerRadius="20dp"
-                            app:strokeWidth="1dp"
-                            app:strokeColor="#20000000">
-                            <View
-                                android:id="@+id/textPreview"
-                                android:layout_width="match_parent"
-                                android:layout_height="match_parent" />
-                        </com.google.android.material.card.MaterialCardView>
-                    </LinearLayout>
-
                     <Button
-                        android:id="@+id/btnSaveAsTheme"
+                        android:id="@+id/btnManageThemes"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="8dp"
-                        android:text="@string/action_save_as_theme"
-                        app:icon="@android:drawable/ic_menu_save"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/action_manage_themes"
+                        app:icon="@android:drawable/ic_menu_gallery"
                         app:iconGravity="textStart" />
 
                     <Button
@@ -216,16 +132,6 @@
                         app:icon="@android:drawable/ic_menu_sort_by_size"
                         app:iconGravity="textStart" />
 
-                    <Button
-                        android:id="@+id/btnManageThemes"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="16dp"
-                        android:text="@string/action_manage_themes"
-                        app:icon="@android:drawable/ic_menu_gallery"
-                        app:iconGravity="textStart" />
-
                     <!-- Mood Tracker Colours -->
                     <TextView
                         android:layout_width="match_parent"
@@ -236,6 +142,32 @@
                         android:textColor="?attr/colorPrimary"
                         android:layout_marginTop="16dp"
                         android:layout_marginBottom="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center"
+                        android:layout_marginBottom="8dp">
+
+                        <Button
+                            android:id="@+id/btnExportMoodHex"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="4dp"
+                            android:text="Export Mood Hex" />
+
+                        <Button
+                            android:id="@+id/btnImportMoodHex"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="4dp"
+                            android:text="Import Mood Hex" />
+                    </LinearLayout>
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -294,6 +226,16 @@
                             <View android:id="@+id/mood5Preview" android:layout_width="match_parent" android:layout_height="match_parent" />
                         </com.google.android.material.card.MaterialCardView>
                     </LinearLayout>
+
+                    <Button
+                        android:id="@+id/btnManageMoodThemes"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="@string/action_manage_mood_themes"
+                        app:icon="@android:drawable/ic_menu_gallery"
+                        app:iconGravity="textStart" />
                 </LinearLayout>
 
                 <!-- Category: App Settings -->

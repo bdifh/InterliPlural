@@ -42,15 +42,14 @@ object MemberHelper {
             customFields.forEach { fieldDef ->
                 val id = fieldDef.id
                 if (id != null) {
-                    if (!fields.containsKey(id) && fields.containsKey(fieldDef.name)) {
-                        newFields[id] = fields[fieldDef.name] ?: ""
-                        newFields.remove(fieldDef.name)
-                        changed = true
-                    }
-
                     if (!hidden.contains(id) && hidden.contains(fieldDef.name)) {
                         newHidden.add(id)
                         newHidden.remove(fieldDef.name)
+                        changed = true
+                    }
+
+                    if (newFields.containsKey(id) && newFields[id] == fieldDef.template) {
+                        newFields.remove(id)
                         changed = true
                     }
                 }

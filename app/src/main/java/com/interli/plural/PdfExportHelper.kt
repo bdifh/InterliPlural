@@ -338,6 +338,23 @@ object PdfExportHelper {
                         currentY += 10f
                     }
                 }
+                // 5. Relationships
+                if (selections.size > 4 && selections[4]) {
+                    startNewPage()
+                    drawText("Relationships", headerPaint, 15f)
+                    val relationsJson = sharedPref.getString("relations_environments", "[]")
+                    val type = object : TypeToken<List<RelationEnvironment>>() {}.type
+                    val environments: List<RelationEnvironment> = try { gson.fromJson(relationsJson, type) } catch (_: Exception) { emptyList() }
+
+                    environments.forEach { env ->
+                        drawText("Environment: ${env.name}", headerPaint, 8f)
+                        env.data.nodes.forEach { node ->
+                            val nodeType = if (node.type == NodeType.MEMBER) "Member" else "Orb"
+                            drawText("- [$nodeType] ${node.name}", textPaint, 3f)
+                        }
+                        currentY += 10f
+                    }
+                }
 
                 doc.finishPage(page)
                 context.contentResolver.openOutputStream(uri)?.use { os -> doc.writeTo(os) }

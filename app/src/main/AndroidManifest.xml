@@ -233,6 +233,12 @@
             android:exported="false" />
 
         <activity
+            android:name=".MoodThemesActivity"
+            android:label="@string/action_manage_mood_themes"
+            android:parentActivityName=".SettingsActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".MemberPreferencesActivity"
             android:label="@string/identity_prefs"
             android:parentActivityName=".ProfileActivity"

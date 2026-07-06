@@ -50,6 +50,7 @@ data class Person(
     var isSysmediaOnly: Boolean = false,
     var isArchived: Boolean = false,
     var linkedThemeId: String? = null,
+    var linkedMoodThemeId: String? = null,
     var preferences: MutableList<MemberPreference>? = mutableListOf(),
     var sourcePictureUri: String? = null
 ) {
@@ -89,6 +90,22 @@ data class CoFrontTheme(
     val id: String = java.util.UUID.randomUUID().toString(),
     val memberIds: List<String>,
     var themeId: String
+)
+
+data class MoodTheme(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    var name: String,
+    var mood1: String, // Rad
+    var mood2: String, // Good
+    var mood3: String, // Meh
+    var mood4: String, // Bad
+    var mood5: String  // Awful
+)
+
+data class CoFrontMoodTheme(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val memberIds: List<String>,
+    var moodThemeId: String
 )
 
 data class CustomField(

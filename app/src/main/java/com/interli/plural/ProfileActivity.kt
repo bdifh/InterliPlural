@@ -338,11 +338,19 @@ class ProfileActivity : BaseActivity() {
         customFieldEdits.forEach { (fieldId, editText) ->
             val newValue = editText.text.toString().trim()
             val isVisible = customFieldVisibilities[fieldId] ?: false
+            val fieldDef = customFieldsSettings.find { it.getUniqueId() == fieldId }
 
             if (isVisible) {
-                updatedCustomFields[fieldId] = newValue
+                if (fieldDef != null && newValue == fieldDef.template) {
+                    updatedCustomFields.remove(fieldId)
+                    updatedCustomFields.remove(fieldDef.name)
+                } else {
+                    updatedCustomFields[fieldId] = newValue
+                    if (fieldDef != null) updatedCustomFields.remove(fieldDef.name)
+                }
             } else {
                 updatedCustomFields.remove(fieldId)
+                if (fieldDef != null) updatedCustomFields.remove(fieldDef.name)
             }
         }
 

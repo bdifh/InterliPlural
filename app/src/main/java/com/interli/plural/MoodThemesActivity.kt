@@ -13,28 +13,24 @@ import com.google.android.material.button.MaterialButton
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
-class ThemesActivity : BaseActivity() {
+class MoodThemesActivity : BaseActivity() {
 
     private lateinit var recyclerView: RecyclerView
-    private lateinit var adapter: ThemesAdapter
-    private var themes: MutableList<AppTheme> = mutableListOf()
+    private lateinit var adapter: MoodThemesAdapter
+    private var themes: MutableList<MoodTheme> = mutableListOf()
 
-    private var bgHex = "#FFFDF0"
-    private var btnHex = "#7D4EBA"
-    private var btnTextHex = "#D2B8F5"
-    private var frontHex = "#FCF09F"
-    private var textHex = "#1A1811"
+    private val moodColors = mutableListOf("#fffa94", "#54bd44", "#8844bd", "#4446bd", "#3a3a47")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_themes)
+        setContentView(R.layout.activity_mood_themes)
 
         recyclerView = findViewById(R.id.recyclerViewThemes)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         loadThemes()
 
-        adapter = ThemesAdapter(themes,
+        adapter = MoodThemesAdapter(themes,
             onDelete = { theme ->
                 themes.remove(theme)
                 saveThemes()
@@ -48,24 +44,24 @@ class ThemesActivity : BaseActivity() {
                 themes.add(newTheme)
                 saveThemes()
                 adapter.notifyDataSetChanged()
-                Toast.makeText(this, "Theme duplicated", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Mood Theme duplicated", Toast.LENGTH_SHORT).show()
             },
             onSetDefault = { theme ->
                 val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-                val current = sp.getString("default_theme_id", null)
+                val current = sp.getString("default_mood_theme_id", null)
                 sp.edit(commit = true) {
-                    if (current == theme.id) remove("default_theme_id")
-                    else putString("default_theme_id", theme.id)
+                    if (current == theme.id) remove("default_mood_theme_id")
+                    else putString("default_mood_theme_id", theme.id)
                 }
                 adapter.notifyDataSetChanged()
                 recreate()
             },
             onSetMulti = { theme ->
                 val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-                val current = sp.getString("multi_front_theme_id", null)
+                val current = sp.getString("multi_front_mood_theme_id", null)
                 sp.edit(commit = true) {
-                    if (current == theme.id) remove("multi_front_theme_id")
-                    else putString("multi_front_theme_id", theme.id)
+                    if (current == theme.id) remove("multi_front_mood_theme_id")
+                    else putString("multi_front_mood_theme_id", theme.id)
                 }
                 adapter.notifyDataSetChanged()
                 recreate()
@@ -80,51 +76,51 @@ class ThemesActivity : BaseActivity() {
         recyclerView.adapter = adapter
 
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        bgHex = sharedPref.getString("bg_color", "#FFFDF0") ?: "#FFFDF0"
-        btnHex = sharedPref.getString("btn_color", "#7D4EBA") ?: "#7D4EBA"
-        btnTextHex = sharedPref.getString("btn_text_color", "#D2B8F5") ?: "#D2B8F5"
-        frontHex = sharedPref.getString("front_color", "#FCF09F") ?: "#FCF09F"
-        textHex = sharedPref.getString("text_color", "#1A1811") ?: "#1A1811"
+        moodColors[0] = sharedPref.getString("mood_color_1", "#fffa94") ?: "#fffa94"
+        moodColors[1] = sharedPref.getString("mood_color_2", "#54bd44") ?: "#54bd44"
+        moodColors[2] = sharedPref.getString("mood_color_3", "#8844bd") ?: "#8844bd"
+        moodColors[3] = sharedPref.getString("mood_color_4", "#4446bd") ?: "#4446bd"
+        moodColors[4] = sharedPref.getString("mood_color_5", "#3a3a47") ?: "#3a3a47"
 
         updatePreviews()
 
-        findViewById<View>(R.id.cardBgColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_bg_color), bgHex) { bgHex = it; updatePreviews() }
+        findViewById<View>(R.id.cardMood1).setOnClickListener {
+            showSimpleColorPicker("Mood 1 (Rad)", moodColors[0]) { moodColors[0] = it; updatePreviews() }
         }
-        findViewById<View>(R.id.cardBtnColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_btn_color), btnHex) { btnHex = it; updatePreviews() }
+        findViewById<View>(R.id.cardMood2).setOnClickListener {
+            showSimpleColorPicker("Mood 2 (Good)", moodColors[1]) { moodColors[1] = it; updatePreviews() }
         }
-        findViewById<View>(R.id.cardBtnTextColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_btn_text_color), btnTextHex) { btnTextHex = it; updatePreviews() }
+        findViewById<View>(R.id.cardMood3).setOnClickListener {
+            showSimpleColorPicker("Mood 3 (Meh)", moodColors[2]) { moodColors[2] = it; updatePreviews() }
         }
-        findViewById<View>(R.id.cardFrontColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_front_color), frontHex) { frontHex = it; updatePreviews() }
+        findViewById<View>(R.id.cardMood4).setOnClickListener {
+            showSimpleColorPicker("Mood 4 (Bad)", moodColors[3]) { moodColors[3] = it; updatePreviews() }
         }
-        findViewById<View>(R.id.cardTextColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_text_color), textHex) { textHex = it; updatePreviews() }
+        findViewById<View>(R.id.cardMood5).setOnClickListener {
+            showSimpleColorPicker("Mood 5 (Awful)", moodColors[4]) { moodColors[4] = it; updatePreviews() }
         }
 
         findViewById<Button>(R.id.btnSaveAsTheme).setOnClickListener {
-            val newTheme = AppTheme(
-                name = "Theme ${themes.size + 1}",
-                bgColor = bgHex,
-                btnColor = btnHex,
-                btnTextColor = btnTextHex,
-                frontColor = frontHex,
-                textColor = textHex
+            val newTheme = MoodTheme(
+                name = "Mood Theme ${themes.size + 1}",
+                mood1 = moodColors[0],
+                mood2 = moodColors[1],
+                mood3 = moodColors[2],
+                mood4 = moodColors[3],
+                mood5 = moodColors[4]
             )
             themes.add(newTheme)
             saveThemes()
             adapter.notifyDataSetChanged()
-            Toast.makeText(this, getString(R.string.theme_saved_toast), Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.mood_theme_saved_toast), Toast.LENGTH_SHORT).show()
         }
 
         findViewById<Button>(R.id.btnExportHex).setOnClickListener {
-            val hexString = "$bgHex,$btnHex,$btnTextHex,$frontHex,$textHex"
+            val hexString = moodColors.joinToString(",")
             val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            val clip = android.content.ClipData.newPlainText("theme_hex", hexString)
+            val clip = android.content.ClipData.newPlainText("mood_theme_hex", hexString)
             clipboard.setPrimaryClip(clip)
-            Toast.makeText(this, "Theme Hex copied to clipboard", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Mood Theme Hex copied to clipboard", Toast.LENGTH_SHORT).show()
         }
 
         findViewById<Button>(R.id.btnImportHex).setOnClickListener {
@@ -141,22 +137,22 @@ class ThemesActivity : BaseActivity() {
 
     private fun loadThemes() {
         val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val themesJson = sp.getString("saved_themes", "[]") ?: "[]"
-        val type = object : TypeToken<MutableList<AppTheme>>() {}.type
+        val themesJson = sp.getString("saved_mood_themes", "[]") ?: "[]"
+        val type = object : TypeToken<MutableList<MoodTheme>>() {}.type
         themes = Gson().fromJson(themesJson, type) ?: mutableListOf()
     }
 
     private fun saveThemes() {
         val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         sp.edit(commit = true) {
-            putString("saved_themes", Gson().toJson(themes))
+            putString("saved_mood_themes", Gson().toJson(themes))
         }
     }
 
-    private fun showRenameDialog(theme: AppTheme) {
+    private fun showRenameDialog(theme: MoodTheme) {
         val input = EditText(this).apply {
             setText(theme.name)
-            hint = getString(R.string.hint_theme_name)
+            hint = getString(R.string.hint_mood_theme_name)
         }
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -173,7 +169,6 @@ class ThemesActivity : BaseActivity() {
                     theme.name = newName
                     saveThemes()
                     adapter.notifyDataSetChanged()
-                    ColorHelper.applySettings(this@ThemesActivity)
                 }
             }
             .setNegativeButton(R.string.cancel, null)
@@ -181,13 +176,13 @@ class ThemesActivity : BaseActivity() {
             .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    private fun showColorPicker(theme: AppTheme, colorIndex: Int, onComplete: ((String) -> Unit)? = null) {
-        val currentHex = when(colorIndex) {
-            1 -> theme.bgColor
-            2 -> theme.btnColor
-            3 -> theme.btnTextColor
-            4 -> theme.frontColor
-            else -> theme.textColor
+    private fun showColorPicker(theme: MoodTheme, moodIndex: Int, onComplete: ((String) -> Unit)? = null) {
+        val currentHex = when(moodIndex) {
+            1 -> theme.mood1
+            2 -> theme.mood2
+            3 -> theme.mood3
+            4 -> theme.mood4
+            else -> theme.mood5
         }
         
         val container = LinearLayout(this).apply {
@@ -219,11 +214,11 @@ class ThemesActivity : BaseActivity() {
         val valSeek = SeekBar(this).apply { max = 100; progress = (hsv[2] * 100).toInt() }
 
         val textColor = ColorHelper.getTextColor(this)
-        container.addView(TextView(this).apply { text = "Hue"; setPadding(0, 8, 0, 0); setTextColor(textColor) })
+        container.addView(TextView(this).apply { text = getString(R.string.label_hue); setPadding(0, 8, 0, 0); setTextColor(textColor) })
         container.addView(hueSeek)
-        container.addView(TextView(this).apply { text = "Saturation"; setPadding(0, 8, 0, 0); setTextColor(textColor) })
+        container.addView(TextView(this).apply { text = getString(R.string.label_saturation); setPadding(0, 8, 0, 0); setTextColor(textColor) })
         container.addView(satSeek)
-        container.addView(TextView(this).apply { text = "Brightness"; setPadding(0, 8, 0, 0); setTextColor(textColor) })
+        container.addView(TextView(this).apply { text = getString(R.string.label_brightness); setPadding(0, 8, 0, 0); setTextColor(textColor) })
         container.addView(valSeek)
 
         val watcher = object : android.text.TextWatcher {
@@ -266,17 +261,10 @@ class ThemesActivity : BaseActivity() {
         satSeek.setOnSeekBarChangeListener(seekListener)
         valSeek.setOnSeekBarChangeListener(seekListener)
 
-        val titleRes = when(colorIndex) {
-            1 -> R.string.hint_bg_color
-            2 -> R.string.hint_btn_color
-            3 -> R.string.hint_btn_text_color
-            4 -> R.string.hint_front_color
-            5 -> R.string.hint_text_color
-            else -> R.string.choose_color_hex
-        }
+        val title = "Mood $moodIndex"
 
         android.app.AlertDialog.Builder(this)
-            .setTitle(titleRes)
+            .setTitle(title)
             .setView(container)
             .setPositiveButton(R.string.save) { _, _ ->
                 val newHex = input.text.toString().trim()
@@ -284,16 +272,15 @@ class ThemesActivity : BaseActivity() {
                     if (onComplete != null) {
                         onComplete(newHex)
                     } else {
-                        when(colorIndex) {
-                            1 -> theme.bgColor = newHex
-                            2 -> theme.btnColor = newHex
-                            3 -> theme.btnTextColor = newHex
-                            4 -> theme.frontColor = newHex
-                            5 -> theme.textColor = newHex
+                        when(moodIndex) {
+                            1 -> theme.mood1 = newHex
+                            2 -> theme.mood2 = newHex
+                            3 -> theme.mood3 = newHex
+                            4 -> theme.mood4 = newHex
+                            5 -> theme.mood5 = newHex
                         }
                         saveThemes()
                         adapter.notifyDataSetChanged()
-                        ColorHelper.applySettings(this@ThemesActivity)
                     }
                 }
             }
@@ -302,7 +289,7 @@ class ThemesActivity : BaseActivity() {
             .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    private fun showMemberLinkDialog(theme: AppTheme) {
+    private fun showMemberLinkDialog(theme: MoodTheme) {
         val people = MemberHelper.loadAllPeople(this)
 
         val sp = getSharedPreferences("my_app", MODE_PRIVATE)
@@ -312,18 +299,18 @@ class ThemesActivity : BaseActivity() {
 
         DialogHelper.showMemberSelectionDialog(
             this,
-            getString(R.string.label_link_theme),
+            getString(R.string.label_link_mood_theme),
             people,
             groups,
-            people.filter { it.linkedThemeId == theme.id }.map { it.id },
+            people.filter { it.linkedMoodThemeId == theme.id }.map { it.id },
             isMultiSelect = true,
             includeArchived = false
         ) { selectedIds ->
             people.forEach { person ->
                 if (selectedIds.contains(person.id)) {
-                    person.linkedThemeId = theme.id
-                } else if (person.linkedThemeId == theme.id) {
-                    person.linkedThemeId = null
+                    person.linkedMoodThemeId = theme.id
+                } else if (person.linkedMoodThemeId == theme.id) {
+                    person.linkedMoodThemeId = null
                 }
             }
             MemberHelper.savePeople(this, people)
@@ -331,15 +318,15 @@ class ThemesActivity : BaseActivity() {
         }
     }
 
-    private fun showManageThemeLinksDialog(theme: AppTheme) {
+    private fun showManageThemeLinksDialog(theme: MoodTheme) {
         val spSettings = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val coFrontThemesJson = spSettings.getString("co_front_themes", "[]") ?: "[]"
-        val coFrontThemes: MutableList<CoFrontTheme> = Gson().fromJson(coFrontThemesJson, object : TypeToken<MutableList<CoFrontTheme>>() {}.type) ?: mutableListOf()
+        val coFrontThemesJson = spSettings.getString("co_front_mood_themes", "[]") ?: "[]"
+        val coFrontThemes: MutableList<CoFrontMoodTheme> = Gson().fromJson(coFrontThemesJson, object : TypeToken<MutableList<CoFrontMoodTheme>>() {}.type) ?: mutableListOf()
 
         val people = MemberHelper.loadAllPeople(this)
 
-        val myCombos = coFrontThemes.filter { it.themeId == theme.id }
-        val myPeople = people.filter { it.linkedThemeId == theme.id }
+        val myCombos = coFrontThemes.filter { it.moodThemeId == theme.id }
+        val myPeople = people.filter { it.linkedMoodThemeId == theme.id }
 
         if (myCombos.isEmpty() && myPeople.isEmpty()) return
 
@@ -351,15 +338,15 @@ class ThemesActivity : BaseActivity() {
         }
 
         android.app.AlertDialog.Builder(this)
-            .setTitle(R.string.label_link_theme)
+            .setTitle(R.string.label_link_mood_theme)
             .setItems(items.toTypedArray()) { _, which ->
                 if (which < myPeople.size) {
-                    myPeople[which].linkedThemeId = null
+                    myPeople[which].linkedMoodThemeId = null
                     MemberHelper.savePeople(this, people)
                 } else {
                     val comboToRemove = myCombos[which - myPeople.size]
                     coFrontThemes.remove(comboToRemove)
-                    spSettings.edit().putString("co_front_themes", Gson().toJson(coFrontThemes)).commit()
+                    spSettings.edit().putString("co_front_mood_themes", Gson().toJson(coFrontThemes)).commit()
                 }
                 adapter.notifyDataSetChanged()
                 android.widget.Toast.makeText(this, getString(R.string.toast_unlinked), android.widget.Toast.LENGTH_SHORT).show()
@@ -368,7 +355,7 @@ class ThemesActivity : BaseActivity() {
             .show()
     }
 
-    private fun showCoFrontLinkDialog(theme: AppTheme) {
+    private fun showCoFrontLinkDialog(theme: MoodTheme) {
         val sp = getSharedPreferences("my_app", MODE_PRIVATE)
         val peopleJson = sp.getString("people_list", "[]")
         val people: List<Person> = Gson().fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
@@ -390,36 +377,36 @@ class ThemesActivity : BaseActivity() {
             }
 
             val settingsSp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-            val coFrontThemesJson = settingsSp.getString("co_front_themes", "[]") ?: "[]"
-            val coFrontThemes: MutableList<CoFrontTheme> = Gson().fromJson(coFrontThemesJson, object : TypeToken<MutableList<CoFrontTheme>>() {}.type) ?: mutableListOf()
+            val coFrontThemesJson = settingsSp.getString("co_front_mood_themes", "[]") ?: "[]"
+            val coFrontThemes: MutableList<CoFrontMoodTheme> = Gson().fromJson(coFrontThemesJson, object : TypeToken<MutableList<CoFrontMoodTheme>>() {}.type) ?: mutableListOf()
 
             val sortedIds = selectedIds.sorted()
-            val existingCombo = coFrontThemes.find { it.memberIds.sorted() == sortedIds && it.themeId == theme.id }
+            val existingCombo = coFrontThemes.find { it.memberIds.sorted() == sortedIds && it.moodThemeId == theme.id }
 
             if (existingCombo != null) {
                 coFrontThemes.remove(existingCombo)
                 android.widget.Toast.makeText(this, getString(R.string.toast_combo_removed), android.widget.Toast.LENGTH_SHORT).show()
             } else {
                 coFrontThemes.removeAll { it.memberIds.sorted() == sortedIds }
-                coFrontThemes.add(CoFrontTheme(memberIds = sortedIds, themeId = theme.id))
+                coFrontThemes.add(CoFrontMoodTheme(memberIds = sortedIds, moodThemeId = theme.id))
                 android.widget.Toast.makeText(this, getString(R.string.toast_combo_linked), android.widget.Toast.LENGTH_SHORT).show()
             }
 
-            settingsSp.edit(commit = true) { putString("co_front_themes", Gson().toJson(coFrontThemes)) }
+            settingsSp.edit(commit = true) { putString("co_front_mood_themes", Gson().toJson(coFrontThemes)) }
             adapter.notifyDataSetChanged()
         }
     }
 
     private fun updatePreviews() {
-        findViewById<View>(R.id.bgPreview).setBackgroundColor(android.graphics.Color.parseColor(bgHex))
-        findViewById<View>(R.id.btnPreview).setBackgroundColor(android.graphics.Color.parseColor(btnHex))
-        findViewById<View>(R.id.btnTextPreview).setBackgroundColor(android.graphics.Color.parseColor(btnTextHex))
-        findViewById<View>(R.id.frontPreview).setBackgroundColor(android.graphics.Color.parseColor(frontHex))
-        findViewById<View>(R.id.textPreview).setBackgroundColor(android.graphics.Color.parseColor(textHex))
+        findViewById<View>(R.id.mood1Preview).setBackgroundColor(android.graphics.Color.parseColor(moodColors[0]))
+        findViewById<View>(R.id.mood2Preview).setBackgroundColor(android.graphics.Color.parseColor(moodColors[1]))
+        findViewById<View>(R.id.mood3Preview).setBackgroundColor(android.graphics.Color.parseColor(moodColors[2]))
+        findViewById<View>(R.id.mood4Preview).setBackgroundColor(android.graphics.Color.parseColor(moodColors[3]))
+        findViewById<View>(R.id.mood5Preview).setBackgroundColor(android.graphics.Color.parseColor(moodColors[4]))
     }
 
     private fun showSimpleColorPicker(title: String, currentHex: String, onColorChosen: (String) -> Unit) {
-        val tempTheme = AppTheme(name = "", bgColor = currentHex, btnColor = "", btnTextColor = "", frontColor = "", textColor = "")
+        val tempTheme = MoodTheme(name = "", mood1 = currentHex, mood2 = "", mood3 = "", mood4 = "", mood5 = "")
         showColorPicker(tempTheme, 1) { newHex ->
             onColorChosen(newHex)
         }
@@ -436,19 +423,15 @@ class ThemesActivity : BaseActivity() {
             addView(input)
         }
         android.app.AlertDialog.Builder(this)
-            .setTitle("Import Theme Hex")
+            .setTitle("Import Mood Theme Hex")
             .setView(container)
             .setPositiveButton(R.string.save) { _, _ ->
                 val hexString = input.text.toString().trim()
                 val parts = hexString.split(",").map { it.trim() }
                 if (parts.size >= 5) {
-                    bgHex = parts[0]
-                    btnHex = parts[1]
-                    btnTextHex = parts[2]
-                    frontHex = parts[3]
-                    textHex = parts[4]
+                    for (i in 0 until 5) moodColors[i] = parts[i]
                     updatePreviews()
-                    Toast.makeText(this, "Theme colors imported", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Mood colors imported", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(this, "Invalid hex string (needs 5 colors)", Toast.LENGTH_SHORT).show()
                 }
@@ -458,50 +441,50 @@ class ThemesActivity : BaseActivity() {
             .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    inner class ThemesAdapter(
-        private val items: List<AppTheme>,
-        private val onDelete: (AppTheme) -> Unit,
-        private val onDuplicate: (AppTheme) -> Unit,
-        private val onSetDefault: (AppTheme) -> Unit,
-        private val onSetMulti: (AppTheme) -> Unit,
-        private val onLinkMember: (AppTheme) -> Unit,
-        private val onLinkCoFront: (AppTheme) -> Unit
-    ) : RecyclerView.Adapter<ThemesAdapter.ViewHolder>() {
+    inner class MoodThemesAdapter(
+        private val items: List<MoodTheme>,
+        private val onDelete: (MoodTheme) -> Unit,
+        private val onDuplicate: (MoodTheme) -> Unit,
+        private val onSetDefault: (MoodTheme) -> Unit,
+        private val onSetMulti: (MoodTheme) -> Unit,
+        private val onLinkMember: (MoodTheme) -> Unit,
+        private val onLinkCoFront: (MoodTheme) -> Unit
+    ) : RecyclerView.Adapter<MoodThemesAdapter.ViewHolder>() {
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_theme, parent, false)
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_mood_theme, parent, false)
             return ViewHolder(view)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val theme = items[position]
             val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-            val defaultId = sp.getString("default_theme_id", null)
-            val multiId = sp.getString("multi_front_theme_id", null)
+            val defaultId = sp.getString("default_mood_theme_id", null)
+            val multiId = sp.getString("multi_front_mood_theme_id", null)
 
-            val currentAppBg = ColorHelper.getBgColor(this@ThemesActivity)
+            val currentAppBg = ColorHelper.getBgColor(this@MoodThemesActivity)
             (holder.itemView as? com.google.android.material.card.MaterialCardView)?.setCardBackgroundColor(currentAppBg)
 
             holder.tvThemeName.text = theme.name
             holder.tvThemeName.setOnClickListener { showRenameDialog(theme) }
 
-            holder.viewColor1.setBackgroundColor(theme.bgColor.toColorInt())
-            holder.viewColor2.setBackgroundColor(theme.btnColor.toColorInt())
-            holder.viewColor3.setBackgroundColor(theme.btnTextColor.toColorInt())
-            holder.viewColor4.setBackgroundColor(theme.frontColor.toColorInt())
-            holder.viewColor5.setBackgroundColor(theme.textColor.toColorInt())
+            holder.viewColor1.setBackgroundColor(theme.mood1.toColorInt())
+            holder.viewColor2.setBackgroundColor(theme.mood2.toColorInt())
+            holder.viewColor3.setBackgroundColor(theme.mood3.toColorInt())
+            holder.viewColor4.setBackgroundColor(theme.mood4.toColorInt())
+            holder.viewColor5.setBackgroundColor(theme.mood5.toColorInt())
 
-            holder.tvHex1.text = theme.bgColor
-            holder.tvHex2.text = theme.btnColor
-            holder.tvHex3.text = theme.btnTextColor
-            holder.tvHex4.text = theme.frontColor
-            holder.tvHex5.text = theme.textColor
+            holder.tvHex1.text = theme.mood1
+            holder.tvHex2.text = theme.mood2
+            holder.tvHex3.text = theme.mood3
+            holder.tvHex4.text = theme.mood4
+            holder.tvHex5.text = theme.mood5
 
-            holder.tvHex1.setOnClickListener { copyToClipboard(theme.bgColor) }
-            holder.tvHex2.setOnClickListener { copyToClipboard(theme.btnColor) }
-            holder.tvHex3.setOnClickListener { copyToClipboard(theme.btnTextColor) }
-            holder.tvHex4.setOnClickListener { copyToClipboard(theme.frontColor) }
-            holder.tvHex5.setOnClickListener { copyToClipboard(theme.textColor) }
+            holder.tvHex1.setOnClickListener { copyToClipboard(theme.mood1) }
+            holder.tvHex2.setOnClickListener { copyToClipboard(theme.mood2) }
+            holder.tvHex3.setOnClickListener { copyToClipboard(theme.mood3) }
+            holder.tvHex4.setOnClickListener { copyToClipboard(theme.mood4) }
+            holder.tvHex5.setOnClickListener { copyToClipboard(theme.mood5) }
 
             holder.viewColor1.setOnClickListener { showColorPicker(theme, 1) }
             holder.viewColor2.setOnClickListener { showColorPicker(theme, 2) }
@@ -516,8 +499,8 @@ class ThemesActivity : BaseActivity() {
             holder.btnLinkMember.setOnClickListener { onLinkMember(theme) }
             holder.btnLinkCoFront.setOnClickListener { onLinkCoFront(theme) }
 
-            val textColor = ColorHelper.getTextColor(this@ThemesActivity)
-            val btnColor = ColorHelper.getBtnColor(this@ThemesActivity)
+            val textColor = ColorHelper.getTextColor(this@MoodThemesActivity)
+            val btnColor = ColorHelper.getBtnColor(this@MoodThemesActivity)
 
             holder.tvThemeName.setTextColor(textColor)
             holder.tvHex1.setTextColor(textColor)
@@ -529,7 +512,7 @@ class ThemesActivity : BaseActivity() {
             holder.btnSetDefault.setTextColor(if (theme.id == defaultId) btnColor else textColor)
             holder.btnSetMulti.setTextColor(if (theme.id == multiId) btnColor else textColor)
             holder.btnSetDefault.iconTint = android.content.res.ColorStateList.valueOf(if (theme.id == defaultId) btnColor else textColor)
-            holder.btnSetMulti.iconTint = android.content.res.ColorStateList.valueOf(if (theme.id == defaultId) btnColor else textColor)
+            holder.btnSetMulti.iconTint = android.content.res.ColorStateList.valueOf(if (theme.id == multiId) btnColor else textColor)
             holder.btnLinkMember.iconTint = android.content.res.ColorStateList.valueOf(textColor)
             holder.btnLinkMember.setTextColor(textColor)
             holder.btnLinkCoFront.iconTint = android.content.res.ColorStateList.valueOf(textColor)
@@ -541,9 +524,9 @@ class ThemesActivity : BaseActivity() {
             if (theme.id == defaultId) statusParts.add(getString(R.string.theme_none))
             if (theme.id == multiId) statusParts.add(getString(R.string.label_multi))
 
-            val coFrontThemesJson = sp.getString("co_front_themes", "[]") ?: "[]"
-            val coFrontThemes: List<CoFrontTheme> = Gson().fromJson(coFrontThemesJson, object : TypeToken<List<CoFrontTheme>>() {}.type) ?: emptyList()
-            val comboCount = coFrontThemes.count { it.themeId == theme.id }
+            val coFrontThemesJson = sp.getString("co_front_mood_themes", "[]") ?: "[]"
+            val coFrontThemes: List<CoFrontMoodTheme> = Gson().fromJson(coFrontThemesJson, object : TypeToken<List<CoFrontMoodTheme>>() {}.type) ?: emptyList()
+            val comboCount = coFrontThemes.count { it.moodThemeId == theme.id }
             if (comboCount > 0) statusParts.add("${getString(R.string.stats_co_fronting)}: $comboCount")
 
             holder.tvStatus.visibility = if (statusParts.isNotEmpty()) View.VISIBLE else View.GONE
@@ -554,8 +537,8 @@ class ThemesActivity : BaseActivity() {
             val peopleJson = appSp.getString("people_list", "[]")
             val people: List<Person> = Gson().fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
 
-            val linkedMembers = people.filter { it.linkedThemeId == theme.id }.map { it.name }
-            val linkedCombos = coFrontThemes.filter { it.themeId == theme.id }.map { combo ->
+            val linkedMembers = people.filter { it.linkedMoodThemeId == theme.id }.map { it.name }
+            val linkedCombos = coFrontThemes.filter { it.moodThemeId == theme.id }.map { combo ->
                 combo.memberIds.map { id -> people.find { it.id == id }?.name ?: getString(R.string.deleted_member) }.joinToString(" + ")
             }
 
@@ -578,7 +561,7 @@ class ThemesActivity : BaseActivity() {
             val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
             val clip = android.content.ClipData.newPlainText("hex_color", hex)
             clipboard.setPrimaryClip(clip)
-            android.widget.Toast.makeText(this@ThemesActivity, getString(R.string.toast_copied, hex), android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this@MoodThemesActivity, getString(R.string.toast_copied, hex), android.widget.Toast.LENGTH_SHORT).show()
         }
 
         override fun getItemCount(): Int = items.size

@@ -22,6 +22,7 @@ data class RelationEdge(
     var nodeIds: MutableList<String> = mutableListOf(),
     var groupIds: MutableList<String> = mutableListOf(),
     var tag: String? = null,
+    var note: String? = null,
     val fromNodeId: String? = null,
     val toNodeId: String? = null
 ) {

@@ -37,9 +37,48 @@ class RelationsActivity : BaseActivity() {
         findViewById<View>(R.id.btnSave).setOnClickListener { saveData() }
         findViewById<View>(R.id.btnExport).setOnClickListener { exportToPdf() }
 
-        mapView.onNodeLongClicked = { node -> showEditNodeDialog(node) }
+        mapView.onNodeLongClicked = { node -> showManageNodeDialog(node) }
         mapView.onGroupLongClicked = { group -> showEditGroupDialog(group) }
+        mapView.onEdgeLongClicked = { edge -> showEditEdgeDialogFromMap(edge) }
         mapView.onDataChanged = { saveData(silent = true) }
+    }
+
+    private fun showEditEdgeDialogFromMap(edge: RelationEdge) {
+        activeDialog?.dismiss()
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val p = 16.dpToPx()
+            setPadding(p, p, p, p)
+        }
+        val tagInput = EditText(this).apply {
+            hint = getString(R.string.relation_tag)
+            setText(edge.tag)
+            setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
+        }
+        val noteInput = EditText(this).apply {
+            hint = "Note"
+            setText(edge.note)
+            setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
+        }
+        layout.addView(tagInput)
+        layout.addView(noteInput)
+
+        activeDialog = AlertDialog.Builder(this)
+            .setTitle(R.string.action_edit)
+            .setView(layout)
+            .setPositiveButton(R.string.save) { _, _ ->
+                edge.tag = tagInput.text.toString()
+                edge.note = noteInput.text.toString()
+                mapView.invalidate()
+                saveData(silent = true)
+            }
+            .setNegativeButton(R.string.delete) { _, _ ->
+                relationsData.edges.remove(edge)
+                mapView.invalidate()
+                saveData(silent = true)
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun loadData() {
@@ -92,18 +131,19 @@ class RelationsActivity : BaseActivity() {
     }
 
     private fun showAddNodeDialog() {
+        activeDialog?.dismiss()
         val options = arrayOf(
             getString(R.string.add_existing_member),
             getString(R.string.add_relationship_orb)
         )
-        AlertDialog.Builder(this)
+        activeDialog = AlertDialog.Builder(this)
             .setTitle(R.string.add_node)
             .setItems(options) { _, which ->
                 if (which == 0) showSelectMemberDialog()
                 else showEditRelationshipOrbDialog(null)
             }
             .show()
-            .let { ColorHelper.styleAlertDialog(it, this) }
+            .also { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun showEditRelationshipOrbDialog(existingNode: RelationNode?) {
@@ -215,7 +255,7 @@ class RelationsActivity : BaseActivity() {
         }
         layout.addView(imgPreview)
 
-        AlertDialog.Builder(this)
+        activeDialog = AlertDialog.Builder(this)
             .setTitle(if (isNew) R.string.add_relationship_orb else R.string.action_edit)
             .setView(layout)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -243,7 +283,7 @@ class RelationsActivity : BaseActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-            .let { ColorHelper.styleAlertDialog(it, this) }
+            .also { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private var imagePickerCallback: ((android.net.Uri) -> Unit)? = null
@@ -274,7 +314,7 @@ class RelationsActivity : BaseActivity() {
                 groupOptions.addAll(relationsData.groups.map { it.name })
                 groupOptions.add(getString(R.string.connect_to_group_bubble))
 
-                AlertDialog.Builder(this)
+                activeDialog = AlertDialog.Builder(this)
                     .setTitle(R.string.action_manage_groups)
                     .setItems(groupOptions.toTypedArray()) { _, which ->
                         selectedIds.forEachIndexed { index, selectedId ->
@@ -304,7 +344,7 @@ class RelationsActivity : BaseActivity() {
                         mapView.setData(relationsData)
                         saveData(silent = true)
                     }
-                    .show().let { ColorHelper.styleAlertDialog(it, this) }
+                    .show().also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
             }
         }
     }
@@ -312,7 +352,7 @@ class RelationsActivity : BaseActivity() {
     private fun showSelectGroupForConnectionDialog(node: RelationNode) {
         if (relationsData.groups.isEmpty()) return
         val names = relationsData.groups.map { it.name }.toTypedArray()
-        AlertDialog.Builder(this)
+        activeDialog = AlertDialog.Builder(this)
             .setTitle("${getString(R.string.connect_with)} ${node.name}")
             .setItems(names) { _, which ->
                 val edge = RelationEdge(
@@ -323,7 +363,8 @@ class RelationsActivity : BaseActivity() {
                 mapView.invalidate()
                 saveData(silent = true)
             }
-            .show().let { ColorHelper.styleAlertDialog(it, this) }
+            .show()
+            .also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
     }
 
     private fun setupEnvironmentSpinner() {
@@ -348,9 +389,15 @@ class RelationsActivity : BaseActivity() {
                     } else if (position != currentEnvIndex) {
                         currentEnvIndex = position
                         mapView.setData(relationsData)
+                        setupEnvironmentSpinner()
                     }
                 }
                 override fun onNothingSelected(parent: AdapterView<*>?) {}
+            }
+
+            setOnLongClickListener {
+                showEnvironmentOptionsDialog()
+                true
             }
         }
 
@@ -377,8 +424,9 @@ class RelationsActivity : BaseActivity() {
     }
 
     private fun showCreateEnvironmentDialog() {
+        activeDialog?.dismiss()
         val input = EditText(this).apply { hint = getString(R.string.hint_environment_name) }
-        AlertDialog.Builder(this)
+        activeDialog = AlertDialog.Builder(this)
             .setTitle(R.string.dialog_new_environment_title)
             .setView(input)
             .setPositiveButton(R.string.action_create) { _, _ ->
@@ -392,11 +440,67 @@ class RelationsActivity : BaseActivity() {
                 }
             }
             .setNegativeButton(R.string.cancel, null)
-            .show().let { ColorHelper.styleAlertDialog(it, this) }
+            .show()
+            .also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
+    }
+
+    private fun showRenameEnvironmentDialog() {
+        activeDialog?.dismiss()
+        val currentEnv = environments[currentEnvIndex]
+        val input = EditText(this).apply {
+            hint = getString(R.string.hint_environment_name)
+            setText(currentEnv.name)
+        }
+        activeDialog = AlertDialog.Builder(this)
+            .setTitle(R.string.action_edit)
+            .setView(input)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val name = input.text.toString()
+                if (name.isNotBlank()) {
+                    currentEnv.name = name
+                    saveData(silent = true)
+                    setupEnvironmentSpinner()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show().also { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun showDeleteEnvironmentDialog() {
+        if (environments.size <= 1) {
+            Toast.makeText(this, "Cannot delete the last environment", Toast.LENGTH_SHORT).show()
+            return
+        }
+        activeDialog?.dismiss()
+        activeDialog = AlertDialog.Builder(this)
+            .setTitle(R.string.delete)
+            .setMessage("Are you sure you want to delete '${environments[currentEnvIndex].name}'?")
+            .setPositiveButton(R.string.delete) { _, _ ->
+                environments.removeAt(currentEnvIndex)
+                currentEnvIndex = 0
+                saveData(silent = true)
+                setupEnvironmentSpinner()
+                mapView.setData(relationsData)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show().also { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun showEnvironmentOptionsDialog() {
+        val options = arrayOf(getString(R.string.action_edit), getString(R.string.delete))
+        activeDialog?.dismiss()
+        activeDialog = AlertDialog.Builder(this)
+            .setTitle(environments[currentEnvIndex].name)
+            .setItems(options) { _, which ->
+                if (which == 0) showRenameEnvironmentDialog()
+                else showDeleteEnvironmentDialog()
+            }
+            .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun showAddEdgeDialog() {
         if (relationsData.nodes.size + relationsData.groups.size < 2) return
+        activeDialog?.dismiss()
 
         val selectedNodeIndices = mutableListOf(-1, -1) 
         val selectedGroupIndices = mutableListOf(-1, -1)
@@ -482,11 +586,19 @@ class RelationsActivity : BaseActivity() {
         }
         layout.addView(tagInput)
 
+        val noteInput = EditText(this).apply {
+            tag = "noteInput"
+            hint = "Note"
+            setTextColor(textColor)
+            setHintTextColor(textColor and 0x80FFFFFF.toInt())
+        }
+        layout.addView(noteInput)
+
         val scroll = ScrollView(this).apply {
             addView(layout)
         }
 
-        AlertDialog.Builder(this)
+        activeDialog = AlertDialog.Builder(this)
             .setTitle(R.string.add_edge)
             .setView(scroll)
             .setPositiveButton(R.string.action_add) { _, _ ->
@@ -500,31 +612,38 @@ class RelationsActivity : BaseActivity() {
                 }
 
                 if (nodeIds.size + groupIds.size >= 2) {
-                    val edge = RelationEdge(nodeIds = nodeIds, groupIds = groupIds, tag = tagInput.text.toString())
+                    val edge = RelationEdge(
+                        nodeIds = nodeIds, 
+                        groupIds = groupIds, 
+                        tag = tagInput.text.toString(),
+                        note = layout.findViewWithTag<EditText>("noteInput")?.text?.toString()
+                    )
                     relationsData.edges.add(edge)
                     mapView.setData(relationsData)
                     saveData(silent = true)
                 }
             }
             .setNegativeButton(R.string.cancel, null)
-            .show().let { ColorHelper.styleAlertDialog(it, this) }
+            .show().also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
     }
 
     private fun showGroupsListDialog() {
+        activeDialog?.dismiss()
         val options = mutableListOf(" + " + getString(R.string.action_new_group))
         options.addAll(relationsData.groups.map { it.name })
 
-        AlertDialog.Builder(this)
+        activeDialog = AlertDialog.Builder(this)
             .setTitle(R.string.add_group_bubble)
             .setItems(options.toTypedArray()) { _, which ->
                 if (which == 0) showEditGroupDialog(RelationGroup())
                 else showEditGroupDialog(relationsData.groups[which - 1])
             }
             .show()
-            .let { ColorHelper.styleAlertDialog(it, this) }
+            .also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
     }
 
     private fun showEditGroupDialog(group: RelationGroup) {
+        activeDialog?.dismiss()
         val isNew = !relationsData.groups.contains(group)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -630,7 +749,7 @@ class RelationsActivity : BaseActivity() {
             addView(layout)
         }
 
-        AlertDialog.Builder(this)
+        activeDialog = AlertDialog.Builder(this)
             .setTitle(if (isNew) getString(R.string.new_group_bubble) else getString(R.string.edit_group_bubble))
             .setView(scrollOuter)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -663,285 +782,246 @@ class RelationsActivity : BaseActivity() {
                 saveData(silent = true)
             }
             .show()
-            .let { ColorHelper.styleAlertDialog(it, this) }
+            .also { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    private fun showManageGroupsForNodeDialog(node: RelationNode) {
-        val groups = relationsData.groups
-        if (groups.isEmpty()) {
-            Toast.makeText(this, getString(R.string.create_groups_first), Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val names = groups.map { it.name }.toTypedArray()
-        val checked = BooleanArray(groups.size) { i -> groups[i].nodeIds.contains(node.id) }
-
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.action_manage_groups))
-            .setMultiChoiceItems(names, checked) { _, which, isChecked ->
-                checked[which] = isChecked
-            }
-            .setPositiveButton(R.string.done) { _, _ ->
-                groups.forEachIndexed { index, group ->
-                    if (checked[index]) {
-                        if (!group.nodeIds.contains(node.id)) group.nodeIds.add(node.id)
-                    } else {
-                        group.nodeIds.remove(node.id)
-                    }
-                }
-                mapView.setData(relationsData)
-                saveData(silent = true)
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-            .let { ColorHelper.styleAlertDialog(it, this) }
-    }
-
-    private fun showEditNodeDialog(node: RelationNode) {
-        val options = mutableListOf(
-            getString(R.string.action_connections),
-            getString(R.string.connect_to_group_bubble),
-            getString(R.string.action_manage_groups)
-        )
-        
-        if (node.type == NodeType.RELATIONSHIP_ORB) {
-            options.add(getString(R.string.action_edit))
-        }
-        
-        options.add(getString(R.string.delete))
-
-        AlertDialog.Builder(this)
-            .setTitle(node.name)
-            .setItems(options.toTypedArray()) { _, which ->
-                val selectedOption = options[which]
-                when {
-                    selectedOption == getString(R.string.action_connections) -> showManageConnectionsDialog(node)
-                    selectedOption == getString(R.string.connect_to_group_bubble) -> showSelectGroupForConnectionDialog(node)
-                    selectedOption == getString(R.string.action_manage_groups) -> showManageGroupsForNodeDialog(node)
-                    selectedOption == getString(R.string.action_edit) -> showEditRelationshipOrbDialog(node)
-                    selectedOption == getString(R.string.delete) -> {
-                        relationsData.nodes.remove(node)
-                        relationsData.edges.removeAll { edge ->
-                            edge.getSafeNodeIds().contains(node.id)
-                        }
-                        relationsData.groups.forEach { it.nodeIds.remove(node.id) }
-                        mapView.setData(relationsData)
-                        saveData(silent = true)
-                    }
-                }
-            }
-            .show()
-            .let { ColorHelper.styleAlertDialog(it, this) }
-    }
-
-    private fun showManageConnectionsDialog(node: RelationNode) {
+    private fun showManageNodeDialog(node: RelationNode) {
         activeDialog?.dismiss()
-        val nodeEdges = relationsData.edges.filter { edge ->
-            edge.getSafeNodeIds().contains(node.id)
-        }
-
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val p = 16.dpToPx()
-            setPadding(p, p, p, p)
-            setBackgroundColor(ColorHelper.getBgColor(this@RelationsActivity))
-        }
-
-        val titleExisting = TextView(this).apply {
-            text = getString(R.string.label_linked_members)
-            textSize = 18f
-            setPadding(0, 0, 0, 8.dpToPx())
-            setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
-        }
-        container.addView(titleExisting)
-
-        if (nodeEdges.isEmpty()) {
-            container.addView(TextView(this).apply {
-                text = getString(R.string.no_connections)
-                setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
-            })
-        } else {
-            nodeEdges.forEach { edge ->
-                val otherNodeIds = edge.getSafeNodeIds().filter { it != node.id }
-                val otherNodesNames = otherNodeIds.mapNotNull { id -> relationsData.nodes.find { it.id == id }?.name }.toMutableList()
-                edge.groupIds.forEach { gid ->
-                    relationsData.groups.find { it.id == gid }?.let { otherNodesNames.add("📁 ${it.name}") }
-                }
-
-                if (otherNodesNames.isNotEmpty()) {
-                    val row = LinearLayout(this).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        gravity = Gravity.CENTER_VERTICAL
-                        setPadding(0, 4.dpToPx(), 0, 4.dpToPx())
-                    }
-
-                    val txtContainer = LinearLayout(this).apply {
-                        orientation = LinearLayout.VERTICAL
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    }
-
-                    val txtNames = TextView(this).apply {
-                        text = otherNodesNames.joinToString(", ")
-                        setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
-                        textSize = 16f
-                    }
-                    txtContainer.addView(txtNames)
-
-                    if (!edge.tag.isNullOrBlank()) {
-                        val txtTag = TextView(this).apply {
-                            text = edge.tag
-                            setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
-                            textSize = 14f
-                            setTypeface(null, Typeface.ITALIC)
-                        }
-                        txtContainer.addView(txtTag)
-                    }
-
-                    val btnDel = ImageButton(this).apply {
-                        setImageResource(android.R.drawable.ic_menu_delete)
-                        background = null
-                        setOnClickListener {
-                            relationsData.edges.remove(edge)
-                            mapView.setData(relationsData)
-                            Toast.makeText(this@RelationsActivity, getString(R.string.connection_removed), Toast.LENGTH_SHORT).show()
-                            showManageConnectionsDialog(node)
-                        }
-                    }
-
-                    val btnEdit = ImageButton(this).apply {
-                        setImageResource(android.R.drawable.ic_menu_edit)
-                        background = null
-                        setOnClickListener {
-                            val input = EditText(this@RelationsActivity).apply { 
-                                setText(edge.tag)
-                                setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
-                            }
-                            AlertDialog.Builder(this@RelationsActivity)
-                                .setTitle(R.string.dialog_edit_label)
-                                .setView(input)
-                                .setPositiveButton(R.string.save) { _, _ ->
-                                    edge.tag = input.text.toString()
-                                    mapView.invalidate()
-                                    showManageConnectionsDialog(node)
-                                }
-                                .setNegativeButton(R.string.cancel, null)
-                                .show()
-                                .let { ColorHelper.styleAlertDialog(it, this@RelationsActivity) }
-                        }
-                    }
-
-                    row.addView(txtContainer)
-                    row.addView(btnEdit)
-                    row.addView(btnDel)
-                    container.addView(row)
-                }
-            }
-        }
-
-        val btnAdd = com.google.android.material.button.MaterialButton(this).apply {
-            text = getString(R.string.add_edge)
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = 16.dpToPx()
-            }
-            setOnClickListener {
-                showAddEdgeForNodeDialog(node)
-            }
-        }
-        container.addView(btnAdd)
-        
-        val scroll = ScrollView(this).apply {
-            addView(container)
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle(node.name)
-            .setView(scroll)
-            .setPositiveButton(R.string.done, null)
-            .show()
-            .let {
-                ColorHelper.styleAlertDialog(it, this)
-                activeDialog = it
-            }
-    }
-
-    private fun showAddEdgeForNodeDialog(node: RelationNode) {
-        val allOtherOptions = mutableListOf(getString(R.string.select_member_placeholder))
-        val otherNodes = relationsData.nodes.filter { it.id != node.id }
-        allOtherOptions.addAll(otherNodes.map { "👤 ${it.name}" })
-        allOtherOptions.addAll(relationsData.groups.map { "📁 ${it.name}" })
-
         val textColor = ColorHelper.getTextColor(this)
         val bgColor = ColorHelper.getBgColor(this)
-
-        val layout = LinearLayout(this).apply {
+        
+        val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val p = 16.dpToPx()
             setPadding(p, p, p, p)
             setBackgroundColor(bgColor)
         }
 
+        // Section: Info
+        if (node.type == NodeType.RELATIONSHIP_ORB) {
+            val nameEdit = EditText(this).apply {
+                setText(node.name)
+                hint = "Name"
+                setTextColor(textColor)
+            }
+            container.addView(nameEdit)
+            nameEdit.addTextChangedListener(object : android.text.TextWatcher {
+                override fun afterTextChanged(s: android.text.Editable?) { 
+                    node.name = s.toString()
+                    mapView.invalidate()
+                    saveData(silent = true)
+                }
+                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+                override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            })
+        }
+
+        // Section: Groups
+        val titleGroups = TextView(this).apply {
+            text = getString(R.string.action_manage_groups)
+            textSize = 16f
+            setPadding(0, 16.dpToPx(), 0, 8.dpToPx())
+            setTextColor(textColor)
+            setTypeface(null, Typeface.BOLD)
+        }
+        container.addView(titleGroups)
+
+        relationsData.groups.forEach { group ->
+            val cb = CheckBox(this).apply {
+                text = group.name
+                isChecked = group.nodeIds.contains(node.id)
+                setTextColor(textColor)
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        if (!group.nodeIds.contains(node.id)) group.nodeIds.add(node.id)
+                    } else {
+                        group.nodeIds.remove(node.id)
+                    }
+                    mapView.setData(relationsData)
+                    saveData(silent = true)
+                }
+            }
+            container.addView(cb)
+        }
+
+        // Section: Connections
+        val titleConn = TextView(this).apply {
+            text = getString(R.string.action_connections)
+            textSize = 16f
+            setPadding(0, 16.dpToPx(), 0, 8.dpToPx())
+            setTextColor(textColor)
+            setTypeface(null, Typeface.BOLD)
+        }
+        container.addView(titleConn)
+
+        val connectionsList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        container.addView(connectionsList)
+
+        var editingEdge: RelationEdge? = null
+
+        val addTitle = TextView(this).apply {
+            text = "+ Add Connection"
+            setTextColor(textColor)
+            setPadding(0, 32.dpToPx(), 0, 4.dpToPx())
+            setTypeface(null, Typeface.BOLD)
+        }
+        container.addView(addTitle)
+
+        val allOtherOptions = mutableListOf(getString(R.string.select_member_placeholder))
+        val otherNodes = relationsData.nodes.filter { it.id != node.id }
+        allOtherOptions.addAll(otherNodes.map { "👤 ${it.name}" })
+        allOtherOptions.addAll(relationsData.groups.map { "📁 ${it.name}" })
+
         val toSpinner = Spinner(this).apply {
             adapter = ColorHelper.createThemedAdapter(this@RelationsActivity, allOtherOptions)
         }
-
-        val tagInput = EditText(this).apply {
-            hint = getString(R.string.relation_tag)
-            setTextColor(textColor)
-            setHintTextColor(textColor and 0x80FFFFFF.toInt())
-        }
-
-        layout.addView(TextView(this).apply {
-            text = getString(R.string.connect_with)
-            setTextColor(textColor)
-        })
-        layout.addView(toSpinner)
-        layout.addView(TextView(this).apply {
-            text = getString(R.string.relation_tag)
-            setTextColor(textColor)
-            setPadding(0, 8.dpToPx(), 0, 0)
-        })
-        layout.addView(tagInput)
+        container.addView(toSpinner)
         
-        val scroll = ScrollView(this).apply {
-            addView(layout)
-        }
+        addTitle.setOnClickListener { toSpinner.performClick() }
 
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.add_edge))
-            .setView(scroll)
-            .setPositiveButton(R.string.action_add) { _, _ ->
-                val pos = toSpinner.selectedItemPosition
-                if (pos > 0) {
-                    val edge = if (pos <= otherNodes.size) {
-                        RelationEdge(
-                            nodeIds = mutableListOf(node.id, otherNodes[pos - 1].id),
-                            tag = tagInput.text.toString()
-                        )
+        val tagEdit = EditText(this).apply { hint = getString(R.string.relation_tag); setTextColor(textColor) }
+        val noteEdit = EditText(this).apply { hint = "Note"; setTextColor(textColor) }
+        container.addView(tagEdit)
+        container.addView(noteEdit)
+
+        val btnAdd = Button(this).apply {
+            text = getString(R.string.action_add)
+        }
+        container.addView(btnAdd)
+
+        fun refreshConnections() {
+            connectionsList.removeAllViews()
+            val actualEdges = relationsData.edges.filter { it.getSafeNodeIds().contains(node.id) }
+
+            actualEdges.forEach { edge ->
+                val otherNodeIds = edge.getSafeNodeIds().filter { it != node.id }
+                val names = otherNodeIds.mapNotNull { id -> relationsData.nodes.find { it.id == id }?.name }.toMutableList()
+                edge.groupIds.forEach { gid -> relationsData.groups.find { it.id == gid }?.let { names.add("📁 ${it.name}") } }
+
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(0, 4.dpToPx(), 0, 4.dpToPx())
+                }
+                val txt = TextView(this).apply {
+                    text = names.joinToString(", ") + (if (!edge.tag.isNullOrBlank()) " (${edge.tag})" else "")
+                    setTextColor(textColor)
+                    layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+                }
+                val btnEdit = ImageButton(this).apply {
+                    setImageResource(android.R.drawable.ic_menu_edit)
+                    background = null
+                    setOnClickListener {
+                        editingEdge = edge
+                        addTitle.text = "Edit Connection"
+                        btnAdd.text = getString(R.string.save)
+                        tagEdit.setText(edge.tag)
+                        noteEdit.setText(edge.note)
+
+                        val targetNodeId = edge.getSafeNodeIds().find { it != node.id }
+                        val targetGroupId = edge.groupIds.firstOrNull()
+                        if (targetNodeId != null) {
+                            val idx = otherNodes.indexOfFirst { it.id == targetNodeId }
+                            if (idx != -1) toSpinner.setSelection(idx + 1)
+                        } else if (targetGroupId != null) {
+                            val idx = relationsData.groups.indexOfFirst { it.id == targetGroupId }
+                            if (idx != -1) toSpinner.setSelection(otherNodes.size + idx + 1)
+                        }
+                    }
+                }
+                val btnDel = ImageButton(this).apply {
+                    setImageResource(android.R.drawable.ic_menu_delete)
+                    background = null
+                    setOnClickListener {
+                        relationsData.edges.remove(edge)
+                        mapView.invalidate()
+                        saveData(silent = true)
+                        refreshConnections()
+                    }
+                }
+                row.addView(txt)
+                row.addView(btnEdit)
+                row.addView(btnDel)
+                connectionsList.addView(row)
+            }
+        }
+        refreshConnections()
+
+        btnAdd.setOnClickListener {
+            val pos = toSpinner.selectedItemPosition
+            if (pos > 0) {
+                val tag = tagEdit.text.toString()
+                val note = noteEdit.text.toString()
+                
+                if (editingEdge != null) {
+                    val edge = editingEdge!!
+                    edge.tag = tag
+                    edge.note = note
+                    edge.nodeIds.clear()
+                    edge.groupIds.clear()
+                    edge.nodeIds.add(node.id)
+                    if (pos <= otherNodes.size) {
+                        edge.nodeIds.add(otherNodes[pos - 1].id)
                     } else {
-                        RelationEdge(
-                            nodeIds = mutableListOf(node.id),
-                            groupIds = mutableListOf(relationsData.groups[pos - otherNodes.size - 1].id),
-                            tag = tagInput.text.toString()
-                        )
+                        edge.groupIds.add(relationsData.groups[pos - otherNodes.size - 1].id)
+                    }
+                } else {
+                    val edge = if (pos <= otherNodes.size) {
+                        RelationEdge(nodeIds = mutableListOf(node.id, otherNodes[pos - 1].id), tag = tag, note = note)
+                    } else {
+                        RelationEdge(nodeIds = mutableListOf(node.id), groupIds = mutableListOf(relationsData.groups[pos - otherNodes.size - 1].id), tag = tag, note = note)
                     }
                     relationsData.edges.add(edge)
+                }
+                
+                mapView.invalidate()
+                saveData(silent = true)
+                
+                // Reset form
+                editingEdge = null
+                addTitle.text = "+ Add Connection"
+                btnAdd.text = getString(R.string.action_add)
+                tagEdit.setText("")
+                noteEdit.setText("")
+                toSpinner.setSelection(0)
+                refreshConnections()
+            }
+        }
+
+        // Section: Delete Node
+        var deleteClicks = 0
+        val btnDeleteNode = Button(this).apply {
+            text = getString(R.string.delete) + " " + node.name + " (8)"
+            setTextColor(Color.RED)
+            layoutParams = LinearLayout.LayoutParams(-1, -2).apply {
+                topMargin = 48.dpToPx()
+            }
+            setOnClickListener {
+                deleteClicks++
+                if (deleteClicks >= 8) {
+                    relationsData.nodes.remove(node)
+                    relationsData.edges.removeAll { it.getSafeNodeIds().contains(node.id) }
+                    relationsData.groups.forEach { it.nodeIds.remove(node.id) }
                     mapView.setData(relationsData)
                     saveData(silent = true)
-                    Toast.makeText(this, getString(R.string.connection_added), Toast.LENGTH_SHORT).show()
-                    showManageConnectionsDialog(node)
+                    activeDialog?.dismiss()
                 } else {
-                    Toast.makeText(this, getString(R.string.select_member_placeholder), Toast.LENGTH_SHORT).show()
+                    text = "${getString(R.string.delete)} ${node.name} (${8 - deleteClicks})"
                 }
             }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-            .let {
-                ColorHelper.styleAlertDialog(it, this)
-                activeDialog = it
-            }
+        }
+        container.addView(btnDeleteNode)
+
+        val scroll = ScrollView(this).apply { addView(container) }
+        activeDialog = AlertDialog.Builder(this)
+            .setTitle(node.name)
+            .setView(scroll)
+            .setPositiveButton(R.string.done, null)
+            .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun showCustomColorPickerDialog(currentColor: Int, onColorSelected: (Int) -> Unit) {
+        activeDialog?.dismiss()
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val p = 16.dpToPx()
@@ -978,12 +1058,17 @@ class RelationsActivity : BaseActivity() {
         container.addView(TextView(this).apply { text = getString(R.string.label_brightness); setTextColor(textColor) })
         container.addView(valSeek)
 
+        var isUpdating = false
         val updatePreview = {
-            try {
-                val color = Color.HSVToColor(floatArrayOf(hueSeek.progress.toFloat(), satSeek.progress / 100f, valSeek.progress / 100f))
-                preview.setBackgroundColor(color)
-                hexInput.setText(String.format("#%06X", (0xFFFFFF and color)))
-            } catch (_: Exception) {}
+            if (!isUpdating) {
+                isUpdating = true
+                try {
+                    val color = Color.HSVToColor(floatArrayOf(hueSeek.progress.toFloat(), satSeek.progress / 100f, valSeek.progress / 100f))
+                    preview.setBackgroundColor(color)
+                    hexInput.setText(String.format("#%06X", (0xFFFFFF and color)))
+                } catch (_: Exception) {}
+                isUpdating = false
+            }
         }
 
         val seekListener = object : SeekBar.OnSeekBarChangeListener {
@@ -997,23 +1082,26 @@ class RelationsActivity : BaseActivity() {
 
         hexInput.addTextChangedListener(object : android.text.TextWatcher {
             override fun afterTextChanged(s: android.text.Editable?) {
+                if (isUpdating) return
                 val str = s.toString()
                 if (str.length == 7 && str.startsWith("#")) {
                     try {
+                        isUpdating = true
                         val color = Color.parseColor(str)
                         preview.setBackgroundColor(color)
                         Color.colorToHSV(color, hsv)
                         hueSeek.progress = hsv[0].toInt()
                         satSeek.progress = (hsv[1] * 100).toInt()
                         valSeek.progress = (hsv[2] * 100).toInt()
-                    } catch (_: Exception) {}
+                        isUpdating = false
+                    } catch (_: Exception) { isUpdating = false }
                 }
             }
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
             override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
         })
 
-        AlertDialog.Builder(this)
+        activeDialog = AlertDialog.Builder(this)
             .setTitle(R.string.choose_color_hex)
             .setView(container)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -1024,7 +1112,7 @@ class RelationsActivity : BaseActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-            .let { ColorHelper.styleAlertDialog(it, this) }
+            .also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
     }
 
     private fun exportToPdf() {

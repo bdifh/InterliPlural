@@ -139,34 +139,6 @@ class SettingsActivity : BaseActivity() {
         captureInitialState()
         updatePreviews()
 
-        findViewById<MaterialCardView>(R.id.cardBgColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_bg_color), bgHex, "#FFFDF0") {
-                bgHex = it; updatePreviews()
-            }
-        }
-        findViewById<MaterialCardView>(R.id.cardBtnColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_btn_color), btnHex, "#7D4EBA") {
-                btnHex = it; updatePreviews()
-            }
-        }
-        findViewById<MaterialCardView>(R.id.cardBtnTextColor).setOnClickListener {
-            showColorDialog(
-                getString(R.string.hint_btn_text_color),
-                btnTextHex,
-                "#D2B8F5"
-            ) { btnTextHex = it; updatePreviews() }
-        }
-        findViewById<MaterialCardView>(R.id.cardFrontColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_front_color), frontHex, "#FCF09F") {
-                frontHex = it; updatePreviews()
-            }
-        }
-        findViewById<MaterialCardView>(R.id.cardTextColor).setOnClickListener {
-            showColorDialog(getString(R.string.hint_text_color), textHex, "#1A1811") {
-                textHex = it; updatePreviews()
-            }
-        }
-
         findViewById<MaterialCardView>(R.id.cardMood1).setOnClickListener {
             showColorDialog(
                 "Mood 1 (Rad)",
@@ -213,26 +185,24 @@ class SettingsActivity : BaseActivity() {
             startActivity(android.content.Intent(this, ThemesActivity::class.java))
         }
 
-        findViewById<Button>(R.id.btnThemePriority).setOnClickListener {
-            showThemePriorityDialog()
+        findViewById<Button>(R.id.btnManageMoodThemes).setOnClickListener {
+            startActivity(android.content.Intent(this, MoodThemesActivity::class.java))
         }
 
-        findViewById<Button>(R.id.btnSaveAsTheme).setOnClickListener {
-            val themesJson = sharedPref.getString("saved_themes", "[]") ?: "[]"
-            val themes: MutableList<AppTheme> =
-                Gson().fromJson(themesJson, object : TypeToken<MutableList<AppTheme>>() {}.type)
-                    ?: mutableListOf()
-            val newTheme = AppTheme(
-                name = "Theme ${themes.size + 1}",
-                bgColor = bgHex,
-                btnColor = btnHex,
-                btnTextColor = btnTextHex,
-                frontColor = frontHex,
-                textColor = textHex
-            )
-            themes.add(newTheme)
-            sharedPref.edit(commit = true) { putString("saved_themes", Gson().toJson(themes)) }
-            Toast.makeText(this, getString(R.string.theme_saved_toast), Toast.LENGTH_SHORT).show()
+        findViewById<Button>(R.id.btnExportMoodHex).setOnClickListener {
+            val hexString = moodColors.joinToString(",")
+            val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("mood_hex", hexString)
+            clipboard.setPrimaryClip(clip)
+            Toast.makeText(this, "Mood Hex copied to clipboard", Toast.LENGTH_SHORT).show()
+        }
+
+        findViewById<Button>(R.id.btnImportMoodHex).setOnClickListener {
+            showImportMoodHexDialog()
+        }
+
+        findViewById<Button>(R.id.btnThemePriority).setOnClickListener {
+            showThemePriorityDialog()
         }
 
         findViewById<Button>(R.id.btnManageCustomFields).setOnClickListener {
@@ -453,12 +423,6 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun updatePreviews() {
-        findViewById<View>(R.id.bgPreview).setBackgroundColor(Color.parseColor(bgHex))
-        findViewById<View>(R.id.btnPreview).setBackgroundColor(Color.parseColor(btnHex))
-        findViewById<View>(R.id.btnTextPreview).setBackgroundColor(Color.parseColor(btnTextHex))
-        findViewById<View>(R.id.frontPreview).setBackgroundColor(Color.parseColor(frontHex))
-        findViewById<View>(R.id.textPreview).setBackgroundColor(Color.parseColor(textHex))
-
         findViewById<View>(R.id.mood1Preview).setBackgroundColor(Color.parseColor(moodColors[0]))
         findViewById<View>(R.id.mood2Preview).setBackgroundColor(Color.parseColor(moodColors[1]))
         findViewById<View>(R.id.mood3Preview).setBackgroundColor(Color.parseColor(moodColors[2]))
@@ -993,9 +957,10 @@ class SettingsActivity : BaseActivity() {
             getString(R.string.export_front_data),
             getString(R.string.export_mood_data),
             getString(R.string.export_notes_data),
-            getString(R.string.export_todo_data)
+            getString(R.string.export_todo_data),
+            getString(R.string.module_relations)
         )
-        val selected = booleanArrayOf(true, true, true, true)
+        val selected = booleanArrayOf(true, true, true, true, true)
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1101,7 +1066,7 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun performPdfExport(uri: Uri) {
-        val selections = pendingPdfSelections ?: booleanArrayOf(true, true, true, true)
+        val selections = pendingPdfSelections ?: booleanArrayOf(true, true, true, true, true)
         PdfExportHelper.exportFullDataToPdf(this, uri, selections, pendingPdfStart, pendingPdfEnd)
         pendingPdfSelections = null
         pendingPdfStart = null
@@ -2472,6 +2437,37 @@ class SettingsActivity : BaseActivity() {
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
+    private fun showImportMoodHexDialog() {
+        val input = EditText(this).apply {
+            hint = "#RRGGBB,#RRGGBB,..."
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val p = (24 * resources.displayMetrics.density).toInt()
+            setPadding(p, p / 2, p, 0)
+            addView(input)
+        }
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Import Mood Hex")
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val hexString = input.text.toString().trim()
+                val parts = hexString.split(",").map { it.trim() }
+                if (parts.size >= 5) {
+                    for (i in 0 until 5) {
+                        moodColors[i] = parts[i]
+                    }
+                    updatePreviews()
+                    Toast.makeText(this, "Mood colors imported", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Invalid hex string (needs 5 colors)", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+            .let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
     private fun showDeleteAllDataDialog() {
         val labels = arrayOf(
             getString(R.string.delete_members),
@@ -2479,6 +2475,7 @@ class SettingsActivity : BaseActivity() {
             getString(R.string.delete_mood),
             getString(R.string.delete_notes),
             getString(R.string.delete_todo),
+            getString(R.string.module_relations),
             getString(R.string.delete_settings),
         )
         val checked = BooleanArray(labels.size) { false }
@@ -2527,6 +2524,7 @@ class SettingsActivity : BaseActivity() {
             }
             if (checked[2]) { // Mood
                 remove("mood_entries")
+                spSettings.edit().remove("saved_mood_themes").apply()
             }
             if (checked[3]) { // Notes
                 remove("diary_notes")
@@ -2539,9 +2537,13 @@ class SettingsActivity : BaseActivity() {
                 remove("todo_lists")
                 remove("todo_bundles")
             }
+            if (checked[5]) { // relationships
+                remove("relations_environments")
+                remove("relations_data")
+            }
         }.apply()
 
-        if (checked[5]) { // settings
+        if (checked[6]) { // settings
             spSettings.edit().clear().apply()
         }
 
