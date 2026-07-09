@@ -91,6 +91,11 @@ class SettingsActivity : BaseActivity() {
             uri?.let { handleAmpersandFile(it) }
         }
 
+    private val openPluralLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let { importFromOpenPlural(it) }
+        }
+
     private val pluralStarLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let { importFromPluralStar(it) }
@@ -1141,6 +1146,11 @@ class SettingsActivity : BaseActivity() {
             dialog.dismiss()
         }
 
+        view.findViewById<Button>(R.id.btnImportOpenPlural)?.setOnClickListener {
+            openPluralLauncher.launch("*/*")
+            dialog.dismiss()
+        }
+
         view.findViewById<Button>(R.id.btnImportPluralStar)?.setOnClickListener {
             pluralStarLauncher.launch("*/*")
             dialog.dismiss()
@@ -1344,6 +1354,40 @@ class SettingsActivity : BaseActivity() {
                         return@Thread
                     } catch (_: Exception) {
                     }
+                }
+
+                val historyList = (root as? Map<String, Any>)?.let { it["frontHistory"] ?: it["front_history"] ?: it["front_periods"] ?: it["switches"] } as? List<Map<String, Any>>
+                if (historyList != null) {
+                    val people = loadPeopleList()
+                    val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+                    val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
+                    val sessions: MutableList<FrontSession> = Gson().fromJson(
+                        sessionsJson,
+                        object : TypeToken<MutableList<FrontSession>>() {}.type
+                    ) ?: mutableListOf()
+
+                    historyList.forEach { h ->
+                        val start = (h["startTime"] as? Number ?: h["start"] as? Number ?: h["timestamp"] as? Number)?.toLong() ?: 0L
+                        val end = (h["endTime"] as? Number ?: h["end"] as? Number)?.toLong()
+                        val spMemberId = h["memberId"] as? String ?: h["member"] as? String ?: (h["members"] as? List<*>)?.firstOrNull()?.toString()
+                        val note = h["note"] as? String
+
+                        if (start > 0 && spMemberId != null) {
+                            val person = people.find { it.manualId == spMemberId }
+                            if (person != null && sessions.none { it.startTime == start && it.personId == person.id }) {
+                                sessions.add(
+                                    FrontSession(
+                                        personName = person.name,
+                                        startTime = start,
+                                        endTime = if (end != null && end > 0) end else null,
+                                        personId = person.id,
+                                        note = note
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    sharedPref.edit().putString("sessions_list", Gson().toJson(sessions)).apply()
                 }
 
                 processSpMembers(membersToProcess)
@@ -1741,6 +1785,41 @@ class SettingsActivity : BaseActivity() {
 
                 @Suppress("UNCHECKED_CAST")
                 val membersList = root["members"] as? List<Map<String, Any>>
+                
+                // PK JSON Fronthistory Support
+                val historyList = (root["front_history"] ?: root["switches"] ?: root["front_periods"]) as? List<Map<String, Any>>
+                if (historyList != null) {
+                    val people = loadPeopleList()
+                    val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+                    val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
+                    val sessions: MutableList<FrontSession> = Gson().fromJson(
+                        sessionsJson,
+                        object : TypeToken<MutableList<FrontSession>>() {}.type
+                    ) ?: mutableListOf()
+
+                    historyList.forEach { h ->
+                        val start = (h["startTime"] as? Number ?: h["start"] as? Number ?: h["timestamp"] as? Number ?: h["started_at"] as? Number)?.toLong()
+                            ?: h["started_at"]?.toString()?.let { parseIsoDate(it) } ?: 0L
+                        val end = (h["endTime"] as? Number ?: h["end"] as? Number ?: h["ended_at"] as? Number)?.toLong()
+                            ?: h["ended_at"]?.toString()?.let { parseIsoDate(it) }
+                        val mIds = (h["members"] as? List<*>) ?: (h["memberIds"] as? List<*>) ?: listOf(h["memberId"] ?: h["member"])
+
+                        if (start > 0) {
+                            mIds.filterIsInstance<String>().forEach { mid ->
+                                val person = people.find { it.id == mid || it.manualId == mid }
+                                if (person != null && sessions.none { it.startTime == start && it.personId == person.id }) {
+                                    sessions.add(FrontSession(
+                                        personName = person.name,
+                                        startTime = start,
+                                        endTime = if (end != null && end > 0) end else null,
+                                        personId = person.id
+                                    ))
+                                }
+                            }
+                        }
+                    }
+                    sharedPref.edit().putString("sessions_list", Gson().toJson(sessions)).apply()
+                }
 
                 if (membersList == null) {
                     try {
@@ -1840,6 +1919,24 @@ class SettingsActivity : BaseActivity() {
         }.start()
     }
 
+    private fun importFromOpenPlural(uri: Uri) {
+        Thread {
+            val result = OpenPluralImportHelper.importFromUri(this, uri)
+            runOnUiThread {
+                if (result != null) {
+                    if (result.membersCount > 0 || result.sessionsCount > 0) {
+                        Toast.makeText(this, "Imported ${result.membersCount} members and ${result.sessionsCount} sessions", Toast.LENGTH_LONG).show()
+                        recreate()
+                    } else {
+                        Toast.makeText(this, "No new data found in OpenPlural file", Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    Toast.makeText(this, "OpenPlural import failed", Toast.LENGTH_LONG).show()
+                }
+            }
+        }.start()
+    }
+
     private fun importFromPluralStar(uri: Uri) {
         Thread {
             try {
@@ -1892,7 +1989,7 @@ class SettingsActivity : BaseActivity() {
                                 val membersList =
                                     root["members"] as? List<Map<String, Any>> ?: emptyList()
                                 val historyList =
-                                    root["frontHistory"] as? List<Map<String, Any>> ?: emptyList()
+                                    (root["frontHistory"] ?: root["front_history"] ?: root["front_periods"] ?: root["switches"]) as? List<Map<String, Any>> ?: emptyList()
 
                                 membersList.forEach { m ->
                                     val id = m["id"] as? String ?: ""
@@ -1962,17 +2059,16 @@ class SettingsActivity : BaseActivity() {
                                 ) ?: mutableListOf()
 
                                 historyList.forEach { h ->
-                                    val memberIds = h["memberIds"] as? List<String> ?: emptyList()
-                                    val start = (h["startTime"] as? Number)?.toLong() ?: 0L
-                                    val end = (h["endTime"] as? Number)?.toLong()
-                                    val note = h["note"] as? String
-                                    val changeType = h["changeType"] as? String
-
-                                    if (changeType != null && changeType != "front") return@forEach
+                                    val start = (h["startTime"] as? Number ?: h["start"] as? Number ?: h["timestamp"] as? Number ?: h["started_at"] as? Number)?.toLong()
+                                        ?: h["started_at"]?.toString()?.let { parseIsoDate(it) }
+                                        ?: 0L
+                                    val end = (h["endTime"] as? Number ?: h["end"] as? Number ?: h["ended_at"] as? Number)?.toLong()
+                                        ?: h["ended_at"]?.toString()?.let { parseIsoDate(it) }
+                                    val memberIds = (h["memberIds"] as? List<*>) ?: (h["members"] as? List<*>) ?: listOf(h["memberId"] ?: h["member"])
 
                                     if (start > 0 && sessions.none { it.startTime == start }) {
-                                        memberIds.forEach { mid ->
-                                            val person = people.find { it.manualId == mid }
+                                        memberIds.filterIsInstance<String>().forEach { mid ->
+                                            val person = people.find { it.id == mid || it.manualId == mid }
                                             if (person != null) {
                                                 sessions.add(
                                                     FrontSession(
@@ -1980,7 +2076,7 @@ class SettingsActivity : BaseActivity() {
                                                         startTime = start,
                                                         endTime = if (end != null && end > 0) end else null,
                                                         personId = person.id,
-                                                        note = note
+                                                        note = h["note"] as? String
                                                     )
                                                 )
                                                 historyCount++
@@ -2368,6 +2464,19 @@ class SettingsActivity : BaseActivity() {
             .create()
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun parseIsoDate(isoStr: String?): Long {
+        if (isoStr.isNullOrBlank()) return 0L
+        return try {
+            val format = if (isoStr.contains(".")) {
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            } else {
+                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+            }
+            format.timeZone = TimeZone.getTimeZone("UTC")
+            format.parse(isoStr)?.time ?: 0L
+        } catch (e: Exception) { 0L }
     }
 
     private fun loadPeopleList(): MutableList<Person> {

@@ -112,7 +112,7 @@
                 android:background="@null"
                 android:padding="12dp"
                 android:inputType="textMultiLine|textCapSentences|textAutoCorrect"
-                android:imeOptions="actionNone"
+                android:imeOptions="normal"
                 android:maxLines="4" />
 
             <Button

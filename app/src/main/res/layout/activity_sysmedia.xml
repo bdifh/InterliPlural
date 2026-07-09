@@ -95,6 +95,8 @@
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
             android:hint="@string/hint_search"
+            android:inputType="text"
+            android:imeOptions="actionSearch"
             android:visibility="gone"
             app:layout_constraintTop_toBottomOf="@id/tabLayoutSysmedia" />
 

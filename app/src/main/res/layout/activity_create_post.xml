@@ -74,7 +74,7 @@
                 android:gravity="top"
                 android:hint="@string/hint_type"
                 android:inputType="textMultiLine|textCapSentences|textAutoCorrect"
-                android:imeOptions="actionNone"
+                android:imeOptions="normal"
                 android:minLines="1"
                 android:textSize="18sp"
                 app:layout_constraintEnd_toEndOf="parent"

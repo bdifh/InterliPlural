@@ -246,7 +246,11 @@ object BackupHelper {
                         } else editor.putFloat(k, v.toFloat())
                     }
                     is List<*> -> {
-                        editor.putStringSet(k, v.filterIsInstance<String>().toSet())
+                        if (v.isNotEmpty() && v.all { it is String }) {
+                            editor.putStringSet(k, v.filterIsInstance<String>().toSet())
+                        } else {
+                            editor.putString(k, gson.toJson(v))
+                        }
                     }
                 }
             }
@@ -268,7 +272,11 @@ object BackupHelper {
                         } else editor.putFloat(k, v.toFloat())
                     }
                     is List<*> -> {
-                        editor.putStringSet(k, v.filterIsInstance<String>().toSet())
+                        if (v.isNotEmpty() && v.all { it is String }) {
+                            editor.putStringSet(k, v.filterIsInstance<String>().toSet())
+                        } else {
+                            editor.putString(k, gson.toJson(v))
+                        }
                     }
                 }
             }

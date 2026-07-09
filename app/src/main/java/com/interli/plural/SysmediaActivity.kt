@@ -386,6 +386,18 @@ class SysmediaActivity : BaseActivity() {
                 recyclerView.adapter = adapter
                 etSearch.removeTextChangedListener(searchWatcher)
                 etSearch.addTextChangedListener(searchWatcher)
+                etSearch.setOnEditorActionListener { _, actionId, event ->
+                    if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH ||
+                        (event != null && event.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)
+                    ) {
+                        performSearch()
+                        val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                        imm.hideSoftInputFromWindow(etSearch.windowToken, 0)
+                        true
+                    } else {
+                        false
+                    }
+                }
                 performSearch()
             }
             4 -> {
@@ -492,8 +504,12 @@ class SysmediaActivity : BaseActivity() {
     }
 
     private fun showCreateSysmediaAccountDialog() {
-        val input = EditText(this).apply { hint = "Account Name" }
-        AlertDialog.Builder(this)
+        val input = EditText(this).apply { 
+            hint = "Account Name"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
+        }
+        val dialog = AlertDialog.Builder(this)
             .setTitle(getString(R.string.action_create_sysmedia_account))
             .setView(input)
             .setPositiveButton(getString(R.string.action_add)) { _, _ ->
@@ -507,7 +523,25 @@ class SysmediaActivity : BaseActivity() {
                 }
             }
             .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+            .create()
+
+        input.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE ||
+                (event != null && event.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)
+            ) {
+                val name = input.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    val newPerson = Person(name = name, isSysmediaOnly = true)
+                    newPerson.sysmediaProfile = SysmediaProfile()
+                    people.add(newPerson)
+                    saveData()
+                    updateActiveMemberHeader()
+                    dialog.dismiss()
+                    true
+                } else false
+            } else false
+        }
+        dialog.show()
     }
 
     private fun showSwitchUserFullDialog() {
@@ -738,7 +772,7 @@ class SysmediaActivity : BaseActivity() {
             holder.tvHandle.text = "@$handle"
             holder.tvTime.text = sdf.format(Date(post.timestamp))
             
-            val content = post.content ?: ""
+            val content = post.content?.replace("\n", "  \n") ?: " "
             markwon.setMarkdown(holder.tvContent, content)
             
             val text = holder.tvContent.text
@@ -963,6 +997,8 @@ class SysmediaActivity : BaseActivity() {
         val etName = EditText(this).apply { 
             hint = "Group Name"
             setTextColor(ColorHelper.getTextColor(this@SysmediaActivity))
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_DONE
         }
         container.addView(etName)
 
@@ -981,6 +1017,24 @@ class SysmediaActivity : BaseActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .create()
+
+        etName.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE ||
+                (event != null && event.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)
+            ) {
+                val groupName = etName.text.toString().trim()
+                if (groupName.isNotEmpty()) {
+                    val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+                    val chatGroups: MutableList<ChatGroup> = Gson().fromJson(sharedPref.getString("sysmedia_chat_groups", "[]"), object : TypeToken<MutableList<ChatGroup>>() {}.type) ?: mutableListOf()
+                    chatGroups.add(ChatGroup(name = groupName, participantIds = selectedIds))
+                    sharedPref.edit { putString("sysmedia_chat_groups", Gson().toJson(chatGroups)) }
+                    filterTab()
+                    dialog.dismiss()
+                    true
+                } else false
+            } else false
+        }
+
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
     }

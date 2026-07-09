@@ -92,6 +92,36 @@ object AmpersandImportHelper {
 
             MemberHelper.savePeople(context, people)
             settingsPref.edit().putString("groups_list", Gson().toJson(currentGroups)).apply()
+
+            val history = findListInMap(root, "front_history") ?: findListInMap(root, "switches") ?: findListInMap(root, "frontHistory")
+            if (history != null) {
+                val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
+                val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
+                val sessions: MutableList<FrontSession> = gson.fromJson(sessionsJson, object : TypeToken<MutableList<FrontSession>>() {}.type) ?: mutableListOf()
+
+                history.filterIsInstance<Map<String, Any>>().forEach { h ->
+                    val start = (h["startTime"] as? Number ?: h["start"] as? Number ?: h["timestamp"] as? Number)?.toLong() ?: 0L
+                    val end = (h["endTime"] as? Number ?: h["end"] as? Number)?.toLong()
+                    val amMemberId = h["memberId"] as? String ?: h["member"] as? String ?: (h["members"] as? List<*>)?.firstOrNull()?.toString()
+                    val note = h["note"] as? String
+
+                    if (start > 0 && amMemberId != null) {
+                        val internalId = amIdToInternalId[amMemberId]
+                        val person = people.find { it.id == internalId || it.manualId == amMemberId }
+                        if (person != null && sessions.none { it.startTime == start && it.personId == person.id }) {
+                            sessions.add(FrontSession(
+                                personName = person.name,
+                                startTime = start,
+                                endTime = if (end != null && end > 0) end else null,
+                                personId = person.id,
+                                note = note
+                            ))
+                        }
+                    }
+                }
+                sharedPref.edit().putString("sessions_list", gson.toJson(sessions)).apply()
+            }
+
             return true
         } catch (e: Exception) {
             e.printStackTrace()

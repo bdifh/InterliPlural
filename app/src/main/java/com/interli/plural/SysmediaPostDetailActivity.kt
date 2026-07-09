@@ -230,7 +230,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
         val handle = profile?.handle ?: sender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: sender?.manualId ?: "unknown"
         tvHandle.text = "@$handle"
         tvHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
-        markwon.setMarkdown(tvContent, post.content)
+        markwon.setMarkdown(tvContent, post.content?.replace("\n", "  \n") ?: "")
         tvContent.setTextColor(textColor)
         tvTime.text = sdf.format(Date(post.timestamp))
         tvTime.setTextColor(textColor and 0x88FFFFFF.toInt())
@@ -551,7 +551,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
                 holder.tvHandle.text = "@$handle"
                 holder.tvHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
                 
-                markwon.setMarkdown(holder.tvContent, item.content)
+                markwon.setMarkdown(holder.tvContent, item.content?.replace("\n", "  \n") ?: "")
                 holder.tvContent.setTextColor(textColor)
                 
                 val avatarUri = profile?.profilePictureUri ?: sender?.profilePictureUri

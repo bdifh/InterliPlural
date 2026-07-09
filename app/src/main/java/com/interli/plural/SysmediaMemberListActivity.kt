@@ -29,7 +29,22 @@ class SysmediaMemberListActivity : BaseActivity() {
 
         val rv = findViewById<RecyclerView>(R.id.rvMembers)
         rv.layoutManager = LinearLayoutManager(this)
-        adapter = MemberAdapter(people.filter { !it.isArchived })
+        val filterType = intent.getStringExtra("filter_type")
+        val targetUserId = intent.getStringExtra("target_user_id")
+
+        val filteredList = when (filterType) {
+            "following" -> {
+                val targetUser = people.find { it.id == targetUserId }
+                val followingIds = targetUser?.sysmediaProfile?.followingIds ?: emptyList()
+                people.filter { followingIds.contains(it.id) }
+            }
+            "followers" -> {
+                people.filter { it.sysmediaProfile?.followingIds?.contains(targetUserId) == true }
+            }
+            else -> people.filter { !it.isArchived }
+        }
+
+        adapter = MemberAdapter(filteredList)
         rv.adapter = adapter
 
         setupToolbar()

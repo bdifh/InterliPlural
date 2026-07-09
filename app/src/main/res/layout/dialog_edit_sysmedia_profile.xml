@@ -39,7 +39,9 @@
             android:id="@+id/etBio"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="top"
             android:inputType="textMultiLine"
+            android:imeOptions="actionNone"
             android:minLines="2" />
     </com.google.android.material.textfield.TextInputLayout>
 

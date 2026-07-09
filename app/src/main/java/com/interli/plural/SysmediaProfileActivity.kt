@@ -394,6 +394,27 @@ class SysmediaProfileActivity : BaseActivity() {
             setTextColor(textColor)
         }
 
+        val followingCount = profileUser.sysmediaProfile?.followingIds?.size ?: 0
+        val followersCount = people.count { it.sysmediaProfile?.followingIds?.contains(profileUserId) == true }
+
+        findViewById<TextView>(R.id.tvFollowingCount).apply { text = followingCount.toString(); setTextColor(textColor) }
+        findViewById<TextView>(R.id.tvFollowersCount).apply { text = followersCount.toString(); setTextColor(textColor) }
+
+        findViewById<View>(R.id.layoutFollowing).setOnClickListener {
+            val intent = Intent(this, SysmediaMemberListActivity::class.java)
+            intent.putExtra("active_member_id", activeMemberId)
+            intent.putExtra("filter_type", "following")
+            intent.putExtra("target_user_id", profileUserId)
+            startActivity(intent)
+        }
+        findViewById<View>(R.id.layoutFollowers).setOnClickListener {
+            val intent = Intent(this, SysmediaMemberListActivity::class.java)
+            intent.putExtra("active_member_id", activeMemberId)
+            intent.putExtra("filter_type", "followers")
+            intent.putExtra("target_user_id", profileUserId)
+            startActivity(intent)
+        }
+
         val mediaContainer = findViewById<LinearLayout>(R.id.mediaEmbedContainerProfile)
         MediaEmbedHelper.addEmbedsToContainer(mediaContainer, profile?.bio ?: "")
         
@@ -531,8 +552,11 @@ class SysmediaProfileActivity : BaseActivity() {
             val tvOriginalHandle: TextView = view.findViewById(R.id.tvOriginalHandle)
             val tvOriginalContent: TextView = view.findViewById(R.id.tvOriginalContent)
             val ivOriginalPostImage: ImageView = view.findViewById(R.id.ivOriginalPostImage)
-            
+
             val layoutThreadParent: View = view.findViewById(R.id.layoutThreadParent)
+            val ivParentAvatar: ImageView = view.findViewById(R.id.ivParentAvatar)
+            val tvParentName: TextView = view.findViewById(R.id.tvParentName)
+            val tvParentContent: TextView = view.findViewById(R.id.tvParentContent)
             val layoutPoll: LinearLayout = view.findViewById(R.id.layoutPoll)
 
             val tvLikes: TextView = view.findViewById(R.id.tvLikes)
@@ -557,33 +581,61 @@ class SysmediaProfileActivity : BaseActivity() {
             holder.cardOriginal.visibility = View.GONE
             holder.layoutThreadParent.visibility = View.GONE
 
-            if (post.reblogOfId != null) {
+            if (post.replyToId != null) {
+                val parentPost = posts.find { it.id == post.replyToId }
+                if (parentPost != null) {
+                    holder.layoutThreadParent.visibility = View.VISIBLE
+                    val parentSender = people.find { it.id == parentPost.senderId }
+                    val parentProfile = parentSender?.sysmediaProfile
+
+                    holder.tvParentName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
+                    holder.tvParentContent.text = parentPost.content
+
+                    val parentAvatarUri = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
+                    if (parentAvatarUri != null) {
+                        holder.ivParentAvatar.load(parentAvatarUri) {
+                            val color = ColorHelper.getUserColor(parentSender?.id, parentSender?.profileColor ?: -6934396)
+                            placeholder(android.graphics.drawable.ColorDrawable(color))
+                            error(android.graphics.drawable.ColorDrawable(color))
+                        }
+                    } else {
+                        val color = ColorHelper.getUserColor(parentSender?.id, parentSender?.profileColor ?: -6934396)
+                        holder.ivParentAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(color))
+                    }
+                    holder.tvParentName.setTextColor(textColor and 0xCCFFFFFF.toInt())
+                    holder.tvParentContent.setTextColor(textColor and 0xCCFFFFFF.toInt())
+                }
+            }
+
+            else if (post.reblogOfId != null) {
+                val originalPost = posts.find { it.id == post.reblogOfId }
+
                 holder.layoutReblog.visibility = View.VISIBLE
                 holder.tvRebloggedBy.text = getString(R.string.reblogged_by, profileUser.name)
                 holder.tvRebloggedBy.setTextColor(textColor and 0x88FFFFFF.toInt())
 
-                val originalPost = posts.find { it.id == post.reblogOfId }
                 if (originalPost != null) {
                     holder.cardOriginal.visibility = View.VISIBLE
                     holder.cardOriginal.setCardBackgroundColor(ColorHelper.getBgColor(this@SysmediaProfileActivity))
-                    
+
                     val originalSender = people.find { it.id == originalPost.senderId }
-                    val origProfile = originalSender?.sysmediaProfile
-                    holder.tvOriginalName.text = origProfile?.displayName ?: originalSender?.name ?: "Unknown"
-                    val origHandle = origProfile?.handle ?: originalSender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: "unknown"
-                    holder.tvOriginalHandle.text = "@$origHandle"
+                    val originalProfile = originalSender?.sysmediaProfile
+                    holder.tvOriginalName.text = originalProfile?.displayName ?: originalSender?.name ?: "Unknown"
+                    val originalHandle = originalProfile?.handle ?: originalSender?.name?.replace(" ", "_")?.lowercase() ?: originalSender?.manualId ?: "unknown"
+                    holder.tvOriginalHandle.text = "@$originalHandle"
                     markwon.setMarkdown(holder.tvOriginalContent, originalPost.content)
-                    
-                    val origAvatar = origProfile?.profilePictureUri ?: originalSender?.profilePictureUri
-                    if (origAvatar != null) {
-                        holder.ivOriginalAvatar.load(origAvatar) {
-                            placeholder(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)))
-                            error(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)))
+
+                    val originalAvatar = originalProfile?.profilePictureUri ?: originalSender?.profilePictureUri
+                    if (originalAvatar != null) {
+                        holder.ivOriginalAvatar.load(originalAvatar) {
+                            placeholder(android.graphics.drawable.ColorDrawable(ColorHelper.getUserColor(originalSender?.id, originalSender?.profileColor ?: -6934396)))
+                            error(android.graphics.drawable.ColorDrawable(ColorHelper.getUserColor(originalSender?.id, originalSender?.profileColor ?: -6934396)))
                         }
                     } else {
-                        holder.ivOriginalAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)))
+                        val color = ColorHelper.getUserColor(originalSender?.id, originalSender?.profileColor ?: -6934396)
+                        holder.ivOriginalAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(color))
                     }
-                    
+
                     if (originalPost.imageUri != null) {
                         holder.ivOriginalPostImage.visibility = View.VISIBLE
                         holder.ivOriginalPostImage.load(originalPost.imageUri)

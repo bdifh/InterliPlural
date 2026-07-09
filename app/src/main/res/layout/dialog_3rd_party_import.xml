@@ -150,6 +150,24 @@
             android:text="Ampersand Json (Base64)"
             android:layout_marginBottom="8dp" />
 
+        <!-- OpenPlural Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="OpenPlural"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/btnImportOpenPlural"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="OpenPlural (.json)"
+            android:layout_marginBottom="8dp" />
+
         <!-- Daylio Section -->
         <TextView
             android:layout_width="match_parent"
