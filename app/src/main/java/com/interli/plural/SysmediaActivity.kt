@@ -129,7 +129,11 @@ class SysmediaActivity : BaseActivity() {
         
         findViewById<View>(R.id.sysmediaRoot).setBackgroundColor(ColorHelper.getBgColor(this))
         val tabLayout = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayoutSysmedia)
-        tabLayout.tabIconTint = android.content.res.ColorStateList.valueOf(textColor)
+        val tabStates = android.content.res.ColorStateList(
+            arrayOf(intArrayOf(android.R.attr.state_selected), intArrayOf()),
+            intArrayOf(btnColor, (textColor and 0x00FFFFFF) or 0x66000000.toInt())
+        )
+        tabLayout.tabIconTint = tabStates
         tabLayout.setSelectedTabIndicatorColor(btnColor)
 
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
@@ -750,6 +754,9 @@ class SysmediaActivity : BaseActivity() {
             holder.itemView.setOnLongClickListener {
                 showPostOptions(post, position)
                 true
+            }
+            holder.itemView.findViewById<View>(R.id.btnDownload).setOnClickListener {
+                savePostAsImage(holder.itemView, post.id)
             }
         }
 
@@ -1430,4 +1437,28 @@ class SysmediaActivity : BaseActivity() {
         set(value) {
             setTypeface(typeface, value)
         }
+
+    private fun savePostAsImage(view: View, postId: String) {
+        val bitmap = android.graphics.Bitmap.createBitmap(view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        canvas.drawColor(ColorHelper.getBgColor(this)) // Gebruik app achtergrond
+        view.draw(canvas)
+
+        val filename = "Post_${postId}.jpg"
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, filename)
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES)
+            }
+        }
+        val uri = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        uri?.let {
+            contentResolver.openOutputStream(it)?.use { out ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, out)
+            }
+            Toast.makeText(this, "Afbeelding opgeslagen", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 }

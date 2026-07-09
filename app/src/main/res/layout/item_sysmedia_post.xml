@@ -70,7 +70,7 @@
         <ImageView
             android:layout_width="14dp"
             android:layout_height="14dp"
-            android:src="@android:drawable/ic_menu_share"
+            android:src="@android:drawable/ic_popup_sync"
             app:tint="#536471" />
         <TextView
             android:id="@+id/tvRebloggedBy"
@@ -284,7 +284,7 @@
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
-                        android:src="@android:drawable/ic_menu_share"
+                        android:src="@android:drawable/ic_popup_sync"
                         app:tint="#536471"
                         android:contentDescription="Reblog" />
                     <TextView
@@ -322,15 +322,21 @@
                         android:text="0" />
                 </LinearLayout>
 
-                <!-- Share -->
-                <ImageView
-                    android:id="@+id/btnShare"
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_weight="0"
-                    android:src="@android:drawable/ic_menu_share"
-                    app:tint="#536471"
-                    android:contentDescription="Share" />
+                <!-- Download -->
+                <LinearLayout
+                    android:id="@+id/btnDownload"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:padding="12dp"
+                    android:gravity="center_vertical|end">
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@android:drawable/ic_menu_save"
+                        app:tint="#536471"
+                        android:contentDescription="Download" />
+                </LinearLayout>
 
             </LinearLayout>
 

@@ -296,34 +296,28 @@ class EditTodoListActivity : BaseActivity() {
     private fun showDateTimePicker(current: Long?, onSelected: (Long) -> Unit) {
         val cal = java.util.Calendar.getInstance()
         if (current != null) cal.timeInMillis = current
-        
+
         val dateDialog = DatePickerDialog(this, { _, y, m, d ->
+            val oldHour = cal.get(Calendar.HOUR_OF_DAY)
+            val oldMinute = cal.get(Calendar.MINUTE)
+
             cal.set(y, m, d)
-            
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle(R.string.set_deadline)
-                .setMessage(R.string.dialog_add_time)
-                .setPositiveButton(R.string.yes) { _, _ ->
-                    val timeDialog = TimePickerDialog(this, { _, hh, mm ->
-                        cal.set(java.util.Calendar.HOUR_OF_DAY, hh)
-                        cal.set(java.util.Calendar.MINUTE, mm)
-                        cal.set(java.util.Calendar.SECOND, 0)
-                        cal.set(java.util.Calendar.MILLISECOND, 0)
-                        onSelected(cal.timeInMillis)
-                    }, cal.get(java.util.Calendar.HOUR_OF_DAY), cal.get(java.util.Calendar.MINUTE), true)
-                    timeDialog.show()
-                    ColorHelper.styleAlertDialog(timeDialog, this)
-                }
-                .setNegativeButton(R.string.no) { _, _ ->
-                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
-                    cal.set(java.util.Calendar.MINUTE, 0)
-                    cal.set(java.util.Calendar.SECOND, 0)
-                    cal.set(java.util.Calendar.MILLISECOND, 0)
-                    onSelected(cal.timeInMillis)
-                }
-                .show()
-        }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH))
-        
+            cal.set(Calendar.HOUR_OF_DAY, oldHour)
+            cal.set(Calendar.MINUTE, oldMinute)
+
+            val timeDialog = TimePickerDialog(this, { _, hh, mm ->
+                cal.set(Calendar.HOUR_OF_DAY, hh)
+                cal.set(Calendar.MINUTE, mm)
+                cal.set(Calendar.SECOND, 0)
+                cal.set(Calendar.MILLISECOND, 0)
+                onSelected(cal.timeInMillis)
+            }, oldHour, oldMinute, true)
+
+            timeDialog.show()
+            ColorHelper.styleAlertDialog(timeDialog, this)
+
+        }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+
         dateDialog.show()
         ColorHelper.styleAlertDialog(dateDialog, this)
     }
