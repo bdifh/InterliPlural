@@ -4,29 +4,24 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.view.LayoutInflater
 import android.widget.*
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.edit
-import androidx.recyclerview.widget.ItemTouchHelper
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.textfield.TextInputEditText
-import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.*
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.Collections
-import com.interli.plural.BuildConfig
 
 class SettingsActivity : BaseActivity() {
 
@@ -255,7 +250,7 @@ class SettingsActivity : BaseActivity() {
             }
         }
 
-        findViewById<Button>(R.id.btnExport).setOnClickListener { exportLauncher.launch("plural_app_backup.zip") }
+        findViewById<Button>(R.id.btnExport).setOnClickListener { exportLauncher.launch("interli_plural_backup.zip") }
         findViewById<Button>(R.id.btnImport).setOnClickListener {
             importLauncher.launch(
                 arrayOf(
@@ -1079,10 +1074,28 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun performImport(uri: Uri) {
-        contentResolver.openInputStream(uri)?.use { stream ->
-            BackupHelper.restoreBackup(this, stream)
-            Toast.makeText(this, getString(R.string.backup_imported), Toast.LENGTH_LONG).show()
-            recreate()
+        val progressDialog = android.app.ProgressDialog(this).apply {
+            setMessage(getString(R.string.loading))
+            setCancelable(false)
+            show()
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                contentResolver.openInputStream(uri)?.use { stream ->
+                    BackupHelper.restoreBackup(this@SettingsActivity, stream)
+                }
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    Toast.makeText(this@SettingsActivity, getString(R.string.backup_imported), Toast.LENGTH_LONG).show()
+                    recreate()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    Toast.makeText(this@SettingsActivity, getString(R.string.import_failed, e.message), Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 
@@ -1785,8 +1798,7 @@ class SettingsActivity : BaseActivity() {
 
                 @Suppress("UNCHECKED_CAST")
                 val membersList = root["members"] as? List<Map<String, Any>>
-                
-                // PK JSON Fronthistory Support
+
                 val historyList = (root["front_history"] ?: root["switches"] ?: root["front_periods"]) as? List<Map<String, Any>>
                 if (historyList != null) {
                     val people = loadPeopleList()
@@ -2291,7 +2303,7 @@ class SettingsActivity : BaseActivity() {
             it.personName.lowercase() !in currentNames && (it.personId == null || it.personId !in currentIds)
         }.distinctBy { it.personName.lowercase() }
 
-        val items = mutableListOf<Triple<String, String?, Boolean>>() // Name, ID, isArchived
+        val items = mutableListOf<Triple<String, String?, Boolean>>()
         archivedMembers.forEach { items.add(Triple(it.name, it.id, true)) }
         historyMembers.forEach { items.add(Triple(it.personName, it.personId, false)) }
 

@@ -97,24 +97,31 @@ object BackupHelper {
         writer.beginObject()
         val people = MemberHelper.loadAllPeople(context)
         people.forEach { person ->
-            val avatarUri = person.sysmediaProfile?.profilePictureUri ?: person.profilePictureUri
-            avatarUri?.let { uriStr ->
-                try {
-                    val uri = Uri.parse(uriStr)
-                    val inputStream = if (uriStr.startsWith("content://")) {
-                        context.contentResolver.openInputStream(uri)
-                    } else {
-                        val file = if (uriStr.startsWith("file://")) File(uri.path!!) else File(uriStr)
-                        if (file.exists()) FileInputStream(file) else null
-                    }
+            val imagesToExport = mutableMapOf<String, String?>()
+            imagesToExport["avatar_${person.id}"] = person.profilePictureUri
+            imagesToExport["source_${person.id}"] = person.sourcePictureUri
+            imagesToExport["sys_avatar_${person.id}"] = person.sysmediaProfile?.profilePictureUri
+            imagesToExport["sys_source_${person.id}"] = person.sysmediaProfile?.sourcePictureUri
 
-                    inputStream?.use { input ->
-                        val bytes = input.readBytes()
-                        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                        writer.name(person.id)
-                        writer.value(base64)
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
+            imagesToExport.forEach { (key, uriStr) ->
+                uriStr?.let { s ->
+                    try {
+                        val uri = Uri.parse(s)
+                        val inputStream = if (s.startsWith("content://")) {
+                            context.contentResolver.openInputStream(uri)
+                        } else {
+                            val file = if (s.startsWith("file://")) File(uri.path!!) else File(s)
+                            if (file.exists()) FileInputStream(file) else null
+                        }
+
+                        inputStream?.use { input ->
+                            val bytes = input.readBytes()
+                            val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                            writer.name(key)
+                            writer.value(base64)
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
             }
         }
         writer.endObject()
@@ -287,20 +294,50 @@ object BackupHelper {
             val people = MemberHelper.loadAllPeople(context)
             var peopleChanged = false
 
-            imagesMap.forEach { (personId, base64) ->
+            imagesMap.forEach { (key, base64) ->
                 try {
                     val bytes = Base64.decode(base64, Base64.DEFAULT)
-                    val file = File(context.filesDir, "profile_${personId}_${System.currentTimeMillis()}.jpg")
-                    context.filesDir.listFiles { f -> f.name.startsWith("profile_${personId}_") }?.forEach { it.delete() }
+                    val type = when {
+                        key.startsWith("avatar_") -> "avatar"
+                        key.startsWith("source_") -> "source"
+                        key.startsWith("sys_avatar_") -> "sys_avatar"
+                        key.startsWith("sys_source_") -> "sys_source"
+                        else -> "old"
+                    }
+                    
+                    val personId = if (type == "old") key else key.substringAfter("_")
+                    
+                    val suffix = if (type == "source" || type == "sys_source") "_source.jpg" else ".jpg"
+                    val file = File(context.filesDir, "profile_${personId}_${System.currentTimeMillis()}$suffix")
+
+                    context.filesDir.listFiles { f -> 
+                        if (type == "source" || type == "sys_source") f.name.startsWith("profile_${personId}_") && f.name.endsWith("_source.jpg")
+                        else f.name.startsWith("profile_${personId}_") && !f.name.endsWith("_source.jpg")
+                    }?.forEach { it.delete() }
+                    
                     FileOutputStream(file).use { it.write(bytes) }
 
                     people.find { it.id == personId }?.let { person ->
                         val newUri = Uri.fromFile(file).toString()
-                        if (person.isSysmediaOnly || person.sysmediaProfile?.handle != null) {
-                            if (person.sysmediaProfile == null) person.sysmediaProfile = SysmediaProfile()
-                            person.sysmediaProfile?.profilePictureUri = newUri
-                        } else {
-                            person.profilePictureUri = newUri
+                        when (type) {
+                            "avatar" -> person.profilePictureUri = newUri
+                            "source" -> person.sourcePictureUri = newUri
+                            "sys_avatar" -> {
+                                if (person.sysmediaProfile == null) person.sysmediaProfile = SysmediaProfile()
+                                person.sysmediaProfile?.profilePictureUri = newUri
+                            }
+                            "sys_source" -> {
+                                if (person.sysmediaProfile == null) person.sysmediaProfile = SysmediaProfile()
+                                person.sysmediaProfile?.sourcePictureUri = newUri
+                            }
+                            "old" -> {
+                                if (person.isSysmediaOnly || person.sysmediaProfile?.handle != null) {
+                                    if (person.sysmediaProfile == null) person.sysmediaProfile = SysmediaProfile()
+                                    person.sysmediaProfile?.profilePictureUri = newUri
+                                } else {
+                                    person.profilePictureUri = newUri
+                                }
+                            }
                         }
                         peopleChanged = true
                     }

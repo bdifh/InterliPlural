@@ -1,18 +1,13 @@
 package com.interli.plural
 
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
-import android.text.TextWatcher
 import android.net.Uri
-import android.graphics.Paint
-import android.graphics.pdf.PdfDocument
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.WindowInsetsControllerCompat
 import com.google.gson.Gson
@@ -20,14 +15,13 @@ import com.google.gson.reflect.TypeToken
 import io.noties.markwon.AbstractMarkwonPlugin
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
 import org.commonmark.ext.gfm.tables.TableCell
 import org.commonmark.node.AbstractVisitor
 import org.commonmark.node.CustomNode
 import org.commonmark.node.Node
-import java.text.SimpleDateFormat
-import java.util.*
 
 class EditNoteActivity : BaseActivity() {
 
@@ -85,7 +79,12 @@ class EditNoteActivity : BaseActivity() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.isAppearanceLightStatusBars = true
 
-        setupMarkwon()
+        val markwon = Markwon.builder(this)
+            .usePlugin(TablePlugin.create(this))
+            .usePlugin(StrikethroughPlugin.create())
+            .usePlugin(CoilImagesPlugin.create(this))
+            .usePlugin(LinkifyPlugin.create())
+            .build()
 
         noteId = intent.getStringExtra("note_id")
         loadData()

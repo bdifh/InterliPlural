@@ -236,6 +236,34 @@
             <!-- Groups with chips will be added here -->
         </LinearLayout>
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_photos"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="8dp" />
+
+                <Button
+                    android:id="@+id/btnAddPhoto"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/action_add_photo"
+                    android:layout_marginBottom="8dp"
+                    app:icon="@android:drawable/ic_menu_camera" />
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp">
+                    <LinearLayout
+                        android:id="@+id/photoContainer"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal" />
+                </HorizontalScrollView>
+
         <TextView
             android:id="@+id/labelNote"
             android:layout_width="match_parent"

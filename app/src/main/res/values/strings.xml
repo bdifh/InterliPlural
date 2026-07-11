@@ -79,7 +79,8 @@
     <string name="mood_theme_saved_toast">Mood theme saved!</string>
     <string name="entry_saved">Entry saved!</string>
     <string name="to_date"> to </string>
-    <string name="backup_saved">Backup saved</string>
+    <string name="loading">Loading...</string>
+    <string name="backup_saved">Interli Export saved!</string>
     <string name="export_failed">Export failed: %1$s</string>
     <string name="backup_imported">Backup imported! Restart the app for best result.</string>
     <string name="import_failed">Import failed: %1$s</string>
@@ -161,8 +162,8 @@
     <string name="timeline_front_title">Front Timeline</string>
     <string name="visual">Visual</string>
     <string name="timeline_visual_title">Visual Timeline</string>
-    <string name="action_export">Export</string>
-    <string name="action_import">Import</string>
+    <string name="action_export">Interli Export</string>
+    <string name="action_import">Interli Import</string>
     <string name="diary">Notes</string>
     <string name="calendar">Calendar</string>
     <string name="sysmedia">Sysmedia</string>
@@ -204,6 +205,9 @@
     <string name="todo">To Do</string>
     <string name="tab_notes">Notes</string>
     <string name="tab_messages">Sysmail</string>
+    <string name="tab_posts">Posts</string>
+    <string name="tab_replies">Replies</string>
+    <string name="tab_media">Media</string>
     <string name="action_link_everyone">Everyone</string>
     <string name="no_messages">No Sysmail</string>
     <string name="no_notes">No notes</string>
@@ -224,8 +228,6 @@
     <string name="action_link_note">Link Note</string>
     <string name="action_link_todo">Link To Do</string>
     <string name="action_link_todo_list">Link To Do List</string>
-    <string name="label_linked_note">Linked Note</string>
-    <string name="label_linked_todo">Linked To Do</string>
     <string name="label_reply_to">Replying to</string>
     <string name="hint_field_title">Field Title</string>
     <string name="hint_field_template">Template (Optional)</string>
@@ -280,6 +282,7 @@
     <string name="view_all">View All</string>
     <string name="filter_activities">Filter Activities</string>
     <string name="exclude_activity_title">Exclude from statistics</string>
+    <string name="group_activities">Group Activities</string>
     <string name="stats_mood_average">Daily Mood Average</string>
     <string name="stats_average_mood_per_member">Average mood per member</string>
     <string name="stats_no_data_per_member">No data per member</string>
@@ -596,7 +599,7 @@
     <string name="help_who_am_i_neutral">This is neutral / okay</string>
     <string name="help_who_am_i_dislike">I don\'t like this</string>
     <string name="help_who_am_i_now">I am doing / feeling this now</string>
-    <item name="help_who_am_i_now" type="id" /> <!-- I noticed some other IDs might be needed but strings.xml is not for IDs, wait -->
+    <item name="help_who_am_i_now" type="id" />
     <string name="help_who_am_i_note">Note: The checkmark ✅ gives a higher score to members who have filled in this activity most in the Mood Tracker.</string>
 
     <string name="add_new_environment">+ New Environment</string>
@@ -615,4 +618,10 @@
     <string name="no_restorable_members">No restorable members found in history.</string>
     <string name="restore_member_success">Member %1$s restored!</string>
     <string name="restore_dialog_title">Select member to restore</string>
+
+    <string name="label_linked_note">Linked Note: %1$s</string>
+    <string name="label_linked_todo">Linked To Do: %1$s</string>
+    <string name="action_add_photo">Add Photo</string>
+    <string name="label_photos">Photos</string>
+    <string name="error_loading_photo">Failed to load photo</string>
 </resources>

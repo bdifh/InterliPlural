@@ -3,7 +3,6 @@ package com.interli.plural
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -124,6 +123,7 @@ class MoodTimelineActivity : BaseActivity() {
                     moodColor = (map["moodColor"] as? Number)?.toInt() ?: 0xFFCCCCCC.toInt(),
                     memberIds = (map["memberIds"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     activities = (map["activities"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
+                    imageUris = (map["imageUris"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     note = (map["note"] as? String) ?: "",
                     linkedNoteId = map["linkedNoteId"] as? String,
                     linkedTodoId = map["linkedTodoId"] as? String

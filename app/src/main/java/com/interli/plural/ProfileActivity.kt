@@ -4,10 +4,8 @@ import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
@@ -16,7 +14,6 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
 import androidx.core.graphics.drawable.toBitmap
-import androidx.core.net.toUri
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
@@ -29,6 +26,7 @@ import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import org.commonmark.ext.gfm.tables.TableCell
 import org.commonmark.node.AbstractVisitor
 import org.commonmark.node.CustomNode
@@ -112,6 +110,7 @@ class ProfileActivity : BaseActivity() {
 
         markwon = Markwon.builder(this)
             .usePlugin(TablePlugin.create(this))
+            .usePlugin(StrikethroughPlugin.create())
             .usePlugin(CoilImagesPlugin.create(this))
             .usePlugin(LinkifyPlugin.create())
             .usePlugin(object : AbstractMarkwonPlugin() {

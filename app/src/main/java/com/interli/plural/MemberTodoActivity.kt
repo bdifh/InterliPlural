@@ -371,17 +371,47 @@ class MemberTodoActivity : BaseActivity() {
                         changed = true
                     }
 
-                    // Reset if the current time is past the deadline
-                    while (now.timeInMillis > (task.deadline ?: 0L)) {
+                    var nextOccurrence = getNextOccurrenceTime(task.deadline!!, task.recurrence, task.recurrenceDays)
+                    while (now.timeInMillis >= nextOccurrence) {
                         handleRecurrence(task, showToast = false)
                         changed = true
+                        nextOccurrence = getNextOccurrenceTime(task.deadline!!, task.recurrence, task.recurrenceDays)
                     }
                 }
             }
         }
         if (changed) {
             saveData()
+            val personId = intent.getStringExtra("person_id") ?: return
+            renderMemberTasks(personId)
         }
+    }
+
+    private fun getNextOccurrenceTime(baseTime: Long, recurrence: String?, days: List<Int>?): Long {
+        val cal = java.util.Calendar.getInstance().apply { timeInMillis = baseTime }
+        val wasMidnight = cal.get(java.util.Calendar.HOUR_OF_DAY) == 0 && cal.get(java.util.Calendar.MINUTE) == 0
+
+        when (recurrence) {
+            "DAILY" -> cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+            "WEEKLY" -> cal.add(java.util.Calendar.WEEK_OF_YEAR, 1)
+            "MONTHLY" -> cal.add(java.util.Calendar.MONTH, 1)
+            "YEARLY" -> cal.add(java.util.Calendar.YEAR, 1)
+            "CUSTOM" -> {
+                val rDays = days ?: emptyList()
+                if (rDays.isNotEmpty()) {
+                    for (i in 1..7) {
+                        cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                        val d = when(cal.get(java.util.Calendar.DAY_OF_WEEK)) {
+                            java.util.Calendar.MONDAY -> 1; java.util.Calendar.TUESDAY -> 2; java.util.Calendar.WEDNESDAY -> 3
+                            java.util.Calendar.THURSDAY -> 4; java.util.Calendar.FRIDAY -> 5; java.util.Calendar.SATURDAY -> 6; java.util.Calendar.SUNDAY -> 7; else -> 1
+                        }
+                        if (rDays.contains(d)) break
+                    }
+                } else cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+            }
+        }
+        if (wasMidnight) { cal.set(java.util.Calendar.HOUR_OF_DAY, 0); cal.set(java.util.Calendar.MINUTE, 0); cal.set(java.util.Calendar.SECOND, 0); cal.set(java.util.Calendar.MILLISECOND, 0) }
+        return cal.timeInMillis
     }
     private var TextView.textStyle: Int
         get() = typeface?.style ?: android.graphics.Typeface.NORMAL

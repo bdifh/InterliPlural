@@ -1,6 +1,5 @@
 package com.interli.plural
 
-import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -18,6 +17,7 @@ class MoodStatsActivity : BaseActivity() {
     private var filteredEntries: List<MoodActivity.MoodEntry> = emptyList()
     private var selectedCalendarActivity: String? = null
     private var selectedCalendarMemberId: String? = null
+    private var selectedStatsGroupId: String? = null
     
     private var currentPeriodStart: Long = 0
     private var currentPeriodEnd: Long = Long.MAX_VALUE
@@ -82,6 +82,10 @@ class MoodStatsActivity : BaseActivity() {
             selectedCalendarActivity = null
             updateCalendar()
             true
+        }
+
+        findViewById<Button>(R.id.btnSelectStatsGroup).setOnClickListener {
+            showGroupSelectionDialog()
         }
 
         findViewById<MoodCalendarView>(R.id.moodCalendarView).onDayClicked = { dayEntries ->
@@ -207,6 +211,8 @@ class MoodStatsActivity : BaseActivity() {
     private fun loadAndRender() {
         Thread {
             val rawEntries = loadEntries()
+            val groups = loadActivityGroups()
+            val selectedGroup = groups.find { it.id == selectedStatsGroupId }
             
             val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
             val peopleJson = sharedPref.getString("people_list", "[]") ?: "[]"
@@ -214,11 +220,14 @@ class MoodStatsActivity : BaseActivity() {
             val excludedIds = allPeople.filter { it.excludeFromStats || it.isArchived }.map { it.id }.toSet()
             
             val settingsPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-            val excludedActivities = settingsPref.getStringSet("excluded_activities", emptySet()) ?: emptySet()
+            val excludedActivities = getSafeSet(settingsPref, "excluded_activities")
 
             val entries = rawEntries.filter { entry ->
-                (entry.memberIds.isEmpty() || entry.memberIds.any { !excludedIds.contains(it) }) &&
-                entry.timestamp in currentPeriodStart..currentPeriodEnd
+                val matchesPeriod = entry.timestamp in currentPeriodStart..currentPeriodEnd
+                val matchesMember = entry.memberIds.isEmpty() || entry.memberIds.any { !excludedIds.contains(it) }
+                val matchesGroup = selectedGroup == null || entry.activities.any { selectedGroup.activityNames.contains(it) }
+                
+                matchesPeriod && matchesMember && matchesGroup
             }
             
             allEntriesForCalendar = rawEntries.filter { entry ->
@@ -230,20 +239,27 @@ class MoodStatsActivity : BaseActivity() {
 
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                renderStats(entries, recentEntries, excludedActivities)
+                findViewById<Button>(R.id.btnSelectStatsGroup).text = selectedGroup?.name ?: getString(R.string.all_activities)
+                renderStats(entries, recentEntries, excludedActivities, selectedGroup)
                 updateCalendar()
             }
         }.start()
     }
 
-    private fun renderStats(allEntries: List<MoodActivity.MoodEntry>, recentEntries: List<MoodActivity.MoodEntry>, excludedActivities: Set<String>) {
-        if (allEntries.isEmpty()) return
+    private fun renderStats(allEntries: List<MoodActivity.MoodEntry>, recentEntries: List<MoodActivity.MoodEntry>, excludedActivities: Set<String>, filterGroup: MoodActivity.ActivityGroup? = null) {
+        if (allEntries.isEmpty()) {
+            findViewById<LinearLayout>(R.id.containerMoodCounts).removeAllViews()
+            findViewById<LinearLayout>(R.id.containerActivityInfluence).removeAllViews()
+            findViewById<MoodChartView>(R.id.moodHistoryChart).setData(emptyList(), MoodChartView.Mode.TODAY_VIEW)
+            findViewById<MoodChartView>(R.id.moodAverageChart).setData(emptyList(), MoodChartView.Mode.SEVEN_DAY_AVERAGE)
+            return
+        }
 
         findViewById<MoodChartView>(R.id.moodHistoryChart).setData(allEntries, MoodChartView.Mode.TODAY_VIEW)
         findViewById<MoodChartView>(R.id.moodAverageChart).setData(allEntries, MoodChartView.Mode.SEVEN_DAY_AVERAGE)
 
         renderMoodCounts(allEntries)
-        renderActivityInfluence(allEntries, excludedActivities)
+        renderActivityInfluence(allEntries, excludedActivities, filterGroup = filterGroup)
     }
 
     private fun renderMoodCounts(entries: List<MoodActivity.MoodEntry>) {
@@ -309,10 +325,15 @@ class MoodStatsActivity : BaseActivity() {
     }
 
     private fun updateCalendar() {
+        val groups = loadActivityGroups()
+        val selectedGroup = groups.find { it.id == selectedStatsGroupId }
+        
         val filtered = allEntriesForCalendar.filter { entry ->
             val matchesActivity = selectedCalendarActivity == null || entry.activities.contains(selectedCalendarActivity)
             val matchesMember = selectedCalendarMemberId == null || entry.memberIds.contains(selectedCalendarMemberId)
-            matchesActivity && matchesMember
+            val matchesStatsGroup = selectedGroup == null || entry.activities.any { selectedGroup.activityNames.contains(it) }
+            
+            matchesActivity && matchesMember && matchesStatsGroup
         }
         findViewById<MoodCalendarView>(R.id.moodCalendarView).setData(filtered)
         
@@ -344,6 +365,7 @@ class MoodStatsActivity : BaseActivity() {
     }
 
     private fun showCalendarActivitySelectionDialog() {
+        val groups = loadActivityGroups()
         val activities = allEntriesForCalendar.flatMap { it.activities }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER).toMutableList()
         activities.add(0, getString(R.string.all_activities))
         
@@ -355,6 +377,25 @@ class MoodStatsActivity : BaseActivity() {
             selectedCalendarActivity = if (selected == getString(R.string.all_activities)) null else selected
             updateCalendar()
         }
+    }
+
+    private fun showGroupSelectionDialog() {
+        val groups = loadActivityGroups()
+        val names = mutableListOf<String>()
+        names.add(getString(R.string.all_activities))
+        names.addAll(groups.map { it.name })
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.label_groups))
+            .setItems(names.toTypedArray()) { _, which ->
+                selectedStatsGroupId = if (which == 0) null else groups[which - 1].id
+                loadAndRender()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .create()
+            
+        dialog.show()
+        ColorHelper.styleSupportAlertDialog(dialog, this)
     }
 
     private fun showCalendarMemberSelectionDialog() {
@@ -418,7 +459,7 @@ class MoodStatsActivity : BaseActivity() {
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }
 
-    private fun renderActivityInfluence(entries: List<MoodActivity.MoodEntry>, excludedActivities: Set<String>, showAll: Boolean = false) {
+    private fun renderActivityInfluence(entries: List<MoodActivity.MoodEntry>, excludedActivities: Set<String>, showAll: Boolean = false, filterGroup: MoodActivity.ActivityGroup? = null) {
         val container = findViewById<LinearLayout>(R.id.containerActivityInfluence)
         container.removeAllViews()
 
@@ -438,7 +479,9 @@ class MoodStatsActivity : BaseActivity() {
             if (score != -1) {
                 entry.activities.forEach { activity ->
                     if (!excludedActivities.contains(activity)) {
-                        activityScores.getOrPut(activity) { mutableListOf() }.add(score)
+                        if (filterGroup == null || filterGroup.activityNames.contains(activity)) {
+                            activityScores.getOrPut(activity) { mutableListOf() }.add(score)
+                        }
                     }
                 }
             }
@@ -547,7 +590,7 @@ class MoodStatsActivity : BaseActivity() {
         if (allActivities.isEmpty()) return
 
         val settingsPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val excludedActivities = settingsPref.getStringSet("excluded_activities", emptySet())?.toMutableSet() ?: mutableSetOf()
+        val excludedActivities = getSafeSet(settingsPref, "excluded_activities").toMutableSet()
         
         val checkedItems = BooleanArray(allActivities.size) { i -> !excludedActivities.contains(allActivities[i]) }
 
@@ -586,7 +629,7 @@ class MoodStatsActivity : BaseActivity() {
             val entries = rawEntries.filter { entry -> (entry.memberIds.isEmpty() || entry.memberIds.any { !excludedIds.contains(it) }) }
             
             val settingsPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-            val excludedActivities = settingsPref.getStringSet("excluded_activities", emptySet()) ?: emptySet()
+            val excludedActivities = getSafeSet(settingsPref, "excluded_activities")
 
             runOnUiThread {
                 val scrollView = ScrollView(this)
@@ -660,13 +703,37 @@ class MoodStatsActivity : BaseActivity() {
         }
     }
 
+    private fun loadActivityGroups(): List<MoodActivity.ActivityGroup> {
+        val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
+        val json = prefs.getString("activity_groups", "[]") ?: "[]"
+        val type = object : TypeToken<List<MoodActivity.ActivityGroup>>() {}.type
+        return try { gson.fromJson(json, type) ?: emptyList() } catch (_: Exception) { emptyList() }
+    }
+
+    private fun getSafeSet(sp: android.content.SharedPreferences, key: String): Set<String> {
+        return try {
+            sp.getStringSet(key, emptySet()) ?: emptySet()
+        } catch (_: Exception) {
+            val json = try { sp.getString(key, "[]") } catch (_: Exception) { "[]" }
+            try {
+                gson.fromJson<Set<String>>(json, object : TypeToken<Set<String>>() {}.type) ?: emptySet()
+            } catch (_: Exception) {
+                emptySet()
+            }
+        }
+    }
+
     private fun loadEntries(): List<MoodActivity.MoodEntry> {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = prefs.getString("mood_entries", "[]") ?: "[]"
         val type = object : TypeToken<List<MoodActivity.MoodEntry>>() {}.type
-        val list: List<MoodActivity.MoodEntry> = try { gson.fromJson(json, type) } catch (_: Exception) { emptyList() }
+        val rawList: List<MoodActivity.MoodEntry> = try {
+            gson.fromJson<List<MoodActivity.MoodEntry>>(json, type)?.filterNotNull() ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
         
-        return list.map { entry ->
+        return rawList.map { entry ->
             MoodActivity.MoodEntry(
                 id = entry.id ?: UUID.randomUUID().toString(),
                 timestamp = entry.timestamp,
@@ -674,8 +741,9 @@ class MoodStatsActivity : BaseActivity() {
                 moodRotation = entry.moodRotation,
                 moodLabel = entry.moodLabel ?: "mood_meh",
                 moodColor = entry.moodColor,
-                memberIds = entry.memberIds ?: emptyList(),
-                activities = entry.activities ?: emptyList(),
+                memberIds = (entry.memberIds ?: emptyList()).filterNotNull(),
+                activities = (entry.activities ?: emptyList()).filterNotNull(),
+                imageUris = (entry.imageUris ?: emptyList()).filterNotNull(),
                 note = entry.note ?: "",
                 linkedNoteId = entry.linkedNoteId,
                 linkedTodoId = entry.linkedTodoId

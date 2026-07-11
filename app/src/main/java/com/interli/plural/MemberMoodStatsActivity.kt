@@ -2,8 +2,7 @@ package com.interli.plural
 
 import android.os.Bundle
 import android.view.View
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.*
@@ -11,6 +10,18 @@ import java.util.*
 class MemberMoodStatsActivity : BaseActivity() {
 
     private val gson = Gson()
+    private lateinit var personId: String
+    private lateinit var personName: String
+    private lateinit var allEntries: List<MoodActivity.MoodEntry>
+
+    private var selectedStatsGroupId: String? = null
+    private var selectedActivities = mutableListOf<String>()
+    private var customStartDate: Calendar? = null
+    private var customEndDate: Calendar? = null
+    private var currentPeriodStart: Long = 0L
+    private var currentPeriodEnd: Long = Long.MAX_VALUE
+    
+    private val dateFormat = java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -18,31 +29,167 @@ class MemberMoodStatsActivity : BaseActivity() {
 
         ColorHelper.applySettings(this)
 
-        val personId = intent.getStringExtra("person_id") ?: return
-        val personName = intent.getStringExtra("person_name") ?: ""
+        personId = intent.getStringExtra("person_id") ?: return
+        personName = intent.getStringExtra("person_name") ?: ""
 
         findViewById<TextView>(R.id.memberMoodStatsTitle).text = getString(R.string.member_mood_stats, personName)
 
+        setupPeriodSpinner()
+        setupDatePickers()
+        setupSelectionButtons()
         setupNavigationDrawer()
+        
+        loadData()
+        updateFilteredData(1) // Default to Last 30 Days
+    }
+
+    private fun loadData() {
+        allEntries = loadEntries()
+    }
+
+    private fun setupPeriodSpinner() {
+        val spinner = findViewById<Spinner>(R.id.spinnerStatsPeriod)
+        val periods = listOf(
+            getString(R.string.period_all_time),
+            getString(R.string.period_last_30_days),
+            getString(R.string.period_current_month),
+            getString(R.string.period_last_month),
+            getString(R.string.period_last_7_days),
+            getString(R.string.period_current_week),
+            getString(R.string.period_custom)
+        )
+        
+        val adapter = ColorHelper.createThemedAdapter(this, periods)
+        spinner.adapter = adapter
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                findViewById<View>(R.id.layoutCustomRange).visibility = if (position == 6) View.VISIBLE else View.GONE
+                updateFilteredData(position)
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+    }
+
+    private fun setupDatePickers() {
+        val btnStart = findViewById<Button>(R.id.btnStartDate)
+        val btnEnd = findViewById<Button>(R.id.btnEndDate)
+
+        btnStart.setOnClickListener {
+            val cal = customStartDate ?: Calendar.getInstance()
+            val dialog = android.app.DatePickerDialog(this, { _, y, m, d ->
+                val selected = Calendar.getInstance().apply { set(y, m, d, 0, 0, 0); set(Calendar.MILLISECOND, 0) }
+                customStartDate = selected
+                btnStart.text = dateFormat.format(selected.time)
+                updateFilteredData(6)
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+            dialog.show()
+            ColorHelper.styleAlertDialog(dialog, this)
+        }
+
+        btnEnd.setOnClickListener {
+            val cal = customEndDate ?: Calendar.getInstance()
+            val dialog = android.app.DatePickerDialog(this, { _, y, m, d ->
+                val selected = Calendar.getInstance().apply { set(y, m, d, 23, 59, 59); set(Calendar.MILLISECOND, 999) }
+                customEndDate = selected
+                btnEnd.text = dateFormat.format(selected.time)
+                updateFilteredData(6)
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+            dialog.show()
+            ColorHelper.styleAlertDialog(dialog, this)
+        }
+    }
+
+    private fun setupSelectionButtons() {
+        findViewById<Button>(R.id.btnSelectStatsGroup).setOnClickListener {
+            showGroupSelectionDialog()
+        }
+
+        findViewById<Button>(R.id.btnFilterActivities).setOnClickListener {
+            val activities = allEntries.flatMap { it.activities }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
+            DialogHelper.showSearchableMultiSelectDialog(
+                this,
+                getString(R.string.filter_activities),
+                activities,
+                selectedActivities
+            ) { newList ->
+                selectedActivities.clear()
+                selectedActivities.addAll(newList)
+                findViewById<Button>(R.id.btnFilterActivities).text = if (selectedActivities.isEmpty()) getString(R.string.filter_activities) else getString(R.string.n_activities_selected, selectedActivities.size)
+                renderStats(personId)
+            }
+        }
+    }
+
+    private fun updateFilteredData(periodPosition: Int) {
+        currentPeriodEnd = Long.MAX_VALUE
+        when (periodPosition) {
+            0 -> currentPeriodStart = 0
+            1 -> { val cal = Calendar.getInstance(); cal.add(Calendar.DAY_OF_YEAR, -30); currentPeriodStart = cal.timeInMillis }
+            2 -> { val cal = Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }; currentPeriodStart = cal.timeInMillis }
+            3 -> { 
+                val calStart = Calendar.getInstance().apply { add(Calendar.MONTH, -1); set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
+                currentPeriodStart = calStart.timeInMillis
+                val calEnd = Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0); add(Calendar.MILLISECOND, -1) }
+                currentPeriodEnd = calEnd.timeInMillis
+            }
+            4 -> { val cal = Calendar.getInstance(); cal.add(Calendar.DAY_OF_YEAR, -7); currentPeriodStart = cal.timeInMillis }
+            5 -> { 
+                val cal = Calendar.getInstance().apply { set(Calendar.DAY_OF_WEEK, firstDayOfWeek); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
+                currentPeriodStart = cal.timeInMillis 
+            }
+            6 -> { 
+                currentPeriodStart = customStartDate?.timeInMillis ?: 0L
+                currentPeriodEnd = customEndDate?.timeInMillis ?: Long.MAX_VALUE 
+            }
+        }
         renderStats(personId)
     }
 
     private fun renderStats(personId: String) {
-        val allEntries = loadEntries()
-        val filtered = allEntries.filter { it.memberIds.contains(personId) }
+        if (!::allEntries.isInitialized) return
         
+        val groups = loadActivityGroups()
+        val selectedGroup = groups.find { it.id == selectedStatsGroupId }
+        val groupActivitySet = selectedGroup?.activityNames?.toSet() ?: emptySet()
+
+        val filtered = allEntries.filter { entry ->
+            if (!entry.memberIds.contains(personId)) return@filter false
+            if (entry.timestamp !in currentPeriodStart..currentPeriodEnd) return@filter false
+            if (selectedActivities.isNotEmpty() && !entry.activities.any { selectedActivities.contains(it) }) return@filter false
+            if (selectedGroup != null && !entry.activities.any { groupActivitySet.contains(it) }) return@filter false
+            true
+        }
+        
+        findViewById<Button>(R.id.btnSelectStatsGroup).text = selectedGroup?.name ?: getString(R.string.group_activities)
+
         if (filtered.isEmpty()) {
             findViewById<View>(R.id.cardMemberMoodChart).visibility = View.GONE
+            findViewById<View>(R.id.cardDailyAverageChart).visibility = View.GONE
+            findViewById<LinearLayout>(R.id.containerMemberMoodCounts).removeAllViews()
+            findViewById<LinearLayout>(R.id.containerMemberActivityInfluence).removeAllViews()
+            findViewById<MemberMoodDotCalendarView>(R.id.moodDotCalendar).setData(emptyList(), personId)
             return
         }
 
-        val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)
-        val recentFiltered = filtered.filter { it.timestamp >= thirtyDaysAgo }
+        findViewById<View>(R.id.cardMemberMoodChart).visibility = View.VISIBLE
+        findViewById<View>(R.id.cardDailyAverageChart).visibility = View.VISIBLE
 
-        findViewById<MoodChartView>(R.id.memberMoodChart).setData(filtered, MoodChartView.Mode.TIMELINE)
+        findViewById<MoodChartView>(R.id.memberMoodChart).setData(filtered, MoodChartView.Mode.TIMELINE_MONTH)
+        
+        val dailyAverageChart = findViewById<MoodChartView>(R.id.dailyAverageChart)
+        dailyAverageChart.setData(filtered, MoodChartView.Mode.DAILY_AVERAGE_MONTH)
+        dailyAverageChart.setRange(currentPeriodStart, if (currentPeriodEnd == Long.MAX_VALUE) System.currentTimeMillis() else currentPeriodEnd)
 
-        renderMoodCounts(recentFiltered)
-        renderActivityInfluence(recentFiltered)
+        renderMoodCounts(filtered)
+        renderActivityInfluence(filtered)
+
+        val filteredForCalendar = allEntries.filter { entry ->
+            if (!entry.memberIds.contains(personId)) return@filter false
+            if (selectedActivities.isNotEmpty() && !entry.activities.any { selectedActivities.contains(it) }) return@filter false
+            if (selectedGroup != null && !entry.activities.any { groupActivitySet.contains(it) }) return@filter false
+            true
+        }
+        findViewById<MemberMoodDotCalendarView>(R.id.moodDotCalendar).setData(filteredForCalendar, personId)
     }
 
     private fun renderMoodCounts(entries: List<MoodActivity.MoodEntry>) {
@@ -50,15 +197,14 @@ class MemberMoodStatsActivity : BaseActivity() {
         container.removeAllViews()
 
         val moodKeys = listOf("mood_awful", "mood_bad", "mood_meh", "mood_good", "mood_rad")
+        val moodResIds = listOf(R.string.mood_awful, R.string.mood_bad, R.string.mood_meh, R.string.mood_good, R.string.mood_rad)
+        val moodTranslations = moodKeys.zip(moodResIds.map { getString(it) }).toMap()
         val counts = entries.groupingBy { it.moodLabel }.eachCount()
         
         val consolidatedCounts = mutableMapOf<String, Int>()
         counts.forEach { (label, count) ->
             val key = if (moodKeys.contains(label)) label else {
-                moodKeys.find { key ->
-                    val resId = resources.getIdentifier(key, "string", packageName)
-                    resId != 0 && getString(resId) == label
-                } ?: label
+                moodTranslations.entries.find { it.value == label }?.key ?: label
             }
             consolidatedCounts[key] = (consolidatedCounts[key] ?: 0) + count
         }
@@ -191,7 +337,58 @@ class MemberMoodStatsActivity : BaseActivity() {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = prefs.getString("mood_entries", "[]") ?: "[]"
         val type = object : TypeToken<List<MoodActivity.MoodEntry>>() {}.type
-        return try { gson.fromJson(json, type) } catch (_: Exception) { emptyList() }
+        val rawList: List<MoodActivity.MoodEntry> = try {
+            gson.fromJson<List<MoodActivity.MoodEntry>>(json, type)?.filterNotNull() ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+        return rawList.map { entry ->
+            MoodActivity.MoodEntry(
+                id = entry.id ?: UUID.randomUUID().toString(),
+                timestamp = entry.timestamp,
+                moodEmoji = entry.moodEmoji ?: "👍",
+                moodRotation = entry.moodRotation,
+                moodLabel = entry.moodLabel ?: "mood_meh",
+                moodColor = entry.moodColor,
+                memberIds = (entry.memberIds ?: emptyList()).filterNotNull(),
+                activities = (entry.activities ?: emptyList()).filterNotNull(),
+                imageUris = (entry.imageUris ?: emptyList()).filterNotNull(),
+                note = entry.note ?: "",
+                linkedNoteId = entry.linkedNoteId,
+                linkedTodoId = entry.linkedTodoId
+            )
+        }
+    }
+
+    private fun showGroupSelectionDialog() {
+        val groups = loadActivityGroups()
+        val names = mutableListOf<String>()
+        names.add(getString(R.string.group_activities))
+        names.addAll(groups.map { it.name })
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.label_groups))
+            .setItems(names.toTypedArray()) { _, which ->
+                selectedStatsGroupId = if (which == 0) null else groups[which - 1].id
+                renderStats(personId)
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .create()
+        dialog.show(); ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun loadActivityGroups(): List<MoodActivity.ActivityGroup> {
+        val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
+        val json = prefs.getString("activity_groups", "[]") ?: "[]"
+        val rawList: List<MoodActivity.ActivityGroup> = try {
+            gson.fromJson(json, object : TypeToken<List<MoodActivity.ActivityGroup>>() {}.type) ?: emptyList()
+        } catch (_: Exception) { emptyList() }
+        return rawList.map { group ->
+            MoodActivity.ActivityGroup(
+                id = group.id ?: UUID.randomUUID().toString(),
+                name = group.name ?: "Unnamed",
+                activityNames = (group.activityNames ?: mutableListOf()).filterNotNull().toMutableList()
+            )
+        }
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()

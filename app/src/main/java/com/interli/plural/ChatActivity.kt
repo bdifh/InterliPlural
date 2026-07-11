@@ -15,6 +15,7 @@ import coil.load
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.noties.markwon.Markwon
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -135,11 +136,13 @@ class ChatActivity : BaseActivity() {
         }
         findViewById<ImageButton>(R.id.btnAddChatMedia).setColorFilter(textColor)
 
-        markwon = Markwon.builder(this)
-            .usePlugin(io.noties.markwon.ext.tables.TablePlugin.create(this))
-            .usePlugin(io.noties.markwon.image.coil.CoilImagesPlugin.create(this))
-            .usePlugin(io.noties.markwon.linkify.LinkifyPlugin.create())
-            .build()
+            markwon = Markwon.builder(this)
+                .usePlugin(io.noties.markwon.ext.tables.TablePlugin.create(this))
+                .usePlugin(StrikethroughPlugin.create())
+                .usePlugin(io.noties.markwon.image.coil.CoilImagesPlugin.create(this))
+                .usePlugin(io.noties.markwon.linkify.LinkifyPlugin.create())
+                .build()
+
 
         markMessagesAsRead()
     }

@@ -76,7 +76,8 @@
     <string name="mood_theme_saved_toast">Mood-thema opgeslagen!</string>
     <string name="entry_saved">Opgeslagen!</string>
     <string name="to_date"> t/m </string>
-    <string name="backup_saved">Backup opgeslagen</string>
+    <string name="loading">Laden...</string>
+    <string name="backup_saved">Interli Export opgeslagen!</string>
     <string name="export_failed">Export mislukt: %1$s</string>
     <string name="backup_imported">Backup geïmporteerd! Herstart de app voor het beste resultaat.</string>
     <string name="import_failed">Import mislukt: %1$s</string>
@@ -158,8 +159,8 @@
     <string name="timeline_front_title">Front Tijdlijn</string>
     <string name="visual">Visueel</string>
     <string name="timeline_visual_title">Visuele Tijdlijn</string>
-    <string name="action_export">Exporteren</string>
-    <string name="action_import">Importeren</string>
+    <string name="action_export">Interli Export</string>
+    <string name="action_import">Interli Import</string>
     <string name="diary">Notities</string>
     <string name="calendar">Agenda</string>
     <string name="sysmedia">Sysmedia</string>
@@ -201,6 +202,9 @@
     <string name="todo">To Do</string>
     <string name="tab_notes">Notities</string>
     <string name="tab_messages">Sysmail</string>
+    <string name="tab_posts">Berichten</string>
+    <string name="tab_replies">Reacties</string>
+    <string name="tab_media">Media</string>
     <string name="action_link_everyone">Iedereen</string>
     <string name="no_messages">Geen Sysmail</string>
     <string name="no_notes">Geen notities</string>
@@ -221,7 +225,6 @@
     <string name="action_link_note">Notitie koppelen</string>
     <string name="action_link_todo">To Do koppelen</string>
     <string name="action_link_todo_list">To Do lijst koppelen</string>
-    <string name="label_linked_note">Gekoppelde notitie</string>
     <string name="label_reply_to">Als antwoord op</string>
     <string name="hint_field_title">Titel Veld</string>
     <string name="hint_field_template">Sjabloon (Optioneel)</string>
@@ -268,6 +271,7 @@
     <string name="view_all">Toon alles</string>
     <string name="filter_activities">Activiteiten filteren</string>
     <string name="exclude_activity_title">Uitsluiten van statistieken</string>
+    <string name="group_activities">Groep activiteiten</string>
     <string name="stats_mood_average">Dagelijks Mood Gemiddelde</string>
     <string name="stats_average_mood_per_member">Gemiddelde mood per lid</string>
     <string name="stats_no_data_per_member">Geen gegevens per lid</string>
@@ -482,4 +486,10 @@
     <string name="no_restorable_members">Geen herstelbare leden gevonden in de geschiedenis.</string>
     <string name="restore_member_success">Lid %1$s hersteld!</string>
     <string name="restore_dialog_title">Selecteer lid om te herstellen</string>
+
+    <string name="label_linked_note">Gekoppelde notitie: %1$s</string>
+    <string name="label_linked_todo">Gekoppelde To Do: %1$s</string>
+    <string name="action_add_photo">Foto toevoegen</string>
+    <string name="label_photos">Foto\'s</string>
+    <string name="error_loading_photo">Foto laden mislukt</string>
 </resources>

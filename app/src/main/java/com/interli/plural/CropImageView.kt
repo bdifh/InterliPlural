@@ -74,10 +74,14 @@ class CropImageView @JvmOverloads constructor(
         
         val viewWidth = width.toFloat()
         val viewHeight = height.toFloat()
+
+        val targetWidth = if (cropRect.width() > 0) cropRect.width() else viewWidth
+        val targetHeight = if (cropRect.height() > 0) cropRect.height() else viewHeight
+
         val bitWidth = bitmap.width.toFloat()
         val bitHeight = bitmap.height.toFloat()
-        
-        val scale = maxOf(viewWidth / bitWidth, viewHeight / bitHeight)
+
+        val scale = minOf(targetWidth / bitWidth, targetHeight / bitHeight) * 1.0f
         mainMatrix.postScale(scale, scale)
         
         val tx = (viewWidth - bitWidth * scale) / 2f
@@ -96,6 +100,9 @@ class CropImageView @JvmOverloads constructor(
             (viewWidth + size) / 2f,
             (viewHeight + size) / 2f
         )
+        if (sourceBitmap != null && changed) {
+            centerImage()
+        }
     }
 
     override fun onDraw(canvas: Canvas) {

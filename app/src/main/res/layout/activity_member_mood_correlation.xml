@@ -44,53 +44,88 @@
                 android:orientation="vertical"
                 android:padding="24dp">
 
-                <!-- Period Selection -->
+                <!-- Period and Group Selection -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:layout_marginBottom="24dp">
-
-                    <TextView
-                        android:id="@+id/labelStatsPeriod"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/stats_period"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="4dp" />
-
-                    <Spinner
-                        android:id="@+id/spinnerStatsPeriod"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:minHeight="48dp" />
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="24dp"
+                    android:gravity="bottom">
 
                     <LinearLayout
-                        android:id="@+id/layoutCustomRange"
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="8dp"
-                        android:visibility="gone">
+                        android:orientation="vertical"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp">
 
-                        <Button
-                            android:id="@+id/btnStartDate"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
+                        <TextView
+                            android:id="@+id/labelStatsPeriod"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginEnd="4dp"
-                            android:text="@string/start_date" />
+                            android:text="@string/stats_period"
+                            android:textSize="14sp"
+                            android:layout_marginBottom="4dp" />
 
-                        <Button
-                            android:id="@+id/btnEndDate"
-                            style="@style/Widget.Material3.Button.OutlinedButton"
-                            android:layout_width="0dp"
+                        <Spinner
+                            android:id="@+id/spinnerStatsPeriod"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="4dp"
-                            android:text="@string/end_date" />
+                            android:minHeight="48dp" />
                     </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_weight="1">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/label_groups"
+                            android:textSize="14sp"
+                            android:layout_marginBottom="4dp" />
+
+                        <Button
+                            android:id="@+id/btnSelectStatsGroup"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/all_activities"
+                            android:gravity="start|center_vertical"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            app:icon="@android:drawable/ic_menu_sort_by_size" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/layoutCustomRange"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp"
+                    android:visibility="gone"
+                    android:layout_marginBottom="24dp">
+
+                    <Button
+                        android:id="@+id/btnStartDate"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:text="@string/start_date" />
+
+                    <Button
+                        android:id="@+id/btnEndDate"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="4dp"
+                        android:text="@string/end_date" />
                 </LinearLayout>
 
                 <!-- Member and Activity Selection -->

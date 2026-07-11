@@ -303,7 +303,12 @@ object DialogHelper {
     private fun loadGroups(context: Context): List<Group> {
         val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val json = sharedPref.getString("groups_list", "[]") ?: "[]"
-        return Gson().fromJson(json, object : com.google.gson.reflect.TypeToken<List<Group>>() {}.type) ?: emptyList()
+        val type = object : com.google.gson.reflect.TypeToken<List<Group>>() {}.type
+        return try {
+            Gson().fromJson<List<Group>>(json, type)?.filterNotNull() ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private fun saveData(context: Context, sessions: List<FrontSession>, people: List<Person>) {

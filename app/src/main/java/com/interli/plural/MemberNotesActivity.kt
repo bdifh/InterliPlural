@@ -12,6 +12,7 @@ import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -128,6 +129,7 @@ class MemberNotesActivity : BaseActivity() {
 
         val markwon = Markwon.builder(this)
             .usePlugin(TablePlugin.create(this))
+            .usePlugin(StrikethroughPlugin.create())
             .usePlugin(CoilImagesPlugin.create(this))
             .usePlugin(LinkifyPlugin.create())
             .build()

@@ -3,7 +3,7 @@ plugins {
 }
 
 // ------- VERSION DISPLAY !!!! --------
-val versionDisplayed = "V002-3h" // CHANGE THIS ONE WHEN MAKING UPDATES
+val versionDisplayed = "V002-3i" // CHANGE THIS ONE WHEN MAKING UPDATES
 // ------- VERSION DISPLAY !!!! --------
 
 android {

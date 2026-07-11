@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.noties.markwon.Markwon
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -41,7 +42,12 @@ class DiaryActivity : BaseActivity() {
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.isAppearanceLightStatusBars = true
 
-        markwon = Markwon.create(this)
+        markwon = Markwon.builder(this)
+            .usePlugin(io.noties.markwon.ext.tables.TablePlugin.create(this))
+            .usePlugin(StrikethroughPlugin.create())
+            .usePlugin(io.noties.markwon.image.coil.CoilImagesPlugin.create(this))
+            .usePlugin(io.noties.markwon.linkify.LinkifyPlugin.create())
+            .build()
         loadNotes()
 
         recyclerView = findViewById(R.id.diaryRecyclerView)
@@ -382,7 +388,6 @@ class DiaryActivity : BaseActivity() {
                     holder.date.text = sdf.format(Date(note.timestamp))
                     holder.date.setTextColor(textColor)
 
-                    // Extract "From" from content if it exists
                     val fromPrefixEn = "From: "
                     val fromPrefixNl = "Van: "
                     var displayContent = note.content

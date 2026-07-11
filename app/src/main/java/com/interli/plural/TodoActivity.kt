@@ -1,9 +1,7 @@
 package com.interli.plural
 
 import android.os.Bundle
-import android.graphics.Color
 import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -11,7 +9,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import java.text.SimpleDateFormat
 import java.util.*
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
@@ -418,7 +415,6 @@ class TodoActivity : BaseActivity() {
                         setTextColor(textColor)
                         setOnClickListener {
                             task.status = getNextStatus(task.status); text = getStatusChar(task.status); saveData()
-                            if (task.status == "CHECKED" && task.recurrence != null) { handleRecurrence(task); renderLists() }
                         }
                     }
                     taskRow.addView(statusBtn)
@@ -436,7 +432,34 @@ class TodoActivity : BaseActivity() {
                         render()
                     }
                     taskTextContainer.addView(etTaskTitle)
+
+                    task.deadline?.let { dl ->
+                        val deadlineTv = TextView(this@TodoActivity).apply {
+                            val cal = Calendar.getInstance().apply { timeInMillis = dl }
+                            val isMidnight = cal.get(Calendar.HOUR_OF_DAY) == 0 && cal.get(Calendar.MINUTE) == 0
+                            val fmt = if (isMidnight) "dd/MM" else "dd/MM HH:mm"
+                            val sdf = java.text.SimpleDateFormat(fmt, Locale.getDefault())
+                            text = getString(R.string.deadline, sdf.format(Date(dl)))
+                            textSize = 10f; alpha = 0.6f; setTextColor(textColor)
+                        }
+                        taskTextContainer.addView(deadlineTv)
+                    }
+
                     taskRow.addView(taskTextContainer)
+
+                    if (task.recurrence != null) {
+                        val repeatBtn = TextView(this@TodoActivity).apply {
+                            text = "↻"; textSize = 20f; setPadding(12.dpToPx(), 0, 12.dpToPx(), 0)
+                            setTextColor(textColor); alpha = 0.7f
+                            setOnClickListener {
+                                handleRecurrence(task)
+                                saveData()
+                                renderLists()
+                            }
+                        }
+                        taskRow.addView(repeatBtn)
+                    }
+
                     content.addView(taskRow)
                 }
 
@@ -498,15 +521,48 @@ class TodoActivity : BaseActivity() {
             list.tasks.forEach { task ->
                 if (task.recurrence != null && task.status == "CHECKED") {
                     if (task.deadline == null) {
-                        task.deadline = Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0) }.timeInMillis
+                        task.deadline = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                        }.timeInMillis
                         changed = true
                     }
-                    while (now.timeInMillis > (task.deadline ?: 0L)) {
-                        handleRecurrence(task, showToast = false); changed = true
+                    
+                    var nextOccurrence = getNextOccurrenceTime(task.deadline!!, task.recurrence, task.recurrenceDays)
+                    while (now.timeInMillis >= nextOccurrence) {
+                        handleRecurrence(task, showToast = false)
+                        changed = true
+                        nextOccurrence = getNextOccurrenceTime(task.deadline!!, task.recurrence, task.recurrenceDays)
                     }
                 }
             }
         }
         if (changed) { saveData(); renderLists() }
+    }
+
+    private fun getNextOccurrenceTime(baseTime: Long, recurrence: String?, days: List<Int>?): Long {
+        val cal = Calendar.getInstance().apply { timeInMillis = baseTime }
+        val wasMidnight = cal.get(Calendar.HOUR_OF_DAY) == 0 && cal.get(Calendar.MINUTE) == 0
+
+        when (recurrence) {
+            "DAILY" -> cal.add(Calendar.DAY_OF_YEAR, 1)
+            "WEEKLY" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+            "MONTHLY" -> cal.add(Calendar.MONTH, 1)
+            "YEARLY" -> cal.add(Calendar.YEAR, 1)
+            "CUSTOM" -> {
+                val rDays = days ?: emptyList()
+                if (rDays.isNotEmpty()) {
+                    for (i in 1..7) {
+                        cal.add(Calendar.DAY_OF_YEAR, 1)
+                        val d = when(cal.get(Calendar.DAY_OF_WEEK)) {
+                            Calendar.MONDAY -> 1; Calendar.TUESDAY -> 2; Calendar.WEDNESDAY -> 3
+                            Calendar.THURSDAY -> 4; Calendar.FRIDAY -> 5; Calendar.SATURDAY -> 6; Calendar.SUNDAY -> 7; else -> 1
+                        }
+                        if (rDays.contains(d)) break
+                    }
+                } else cal.add(Calendar.DAY_OF_YEAR, 1)
+            }
+        }
+        if (wasMidnight) { cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0) }
+        return cal.timeInMillis
     }
 }

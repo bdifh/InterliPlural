@@ -76,6 +76,6 @@ class MoodMonthActivity : BaseActivity() {
     private fun updateChart() {
         val chart = findViewById<MoodChartView>(R.id.moodMonthChart)
         chart.setRange(startDate, endDate)
-        chart.setData(allEntries, MoodChartView.Mode.MONTH_VIEW)
+        chart.setData(allEntries, MoodChartView.Mode.DAILY_AVERAGE_MONTH)
     }
 }

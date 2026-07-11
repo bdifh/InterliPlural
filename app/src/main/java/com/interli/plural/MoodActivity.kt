@@ -8,11 +8,11 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import com.google.android.material.chip.Chip
-import com.google.android.material.chip.ChipGroup
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
 import java.util.*
+import coil.load
 
 class MoodActivity : BaseActivity() {
 
@@ -31,6 +31,7 @@ class MoodActivity : BaseActivity() {
         val moodColor: Int,
         val memberIds: List<String> = emptyList(),
         val activities: List<String> = emptyList(),
+        val imageUris: List<String> = emptyList(),
         val note: String = "",
         val linkedNoteId: String? = null,
         val linkedTodoId: String? = null
@@ -47,7 +48,9 @@ class MoodActivity : BaseActivity() {
     private var editingEntryId: String? = null
     private var selectedNoteId: String? = null
     private var selectedTodoId: String? = null
+    private var selectedImageUris = mutableListOf<String>()
 
+    private lateinit var photoContainer: LinearLayout
     private lateinit var moodEmojiContainer: LinearLayout
     private lateinit var activityGroupsContainer: LinearLayout
     private lateinit var etMoodNote: EditText
@@ -111,6 +114,9 @@ class MoodActivity : BaseActivity() {
         tvSelectedDate.setOnClickListener { showDatePicker() }
         tvSelectedTime.setOnClickListener { showTimePicker() }
 
+        photoContainer = findViewById(R.id.photoContainer)
+        findViewById<Button>(R.id.btnAddPhoto).setOnClickListener { pickImages.launch("image/*") }
+
         etActivitySearch.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -171,7 +177,10 @@ class MoodActivity : BaseActivity() {
         selectedNoteId = entry.linkedNoteId
         selectedTodoId = entry.linkedTodoId
         etMoodNote.setText(entry.note)
-        
+        selectedImageUris = entry.imageUris.toMutableList()
+        renderSelectedPhotos()
+
+
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         val peopleJson = prefs.getString("people_list", "[]") ?: "[]"
         val people: List<Person> = gson.fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type)
@@ -886,6 +895,7 @@ class MoodActivity : BaseActivity() {
                 moodColor = selectedMoodColor,
                 memberIds = selectedMemberIds.toList(),
                 activities = selectedActivities.toList(),
+                imageUris = selectedImageUris.toList(),
                 note = currentNote,
                 linkedNoteId = selectedNoteId,
                 linkedTodoId = selectedTodoId
@@ -906,6 +916,7 @@ class MoodActivity : BaseActivity() {
                     moodColor = selectedMoodColor,
                     memberIds = selectedMemberIds.toList(),
                     activities = selectedActivities.toList(),
+                    imageUris = selectedImageUris.toList(),
                     note = currentNote,
                     linkedNoteId = selectedNoteId,
                     linkedTodoId = selectedTodoId
@@ -919,6 +930,7 @@ class MoodActivity : BaseActivity() {
                     moodColor = selectedMoodColor,
                     memberIds = selectedMemberIds.toList(),
                     activities = selectedActivities.toList(),
+                    imageUris = selectedImageUris.toList(),
                     note = currentNote,
                     linkedNoteId = selectedNoteId,
                     linkedTodoId = selectedTodoId
@@ -974,4 +986,39 @@ class MoodActivity : BaseActivity() {
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
+
+    private val pickImages = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetMultipleContents()) { uris ->
+        uris.forEach { uri ->
+            try {
+                val inputStream = contentResolver.openInputStream(uri)
+                val file = java.io.File(filesDir, "mood_img_${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}.jpg")
+                val outputStream = java.io.FileOutputStream(file)
+                inputStream?.copyTo(outputStream)
+                selectedImageUris.add(android.net.Uri.fromFile(file).toString())
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(this, getString(R.string.error_loading_photo), android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+        renderSelectedPhotos()
+    }
+
+    private fun renderSelectedPhotos() {
+        photoContainer.removeAllViews()
+        selectedImageUris.forEach { uriString ->
+            val iv = android.widget.ImageView(this).apply {
+                val height = 150.dpToPx()
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, height).apply { 
+                    marginEnd = 8.dpToPx() 
+                }
+                adjustViewBounds = true
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                load(uriString)
+                setOnClickListener {
+                    selectedImageUris.remove(uriString)
+                    renderSelectedPhotos()
+                }
+            }
+            photoContainer.addView(iv)
+        }
+    }
 }

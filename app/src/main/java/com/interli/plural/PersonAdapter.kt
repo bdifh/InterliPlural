@@ -4,13 +4,8 @@ import android.graphics.Color
 import android.view.*
 import android.widget.*
 import android.content.Context
-import androidx.core.graphics.toColorInt
-import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import kotlin.math.min
 
 sealed class MainItem {
     data class GroupHeader(val group: Group, val depth: Int) : MainItem()

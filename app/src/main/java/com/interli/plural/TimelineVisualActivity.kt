@@ -1,8 +1,6 @@
 package com.interli.plural
 
 import android.os.Bundle
-import android.widget.Button
-import androidx.core.view.WindowInsetsControllerCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 

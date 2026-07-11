@@ -16,7 +16,7 @@ import java.util.*
 
 class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
 
-    enum class Mode { TIMELINE, HOUR_OF_DAY, SEVEN_DAY_AVERAGE, MONTH_VIEW, TODAY_VIEW }
+    enum class Mode { TIMELINE, HOUR_OF_DAY, SEVEN_DAY_AVERAGE, MONTH_VIEW, TODAY_VIEW, TIMELINE_MONTH, DAILY_AVERAGE_MONTH }
     private var chartMode = Mode.TIMELINE
 
     private var entries: List<MoodActivity.MoodEntry> = emptyList()
@@ -124,7 +124,7 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
         val paddingLeft = calculatePaddingLeft()
         val paddingRight = if (exportStartTime != null) 30f else 40f
         val paddingTop = 60f
-        val paddingBottom = if (chartMode == Mode.MONTH_VIEW) 250f else 80f
+        val paddingBottom = if (chartMode == Mode.MONTH_VIEW || chartMode == Mode.TIMELINE_MONTH || chartMode == Mode.DAILY_AVERAGE_MONTH) 250f else 80f
         
         val chartWidth = width - paddingLeft - paddingRight
         val chartHeight = height - paddingTop - paddingBottom
@@ -243,18 +243,18 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
         if (exportStartTime != null) return
 
         when (chartMode) {
-            Mode.TIMELINE, Mode.SEVEN_DAY_AVERAGE, Mode.MONTH_VIEW -> {
+            Mode.TIMELINE, Mode.SEVEN_DAY_AVERAGE, Mode.MONTH_VIEW, Mode.TIMELINE_MONTH, Mode.DAILY_AVERAGE_MONTH -> {
                 val cal = Calendar.getInstance()
                 val today = cal.clone() as Calendar
                 today.set(Calendar.HOUR_OF_DAY, 0); today.set(Calendar.MINUTE, 0); today.set(Calendar.SECOND, 0); today.set(Calendar.MILLISECOND, 0)
                 
                 val rangeEnd = customEndTime ?: today.timeInMillis
-                val rangeStart = customStartTime ?: (if (entries.isNotEmpty()) entries.first().timestamp else today.timeInMillis - 7 * 24 * 60 * 60 * 1000)
+                val rangeStart = customStartTime ?: (if (entries.isNotEmpty()) entries.first().timestamp else today.timeInMillis - 30 * 24 * 60 * 60 * 1000)
                 
                 val totalDays = ((rangeEnd - rangeStart) / (24L * 60 * 60 * 1000)).toInt().coerceAtLeast(1) + 1
                 val msPer30Days = 30L * 24 * 60 * 60 * 1000
                 
-                if (chartMode == Mode.TIMELINE && entries.size >= 2) {
+                if ((chartMode == Mode.TIMELINE || chartMode == Mode.TIMELINE_MONTH) && entries.size >= 2) {
                     val range = (entries.last().timestamp - entries.first().timestamp).coerceAtLeast(1L)
                     scaleFactor = (range.toFloat() / msPer30Days.toFloat()).coerceAtLeast(1.0f)
                 } else {
@@ -305,7 +305,7 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
         val totalContentWidth = chartWidth * effectiveScale
 
         when (chartMode) {
-            Mode.TIMELINE -> {
+            Mode.TIMELINE, Mode.TIMELINE_MONTH -> {
                 if (entries.isEmpty()) return
                 
                 val startTime: Long
@@ -363,7 +363,7 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
                     }
                 }
             }
-            Mode.SEVEN_DAY_AVERAGE, Mode.MONTH_VIEW -> {
+            Mode.SEVEN_DAY_AVERAGE, Mode.MONTH_VIEW, Mode.DAILY_AVERAGE_MONTH -> {
                 if (entries.isEmpty() && customStartTime == null) return
                 
                 val cal = Calendar.getInstance()
@@ -406,20 +406,20 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
 
     private fun drawLabels(canvas: Canvas, chartWidth: Float, paddingLeft: Float, y: Float) {
         labelPaint.textAlign = Paint.Align.CENTER
-        labelPaint.textSize = 18f
+        labelPaint.textSize = if (exportStartTime != null) 14f else 18f
         
         when (chartMode) {
             Mode.TODAY_VIEW, Mode.HOUR_OF_DAY -> {
                 val cal = Calendar.getInstance()
                 cal.timeInMillis = targetDateTimestamp
-                val sdf = SimpleDateFormat("dd/MM", Locale.getDefault())
+                val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
                 val dateStr = sdf.format(cal.time)
 
                 canvas.drawText("0h ($dateStr)", paddingLeft, y, labelPaint)
                 canvas.drawText("12h", paddingLeft + (chartWidth / 2f) * scaleFactor - scrollOffset, y, labelPaint)
                 canvas.drawText("24h", paddingLeft + chartWidth * scaleFactor - scrollOffset, y, labelPaint)
             }
-            Mode.SEVEN_DAY_AVERAGE, Mode.MONTH_VIEW -> {
+            Mode.TIMELINE, Mode.SEVEN_DAY_AVERAGE, Mode.MONTH_VIEW, Mode.TIMELINE_MONTH, Mode.DAILY_AVERAGE_MONTH -> {
                 if (entries.isEmpty() && customStartTime == null) return
                 val today = Calendar.getInstance().apply {
                     set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
@@ -429,13 +429,21 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
                 val rangeStart = customStartTime ?: (if (entries.isNotEmpty()) entries.first().timestamp else today.timeInMillis - 7 * 24 * 60 * 60 * 1000)
                 val totalDays = ((rangeEnd - rangeStart) / (24L * 60 * 60 * 1000)).toInt().coerceAtLeast(1) + 1
 
-                val sdf = SimpleDateFormat("dd/MM", Locale.getDefault())
+                val sdf = SimpleDateFormat("dd MMM", Locale.getDefault())
                 
                 val step = when {
+                    chartMode == Mode.TIMELINE_MONTH || chartMode == Mode.DAILY_AVERAGE_MONTH || chartMode == Mode.MONTH_VIEW -> {
+                        when {
+                            scaleFactor > 5f -> 1
+                            scaleFactor > 2f -> 2
+                            else -> 5
+                        }
+                    }
                     scaleFactor > 20f -> 1
                     scaleFactor > 10f -> 2
                     scaleFactor > 5f -> 5
-                    else -> 10
+                    scaleFactor > 2f -> 10
+                    else -> 15
                 }
                 
                 for (i in 0 until totalDays step step) {
@@ -446,7 +454,7 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
                         cal.timeInMillis = rangeStart
                         cal.add(Calendar.DAY_OF_YEAR, i)
                         
-                        if (chartMode == Mode.MONTH_VIEW) {
+                        if (chartMode == Mode.MONTH_VIEW || chartMode == Mode.TIMELINE_MONTH || chartMode == Mode.DAILY_AVERAGE_MONTH) {
                             canvas.save()
                             canvas.rotate(-90f, x, y - 100f)
                             labelPaint.textAlign = Paint.Align.RIGHT
@@ -463,7 +471,7 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
                     val cal = Calendar.getInstance().apply { timeInMillis = rangeEnd }
                     val dateStr = sdf.format(cal.time)
                     
-                    if (chartMode == Mode.MONTH_VIEW) {
+                    if (chartMode == Mode.MONTH_VIEW || chartMode == Mode.TIMELINE_MONTH || chartMode == Mode.DAILY_AVERAGE_MONTH) {
                         canvas.save()
                         canvas.rotate(-90f, todayX, y - 100f)
                         labelPaint.textAlign = Paint.Align.RIGHT

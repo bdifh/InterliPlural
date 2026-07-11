@@ -32,6 +32,7 @@ class SysmediaProfileActivity : BaseActivity() {
     private lateinit var profileUser: Person
     private lateinit var markwon: io.noties.markwon.Markwon
     private var ivDialogProfilePreview: ImageView? = null
+    private var selectedTab: Int = 0
     
     private val gson = Gson()
     private val sdf = SimpleDateFormat("dd MMM yy", Locale.getDefault())
@@ -160,6 +161,17 @@ class SysmediaProfileActivity : BaseActivity() {
 
         btnEdit.setTextColor(ColorHelper.getBtnTextColor(this))
         btnEdit.strokeColor = android.content.res.ColorStateList.valueOf(ColorHelper.getBtnColor(this))
+
+        val tabLayout = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayoutProfile)
+        
+        tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                selectedTab = tab?.position ?: 0
+                setupRecyclerView()
+            }
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+        })
     }
     private fun updateFollowButton() {
         val btnFollow = findViewById<MaterialButton>(R.id.btnFollow)
@@ -432,7 +444,14 @@ class SysmediaProfileActivity : BaseActivity() {
         val rv = findViewById<RecyclerView>(R.id.rvProfilePosts)
         rv.layoutManager = LinearLayoutManager(this)
         
-        val userPosts = posts.filter { it.senderId == profileUserId }.sortedByDescending { it.timestamp }
+        val userPosts = posts.filter { it.senderId == profileUserId }.filter { post ->
+            when (selectedTab) {
+                0 -> post.replyToId == null
+                1 -> post.replyToId != null
+                2 -> post.imageUri != null && post.imageUri!!.isNotEmpty()
+                else -> true
+            }
+        }.sortedByDescending { it.timestamp }
         rv.adapter = ProfilePostAdapter(userPosts)
     }
 
@@ -729,10 +748,7 @@ class SysmediaProfileActivity : BaseActivity() {
                                     mutablePosts.remove(post)
                                     posts = mutablePosts
                                     saveData()
-                                    (findViewById<RecyclerView>(R.id.rvProfilePosts).adapter as? ProfilePostAdapter)?.let {
-                                        it.items = posts
-                                        it.notifyDataSetChanged()
-                                    }
+                                    setupRecyclerView()
                                 }
                             }
                         }.show()

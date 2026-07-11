@@ -1,11 +1,9 @@
 package com.interli.plural
 
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.edit
@@ -58,7 +56,6 @@ class SendMessageActivity : BaseActivity() {
             updateSelectedTargetsText()
         }
 
-        // Default to current fronter(s)
         val fronters = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
         if (fronters.isNotEmpty()) {
             selectedSenderIds.addAll(fronters.map { it.id })

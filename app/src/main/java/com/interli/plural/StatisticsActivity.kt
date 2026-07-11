@@ -211,18 +211,45 @@ class StatisticsActivity : BaseActivity() {
 
     private fun loadData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-        val sessionsJson = sharedPref.getString("sessions_list", "[]")
-        val peopleJson = sharedPref.getString("people_list", "[]")
+        val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
+        val peopleJson = sharedPref.getString("people_list", "[]") ?: "[]"
 
         val gson = Gson()
-        val rawPeople: List<Person> = gson.fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type)
-        val rawSessions: List<FrontSession> = gson.fromJson(sessionsJson, object : TypeToken<List<FrontSession>>() {}.type)
+        val rawPeople: List<Person> = try {
+            gson.fromJson<List<Person>>(peopleJson, object : TypeToken<List<Person>>() {}.type)?.filterNotNull() ?: emptyList()
+        } catch (_: Exception) { emptyList() }
         
-        val excludedIds = rawPeople.filter { it.excludeFromStats || it.isArchived || it.isSysmediaOnly }.map { it.id }.toSet()
-        val excludedNames = rawPeople.filter { it.excludeFromStats || it.isArchived || it.isSysmediaOnly }.map { it.name }.toSet()
+        val sanitizedPeople = rawPeople.map { p ->
+            Person(
+                id = p.id ?: UUID.randomUUID().toString(),
+                name = p.name ?: "Unnamed",
+                isFront = p.isFront,
+                profileColor = p.profileColor,
+                excludeFromStats = p.excludeFromStats,
+                isArchived = p.isArchived,
+                isSysmediaOnly = p.isSysmediaOnly
+            )
+        }
 
-        people = rawPeople.filter { !it.excludeFromStats && !it.isArchived && !it.isSysmediaOnly }
-        allSessions = rawSessions.filter { 
+        val rawSessions: List<FrontSession> = try {
+            gson.fromJson<List<FrontSession>>(sessionsJson, object : TypeToken<List<FrontSession>>() {}.type)?.filterNotNull() ?: emptyList()
+        } catch (_: Exception) { emptyList() }
+        
+        val sanitizedSessions = rawSessions.map { s ->
+            FrontSession(
+                personName = s.personName ?: "Unknown",
+                startTime = s.startTime,
+                endTime = s.endTime,
+                personId = s.personId,
+                note = s.note
+            )
+        }
+        
+        val excludedIds = sanitizedPeople.filter { it.excludeFromStats || it.isArchived || it.isSysmediaOnly }.map { it.id }.toSet()
+        val excludedNames = sanitizedPeople.filter { it.excludeFromStats || it.isArchived || it.isSysmediaOnly }.map { it.name }.toSet()
+
+        people = sanitizedPeople.filter { !it.excludeFromStats && !it.isArchived && !it.isSysmediaOnly }
+        allSessions = sanitizedSessions.filter {
             val pId = it.personId
             if (pId != null) {
                 !excludedIds.contains(pId)

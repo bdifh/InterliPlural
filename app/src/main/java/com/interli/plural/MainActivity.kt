@@ -14,9 +14,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.google.android.material.navigation.NavigationView
-import android.os.Build.VERSION.SDK_INT
 import androidx.lifecycle.lifecycleScope
-import com.google.gson.annotations.Until
 import kotlinx.coroutines.launch
 
 data class IdentityGroup(
@@ -319,7 +317,7 @@ class MainActivity : BaseActivity() {
         setContentView(R.layout.activity_main)
 
         loadData()
-        healDataIntegrity() // Herstel koppelingen na import
+        healDataIntegrity()
 
         var migrationNeeded = false
         sessions.forEach { s ->
@@ -482,7 +480,6 @@ class MainActivity : BaseActivity() {
                     val localUri = ImageHelper.downloadAndSaveProfilePicture(this@MainActivity, uri, person.id)
                     if (localUri != null) {
                         person.profilePictureUri = localUri
-                        // Also update in the live list if it was reloaded
                         people.find { it.id == person.id }?.profilePictureUri = localUri
                         anyChanged = true
                     }
@@ -804,7 +801,6 @@ class MainActivity : BaseActivity() {
 
         val parentSpinner = Spinner(this)
 
-        // Filter: voorkom dat de groep zichzelf of een van zijn eigen subgroepen als 'parent' kiest
         val availableParents = groups.filter { potentialParent ->
             if (potentialParent.id == group.id) return@filter false
             var curr: Group? = potentialParent
@@ -888,8 +884,7 @@ class MainActivity : BaseActivity() {
             if (pendingMsg != null) {
                 person.frontMessage = pendingMsg
                 person.messageRead = false
-                
-                // Link the person to the note in diary
+
                 if (pendingNoteId != null) {
                     val notesJson = sharedPref.getString("diary_notes", "[]") ?: "[]"
                     val type = object : TypeToken<MutableList<DiaryNote>>() {}.type

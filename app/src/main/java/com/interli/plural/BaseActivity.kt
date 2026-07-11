@@ -16,8 +16,14 @@ abstract class BaseActivity : AppCompatActivity() {
         val dm = res.displayMetrics
         val config = android.content.res.Configuration(res.configuration)
 
+        val isLandscape = config.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val isTablet = config.smallestScreenWidthDp >= 600
-        val targetWidthDp = if (isTablet) 600f else 446f
+
+        val targetWidthDp = if (isTablet) {
+            if (isLandscape) 1100f else 600f
+        } else {
+            if (isLandscape) 900f else 446f
+        }
 
         val targetDensity = dm.widthPixels / targetWidthDp
         val targetDensityDpi = (160 * targetDensity).toInt()
@@ -129,6 +135,25 @@ abstract class BaseActivity : AppCompatActivity() {
                 true
             }
         }
+
+        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val drawerLayout = findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawerLayout)
+                if (drawerLayout != null) {
+                    if (drawerLayout.isDrawerOpen(androidx.core.view.GravityCompat.START)) {
+                        isEnabled = false
+                        onBackPressedDispatcher.onBackPressed()
+                        isEnabled = true
+                    } else {
+                        drawerLayout.openDrawer(androidx.core.view.GravityCompat.START)
+                    }
+                } else {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    isEnabled = true
+                }
+            }
+        })
     }
 
     private fun updateMenuVisibility(navigationView: com.google.android.material.navigation.NavigationView) {

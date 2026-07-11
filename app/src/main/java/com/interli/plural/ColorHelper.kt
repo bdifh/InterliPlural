@@ -8,7 +8,6 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.core.graphics.toColorInt
 import android.widget.LinearLayout
-import android.widget.ImageView
 import androidx.core.content.edit
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -243,10 +242,10 @@ object ColorHelper {
         
         return try {
             val peopleType = object : TypeToken<MutableList<Person>>() {}.type
-            val people: List<Person> = gson.fromJson(peopleJson, peopleType) ?: emptyList()
+            val people: List<Person> = gson.fromJson<MutableList<Person>>(peopleJson, peopleType)?.filterNotNull() ?: emptyList()
             
             val sessionsType = object : TypeToken<MutableList<FrontSession>>() {}.type
-            val sessions: List<FrontSession> = gson.fromJson(sessionsJson, sessionsType) ?: emptyList()
+            val sessions: List<FrontSession> = gson.fromJson<MutableList<FrontSession>>(sessionsJson, sessionsType)?.filterNotNull() ?: emptyList()
 
             val frontingPeopleIds = people.filter { it.isFront && !it.isArchived }
                 .map { it.id }
@@ -335,10 +334,10 @@ object ColorHelper {
         
         return try {
             val peopleType = object : TypeToken<MutableList<Person>>() {}.type
-            val people: List<Person> = gson.fromJson(peopleJson, peopleType) ?: emptyList()
+            val people: List<Person> = gson.fromJson<MutableList<Person>>(peopleJson, peopleType)?.filterNotNull() ?: emptyList()
             
             val sessionsType = object : TypeToken<MutableList<FrontSession>>() {}.type
-            val sessions: List<FrontSession> = gson.fromJson(sessionsJson, sessionsType) ?: emptyList()
+            val sessions: List<FrontSession> = gson.fromJson<MutableList<FrontSession>>(sessionsJson, sessionsType)?.filterNotNull() ?: emptyList()
 
             val frontingPeopleIds = people.filter { it.isFront && !it.isArchived }
                 .map { it.id }
@@ -525,8 +524,22 @@ object ColorHelper {
             }
             is com.google.android.material.tabs.TabLayout -> {
                 view.setBackgroundColor(bgColor)
-                view.setTabTextColors(globalTextColor, btnColor)
+                val selectedColor = globalTextColor
+                val unselectedColor = (selectedColor and 0x00FFFFFF) or 0x88000000.toInt()
+
                 view.setSelectedTabIndicatorColor(btnColor)
+
+                val states = android.content.res.ColorStateList(
+                    arrayOf(intArrayOf(android.R.attr.state_selected), intArrayOf()),
+                    intArrayOf(selectedColor, unselectedColor)
+                )
+                view.tabIconTint = states
+                view.setTabTextColors(unselectedColor, selectedColor)
+
+                view.post {
+                    view.requestLayout()
+                    view.invalidate()
+                }
             }
             is com.google.android.material.floatingactionbutton.FloatingActionButton -> {
                 view.backgroundTintList = android.content.res.ColorStateList.valueOf(btnColor)
@@ -561,7 +574,10 @@ object ColorHelper {
         for (i in 0 until group.childCount) {
             val child = group.getChildAt(i)
             applyToView(child, bgColor, btnColor, btnTextColor, globalTextColor)
-            if (child is ViewGroup && child !is androidx.recyclerview.widget.RecyclerView) {
+            // DO NOT recurse into TabLayout as it breaks its internal indicator components
+            if (child is ViewGroup && 
+                child !is androidx.recyclerview.widget.RecyclerView && 
+                child !is com.google.android.material.tabs.TabLayout) {
                 applyToViewGroup(child, bgColor, btnColor, btnTextColor, globalTextColor)
             }
         }

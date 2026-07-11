@@ -4,9 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -129,12 +127,6 @@ class SysmediaActivity : BaseActivity() {
         
         findViewById<View>(R.id.sysmediaRoot).setBackgroundColor(ColorHelper.getBgColor(this))
         val tabLayout = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayoutSysmedia)
-        val tabStates = android.content.res.ColorStateList(
-            arrayOf(intArrayOf(android.R.attr.state_selected), intArrayOf()),
-            intArrayOf(btnColor, (textColor and 0x00FFFFFF) or 0x66000000.toInt())
-        )
-        tabLayout.tabIconTint = tabStates
-        tabLayout.setSelectedTabIndicatorColor(btnColor)
 
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
         toolbar.setTitleTextColor(textColor)
@@ -1441,7 +1433,7 @@ class SysmediaActivity : BaseActivity() {
     private fun savePostAsImage(view: View, postId: String) {
         val bitmap = android.graphics.Bitmap.createBitmap(view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
-        canvas.drawColor(ColorHelper.getBgColor(this)) // Gebruik app achtergrond
+        canvas.drawColor(ColorHelper.getBgColor(this))
         view.draw(canvas)
 
         val filename = "Post_${postId}.jpg"
@@ -1457,7 +1449,7 @@ class SysmediaActivity : BaseActivity() {
             contentResolver.openOutputStream(it)?.use { out ->
                 bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, out)
             }
-            Toast.makeText(this, "Afbeelding opgeslagen", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "picture saved", Toast.LENGTH_SHORT).show()
         }
     }
 

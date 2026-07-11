@@ -6,7 +6,6 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
-import androidx.appcompat.app.AppCompatActivity
 import java.io.File
 import java.io.FileOutputStream
 

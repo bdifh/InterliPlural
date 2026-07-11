@@ -15,6 +15,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.text.SimpleDateFormat
 import java.util.*
+import coil.load
 
 class MoodEntryAdapter(
     private val context: Context,
@@ -93,21 +94,21 @@ class MoodEntryAdapter(
 
         holder.card.setCardBackgroundColor(bgColor)
         holder.card.setOnClickListener { onEdit(entry) }
-        
+
         holder.moodIndicator.setTag(R.id.color_tag, "skip")
         holder.moodIndicator.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(ColorHelper.getMoodColor(context, entry.moodLabel))
         }
-        
+
         holder.tvEmoji.text = entry.moodEmoji
         holder.tvEmoji.rotation = entry.moodRotation
-        
+
         holder.tvTime.text = timeSdf.format(Date(entry.timestamp))
         holder.tvTime.setTextColor(textColor)
         
         val moodKeys = listOf("mood_awful", "mood_bad", "mood_meh", "mood_good", "mood_rad")
-        val moodIndex = moodKeys.indexOf(entry.moodLabel).let { 
+        val moodIndex = moodKeys.indexOf(entry.moodLabel).let {
             if (it == -1) {
                 val labels = moodKeys.map { key ->
                     val resId = context.resources.getIdentifier(key, "string", context.packageName)
@@ -128,6 +129,8 @@ class MoodEntryAdapter(
             holder.tvActivities.visibility = View.GONE
         }
 
+        holder.mediaEmbedContainer.removeAllViews()
+
         if (entry.note.isNotEmpty()) {
             holder.tvNote.visibility = View.VISIBLE
             holder.tvNote.text = entry.note
@@ -136,6 +139,34 @@ class MoodEntryAdapter(
         } else {
             holder.tvNote.visibility = View.GONE
             holder.mediaEmbedContainer.visibility = View.GONE
+        }
+
+        if (entry.imageUris.isNotEmpty()) {
+            holder.mediaEmbedContainer.visibility = View.VISIBLE
+            val imageLayout = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                if (holder.mediaEmbedContainer.childCount > 0) {
+                    val params = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    params.topMargin = 12.dpToPx()
+                    layoutParams = params
+                }
+            }
+            entry.imageUris.forEach { uri ->
+                val iv = android.widget.ImageView(context).apply {
+                    val height = 150.dpToPx()
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, height).apply { 
+                        marginEnd = 8.dpToPx() 
+                    }
+                    adjustViewBounds = true
+                    scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                    load(uri)
+                }
+                imageLayout.addView(iv)
+            }
+            holder.mediaEmbedContainer.addView(imageLayout)
         }
 
         if (entry.memberIds.isNotEmpty()) {
@@ -182,6 +213,7 @@ class MoodEntryAdapter(
         }
     }
 
+
     private fun getDayString(timestamp: Long): String {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = timestamp
@@ -201,4 +233,6 @@ class MoodEntryAdapter(
     }
 
     override fun getItemCount(): Int = entries.size
+
+    private fun Int.dpToPx(): Int = (this * context.resources.displayMetrics.density).toInt()
 }
