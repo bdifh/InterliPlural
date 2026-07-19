@@ -158,8 +158,8 @@
     <string name="timeline_front_title">Front Tijdlijn</string>
     <string name="visual">Visueel</string>
     <string name="timeline_visual_title">Visuele Tijdlijn</string>
-    <string name="action_export">Exporteren</string>
-    <string name="action_import">Importeren</string>
+    <string name="action_export">Interli Exporteren</string>
+    <string name="action_import">Interli Importeren</string>
     <string name="diary">Notities</string>
     <string name="calendar">Agenda</string>
     <string name="sysmedia">Sysmedia</string>
@@ -293,8 +293,7 @@
     <string name="action_import_daylio">Daylio CSV Importeren</string>
     <string name="action_import_ps">PluralSpace JSON importeren</string>
     <string name="action_import_hm">Hivemind JSON importeren</string>
-    <string name="import_ampersand_success">Ampersand import voltooid!</string>
-    <string name="import_ampersand_decode_error">Fout bij decoderen. Is dit wel Base64?</string>
+
     <string name="label_unknown">Onbekend</string>
     <string name="label_pronouns_colon">Voornaamwoorden: %1$s</string>
     <string name="label_imported_group">Geïmporteerde Groep</string>
@@ -304,7 +303,7 @@
     <string name="import_plural_star_no_new_data">Geen nieuwe data gevonden (bestaat mogelijk al)</string>
     <string name="plural_star_error">Plural Star Fout: %1$s</string>
     <string name="action_pdf_export">PDF Export</string>
-    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Pluralstar / Hivemind / Ampersand / Daylio Importeren</string>
+    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Pluralstar / Hivemind / Daylio Importeren</string>
     <string name="import_success">Import succesvol!</string>
     <string name="import_error">Import mislukt: %1$s</string>
     <string name="settings_section_management">Beheer</string>

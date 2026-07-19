@@ -161,8 +161,8 @@
     <string name="timeline_front_title">Front Timeline</string>
     <string name="visual">Visual</string>
     <string name="timeline_visual_title">Visual Timeline</string>
-    <string name="action_export">Export</string>
-    <string name="action_import">Import</string>
+    <string name="action_export">Interli Export</string>
+    <string name="action_import">Interli Import</string>
     <string name="diary">Notes</string>
     <string name="calendar">Calendar</string>
     <string name="sysmedia">Sysmedia</string>
@@ -304,8 +304,7 @@
     <string name="action_import_daylio">Import Daylio CSV</string>
     <string name="action_import_ps">Import PluralSpace JSON</string>
     <string name="action_import_hm">Import Hivemind JSON</string>
-    <string name="import_ampersand_success">Ampersand import successful!</string>
-    <string name="import_ampersand_decode_error">Decoding error. Is this Base64?</string>
+
     <string name="label_unknown">Unknown</string>
     <string name="label_pronouns_colon">Pronouns: %1$s</string>
     <string name="label_imported_group">Imported Group</string>
@@ -315,7 +314,7 @@
     <string name="import_plural_star_no_new_data">No new data found (might already exist)</string>
     <string name="plural_star_error">Plural Star Error: %1$s</string>
     <string name="action_pdf_export">PDF Export</string>
-    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Pluralstar / Hivemind / ampersand / Daylio Import</string>
+    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Pluralstar / Hivemind / Daylio Import</string>
     <string name="import_success">Import successful!</string>
     <string name="import_error">Import failed: %1$s</string>
     <string name="settings_section_management">Management</string>

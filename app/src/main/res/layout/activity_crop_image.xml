@@ -23,7 +23,7 @@
         app:layout_constraintBottom_toTopOf="@id/bottomBar">
 
         <view
-            class="com.interli.plural.CropImageView"
+            class="com.interli.plural.core.CropImageView"
             android:id="@+id/cropImageView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />

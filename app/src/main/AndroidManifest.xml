@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application
-        android:name=".MainApplication"
+        android:name=".core.MainApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -31,247 +31,247 @@
         </activity>
 
         <activity
-            android:name=".TimelineActivity"
+            android:name=".features.timeline.TimelineActivity"
             android:label="Tijdlijn"
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <activity
-            android:name=".ProfileActivity"
+            android:name=".features.member.ProfileActivity"
             android:label="Profiel"
             android:parentActivityName=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".CropImageActivity"
+            android:name=".core.CropImageActivity"
             android:label="@string/adjust_profile_photo"
-            android:parentActivityName=".ProfileActivity"
+            android:parentActivityName=".features.member.ProfileActivity"
             android:exported="false" />
 
         <activity
-            android:name=".SettingsActivity"
+            android:name=".core.SettingsActivity"
             android:label="Instellingen"
             android:parentActivityName=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".DiaryActivity"
+            android:name=".features.diary.DiaryActivity"
             android:label="Dagboek"
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <activity
-            android:name=".SysmediaActivity"
+            android:name=".features.sysmedia.SysmediaActivity"
             android:label="@string/sysmedia"
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <activity
-            android:name=".SysmediaPostDetailActivity"
+            android:name=".features.sysmedia.SysmediaPostDetailActivity"
             android:label="Post"
-            android:parentActivityName=".SysmediaActivity"
+            android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".SysmediaProfileActivity"
+            android:name=".features.sysmedia.SysmediaProfileActivity"
             android:label="Profile"
-            android:parentActivityName=".SysmediaActivity"
+            android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false" />
 
         <activity
-            android:name=".SysmediaSwitchAccountActivity"
+            android:name=".features.sysmedia.SysmediaSwitchAccountActivity"
             android:label="Switch Account"
-            android:parentActivityName=".SysmediaActivity"
+            android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false" />
 
         <activity
-            android:name=".SysmediaMemberListActivity"
+            android:name=".features.sysmedia.SysmediaMemberListActivity"
             android:label="Ledenlijst"
-            android:parentActivityName=".SysmediaActivity"
+            android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false" />
 
         <activity
-            android:name=".CreatePostActivity"
+            android:name=".features.diary.CreatePostActivity"
             android:label="@string/action_post"
-            android:parentActivityName=".SysmediaActivity"
+            android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".ChatActivity"
+            android:name=".features.diary.ChatActivity"
             android:label="Chat"
-            android:parentActivityName=".SysmediaActivity"
+            android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".SysmediaScheduledPostsActivity"
+            android:name=".features.sysmedia.SysmediaScheduledPostsActivity"
             android:label="@string/action_scheduled_posts"
-            android:parentActivityName=".SysmediaActivity"
+            android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false" />
 
         <activity
-            android:name=".SysmediaGhostActivity"
+            android:name=".features.sysmedia.SysmediaGhostActivity"
             android:label="@string/title_orphaned_posts"
-            android:parentActivityName=".SysmediaActivity"
+            android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false" />
 
         <activity
-            android:name=".EditNoteActivity"
+            android:name=".features.diary.EditNoteActivity"
             android:label="Notitie"
-            android:parentActivityName=".DiaryActivity"
+            android:parentActivityName=".features.diary.DiaryActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".StatisticsActivity"
+            android:name=".core.StatisticsActivity"
             android:label="Statistieken"
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <activity
-            android:name=".TimelineVisualActivity"
+            android:name=".features.timeline.TimelineVisualActivity"
             android:label="Visuele Tijdlijn"
-            android:parentActivityName=".TimelineActivity"
+            android:parentActivityName=".features.timeline.TimelineActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MemberNotesActivity"
+            android:name=".features.diary.MemberNotesActivity"
             android:label="Notities"
-            android:parentActivityName=".ProfileActivity"
+            android:parentActivityName=".features.member.ProfileActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MemberMoodActivity"
+            android:name=".features.mood.MemberMoodActivity"
             android:label="Stemmingen"
-            android:parentActivityName=".ProfileActivity"
+            android:parentActivityName=".features.member.ProfileActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MoodActivity"
+            android:name=".features.mood.MoodActivity"
             android:label="@string/mood_tracker"
             android:parentActivityName=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".MoodStatsActivity"
+            android:name=".features.mood.MoodStatsActivity"
             android:label="@string/mood_stats"
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MoodMonthActivity"
+            android:name=".features.mood.MoodMonthActivity"
             android:label="@string/mood_month_stats"
-            android:parentActivityName=".MoodStatsActivity"
+            android:parentActivityName=".features.mood.MoodStatsActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MoodTimelineActivity"
+            android:name=".features.mood.MoodTimelineActivity"
             android:label="@string/mood_timeline"
-            android:parentActivityName=".MoodStatsActivity"
+            android:parentActivityName=".features.mood.MoodStatsActivity"
             android:exported="false" />
 
         <activity
-            android:name=".ExtensiveMoodStatsActivity"
+            android:name=".features.mood.ExtensiveMoodStatsActivity"
             android:label="@string/extensive_mood_stats"
-            android:parentActivityName=".MoodStatsActivity"
+            android:parentActivityName=".features.mood.MoodStatsActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MemberMoodCorrelationActivity"
+            android:name=".features.mood.MemberMoodCorrelationActivity"
             android:label="@string/mood_insights"
-            android:parentActivityName=".MoodStatsActivity"
+            android:parentActivityName=".features.mood.MoodStatsActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MemberMoodStatsActivity"
+            android:name=".features.mood.MemberMoodStatsActivity"
             android:label="@string/mood_stats"
-            android:parentActivityName=".MemberMoodActivity"
+            android:parentActivityName=".features.mood.MemberMoodActivity"
             android:exported="false" />
 
         <activity
-            android:name=".TodoActivity"
+            android:name=".features.todo.TodoActivity"
             android:label="@string/todo"
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MemberTodoActivity"
+            android:name=".features.todo.MemberTodoActivity"
             android:label="@string/todo"
-            android:parentActivityName=".ProfileActivity"
+            android:parentActivityName=".features.member.ProfileActivity"
             android:exported="false" />
 
         <activity
-            android:name=".EditTodoListActivity"
+            android:name=".features.todo.EditTodoListActivity"
             android:label="@string/todo"
-            android:parentActivityName=".TodoActivity"
+            android:parentActivityName=".features.todo.TodoActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".SendMessageActivity"
+            android:name=".features.diary.SendMessageActivity"
             android:label="@string/dialog_send_message_title"
             android:parentActivityName=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".CustomFieldsActivity"
+            android:name=".core.CustomFieldsActivity"
             android:label="@string/custom_fields_title"
-            android:parentActivityName=".SettingsActivity"
+            android:parentActivityName=".core.SettingsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".ThemesActivity"
+            android:name=".core.ThemesActivity"
             android:label="@string/action_manage_themes"
-            android:parentActivityName=".SettingsActivity"
+            android:parentActivityName=".core.SettingsActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MoodThemesActivity"
+            android:name=".features.mood.MoodThemesActivity"
             android:label="@string/action_manage_mood_themes"
-            android:parentActivityName=".SettingsActivity"
+            android:parentActivityName=".core.SettingsActivity"
             android:exported="false" />
 
         <activity
-            android:name=".MemberPreferencesActivity"
+            android:name=".features.member.MemberPreferencesActivity"
             android:label="@string/identity_prefs"
-            android:parentActivityName=".ProfileActivity"
+            android:parentActivityName=".features.member.ProfileActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".WhoAmIActivity"
+            android:name=".features.member.WhoAmIActivity"
             android:label="@string/who_am_i"
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <activity
-            android:name=".CalendarActivity"
+            android:name=".features.calendar.CalendarActivity"
             android:label="@string/calendar"
             android:parentActivityName=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
-            android:name=".MemberFrontHistoryActivity"
+            android:name=".features.member.MemberFrontHistoryActivity"
             android:label="@string/action_view_front"
-            android:parentActivityName=".ProfileActivity"
+            android:parentActivityName=".features.member.ProfileActivity"
             android:exported="false" />
 
         <activity
-            android:name=".RelationsActivity"
+            android:name=".features.relations.RelationsActivity"
             android:label="@string/module_relations"
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
         <receiver
-            android:name=".NotificationReceiver"
+            android:name=".core.NotificationReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>

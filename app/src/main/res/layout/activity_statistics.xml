@@ -148,7 +148,7 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
 
-                <com.interli.plural.CoFrontingGraphView
+                <com.interli.plural.features.member.CoFrontingGraphView
                     android:id="@+id/coFrontingGraph"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -187,7 +187,7 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
 
-                <com.interli.plural.TimelineChartView
+                <com.interli.plural.features.timeline.TimelineChartView
                     android:id="@+id/miniTimelineChart"
                     android:layout_width="match_parent"
                     android:layout_height="220dp" />
@@ -277,7 +277,7 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
 
-                <com.interli.plural.FrontDensityChartView
+                <com.interli.plural.features.member.FrontDensityChartView
                     android:id="@+id/frontDensityChart"
                     android:layout_width="match_parent"
                     android:layout_height="250dp" />
@@ -334,7 +334,7 @@
                     android:textStyle="bold"
                     android:layout_marginBottom="12dp" />
 
-                <com.interli.plural.MemberSwitchChartView
+                <com.interli.plural.features.member.MemberSwitchChartView
                     android:id="@+id/memberSwitchChart"
                     android:layout_width="match_parent"
                     android:layout_height="250dp" />

@@ -78,7 +78,7 @@
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
-            <com.interli.plural.FrontDensityChartView
+            <com.interli.plural.features.member.FrontDensityChartView
                 android:id="@+id/hourlyChartView"
                 android:layout_width="match_parent"
                 android:layout_height="180dp"
@@ -218,7 +218,7 @@
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
-            <com.interli.plural.MemberFrontDotCalendarView
+            <com.interli.plural.features.member.MemberFrontDotCalendarView
                 android:id="@+id/dotCalendarView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

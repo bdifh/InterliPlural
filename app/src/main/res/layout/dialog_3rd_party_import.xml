@@ -130,25 +130,7 @@
             android:id="@+id/btnImportHm"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/action_import_hm" />
-
-        <!-- Ampresand Section -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Ampersand"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnImportAmpersand"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Ampersand Json (Base64)"
-            android:layout_marginBottom="8dp" />
+            android:text="Hivemind (Multiplicity)" />
 
         <!-- Daylio Section -->
         <TextView

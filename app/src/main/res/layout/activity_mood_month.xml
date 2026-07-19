@@ -89,7 +89,7 @@
                         android:layout_marginStart="4dp" />
                 </LinearLayout>
 
-                <com.interli.plural.MoodChartView
+                <com.interli.plural.features.mood.MoodChartView
                     android:id="@+id/moodMonthChart"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />

@@ -19,7 +19,7 @@
             app:navigationIconTint="@color/black"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <com.interli.plural.RelationsMapView
+        <com.interli.plural.features.relations.RelationsMapView
             android:id="@+id/relationsMapView"
             android:layout_width="match_parent"
             android:layout_height="0dp"

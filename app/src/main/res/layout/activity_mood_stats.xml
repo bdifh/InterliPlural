@@ -127,7 +127,7 @@
                                 android:textSize="12sp" />
                         </RelativeLayout>
 
-                        <com.interli.plural.MoodChartView
+                        <com.interli.plural.features.mood.MoodChartView
                             android:id="@+id/moodHistoryChart"
                             android:layout_width="match_parent"
                             android:layout_height="250dp" />
@@ -156,7 +156,7 @@
                             android:textStyle="bold"
                             android:layout_marginBottom="12dp" />
 
-                        <com.interli.plural.MoodChartView
+                        <com.interli.plural.features.mood.MoodChartView
                             android:id="@+id/moodAverageChart"
                             android:layout_width="match_parent"
                             android:layout_height="250dp" />
@@ -322,7 +322,7 @@
                                 android:layout_marginStart="4dp" />
                         </LinearLayout>
 
-                        <com.interli.plural.MoodCalendarView
+                        <com.interli.plural.features.mood.MoodCalendarView
                             android:id="@+id/moodCalendarView"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content" />
