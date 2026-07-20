@@ -134,12 +134,15 @@ class ProfileActivity : BaseActivity() {
             .build()
         val controller = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
         controller.isAppearanceLightStatusBars = true
-        personIndex = intent.getIntExtra("person_index", -1)
+        val personId = intent.getStringExtra("person_id")
+        loadData()
+        personIndex = people.indexOfFirst { it.id == personId }
+
         if (personIndex == -1) {
+            Toast.makeText(this, "Member not found", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
-        loadData()
         val person = people[personIndex]
         val nameEdit = findViewById<TextInputEditText>(R.id.editProfileName)
         val colorPreview = findViewById<View>(R.id.colorPreview)

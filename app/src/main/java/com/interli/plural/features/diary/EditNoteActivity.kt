@@ -327,6 +327,7 @@ class EditNoteActivity : BaseActivity() {
     private fun updateUiMode() {
         val textColor = ColorHelper.getTextColor(this)
         editTitle.isEnabled = isEditMode
+        val isMessage = notes.find { it.id == noteId }?.senderId != null
         val layoutContent = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.layoutNoteContent)
         val embedContainer = findViewById<LinearLayout>(R.id.mediaEmbedContainerNote)
         if (isEditMode) {
@@ -351,7 +352,7 @@ class EditNoteActivity : BaseActivity() {
             findViewById<View>(R.id.labelLinkedMembers).visibility = View.GONE
             findViewById<View>(R.id.linkedMembersText).visibility = View.GONE
         } else {
-            findViewById<Button>(R.id.btnLinkMembers).visibility = if (isEditMode) View.VISIBLE else View.GONE
+            findViewById<Button>(R.id.btnLinkMembers).visibility = if (isEditMode && !isMessage) View.VISIBLE else View.GONE
         }
         findViewById<Button>(R.id.btnSelectBundle).visibility = if (isEditMode) View.VISIBLE else View.GONE
         findViewById<Button>(R.id.btnSaveNote).visibility = if (isEditMode) View.VISIBLE else View.GONE

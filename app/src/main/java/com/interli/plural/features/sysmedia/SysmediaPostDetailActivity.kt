@@ -9,6 +9,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.core.content.edit
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -229,7 +230,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
         val likeIconColor = if (activeLikes > 0) ColorHelper.getBtnColor(this) else (textColor and 0x00FFFFFF) or 0x88000000.toInt()
         layout.findViewById<TextView>(R.id.tvLikes).setTextColor(likeIconColor)
         layout.findViewById<android.widget.ImageView>(R.id.ivLikeIcon)?.setColorFilter(likeIconColor)
-        layout.findViewById<View>(R.id.btnLike).setOnClickListener { 
+        layout.findViewById<View>(R.id.btnLike).setOnClickListener {
             val memberId = activeMemberId
             val currentLikes = post.likedByMemberIds[memberId] ?: 0
             if (currentLikes < 3) {
@@ -255,6 +256,9 @@ class SysmediaPostDetailActivity : BaseActivity() {
             intent.putExtra("current_user_id", activeMemberId)
             intent.putExtra("reblog_of_id", post.id)
             startActivity(intent)
+        }
+        layout.findViewById<View>(R.id.btnShare)?.setOnClickListener {
+            downloadPostAsImage(layout, post)
         }
         val mediaContainer = layout.findViewById<LinearLayout>(R.id.mediaEmbedContainer)
         MediaEmbedHelper.addEmbedsToContainer(mediaContainer, post.content)
@@ -332,8 +336,8 @@ class SysmediaPostDetailActivity : BaseActivity() {
     }
     private fun sendReply(content: String) {
         val newPost = SysmediaPost(
-            senderId = activeMemberId, 
-            content = content, 
+            senderId = activeMemberId,
+            content = content,
             replyToId = currentPost.id,
             imageUri = selectedImageUri?.toString()
         )
@@ -439,6 +443,36 @@ class SysmediaPostDetailActivity : BaseActivity() {
         }
     }
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
+
+    private fun downloadPostAsImage(view: View, post: SysmediaPost) {
+        val btns = listOf(R.id.btnReply, R.id.btnReblog, R.id.btnLike, R.id.btnShare)
+        btns.forEach { view.findViewById<View>(it)?.visibility = View.INVISIBLE }
+
+        val bitmap = android.graphics.Bitmap.createBitmap(view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        view.background?.draw(canvas) ?: canvas.drawColor(android.graphics.Color.WHITE)
+        view.draw(canvas)
+
+        btns.forEach { view.findViewById<View>(it)?.visibility = View.VISIBLE }
+
+        val fileName = "sysmedia_${post.id.take(5)}_${System.currentTimeMillis()}.jpg"
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES)
+            }
+        }
+
+        val uri = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        uri?.let {
+            contentResolver.openOutputStream(it)?.use { os ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, os)
+            }
+            Toast.makeText(this, getString(R.string.saved_in, "Galerij"), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private inner class InteractionAdapter(private val items: List<Any>) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         override fun getItemViewType(position: Int): Int = if (items[position] is SysmediaPost) 0 else 1
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
@@ -523,6 +557,9 @@ class SysmediaPostDetailActivity : BaseActivity() {
                     intent.putExtra("reblog_of_id", item.id)
                     startActivity(intent)
                 }
+                holder.btnShare.setOnClickListener {
+                    downloadPostAsImage(holder.itemView, item)
+                }
                 holder.btnLike.setOnClickListener {
                     val memberId = activeMemberId
                     val currentLikes = item.likedByMemberIds[memberId] ?: 0
@@ -591,28 +628,29 @@ class SysmediaPostDetailActivity : BaseActivity() {
             }
         }
         override fun getItemCount(): Int = items.size
-    inner class ReplyViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val layoutThreadParent: View = view.findViewById(R.id.layoutThreadParent)
-        val ivParentAvatar: ImageView = view.findViewById(R.id.ivParentAvatar)
-        val tvParentName: TextView = view.findViewById(R.id.tvParentName)
-        val tvParentContent: TextView = view.findViewById(R.id.tvParentContent)
-        val layoutReblog: View = view.findViewById(R.id.layoutReblogHeader)
-        val tvRebloggedBy: TextView = view.findViewById(R.id.tvRebloggedBy)
-        val ivAvatar: ImageView = view.findViewById(R.id.ivAvatar)
-        val tvName: TextView = view.findViewById(R.id.tvName)
-        val tvHandle: TextView = view.findViewById(R.id.tvHandle)
-        val tvContent: TextView = view.findViewById(R.id.tvContent)
-        val ivImage: ImageView = view.findViewById(R.id.ivPostImagePreview)
-        val btnLike: View = view.findViewById(R.id.btnLike)
-        val mediaEmbedContainer: LinearLayout = view.findViewById(R.id.mediaEmbedContainer)
-        val cardOriginal: MaterialCardView = view.findViewById(R.id.cardOriginalPost)
-        val ivOriginalAvatar: ImageView = view.findViewById(R.id.ivOriginalAvatar)
-        val tvOriginalName: TextView = view.findViewById(R.id.tvOriginalName)
-        val tvOriginalHandle: TextView = view.findViewById(R.id.tvOriginalHandle)
-        val tvOriginalContent: TextView = view.findViewById(R.id.tvOriginalContent)
-        val ivOriginalPostImage: ImageView = view.findViewById(R.id.ivOriginalPostImage)
-        val layoutPoll: LinearLayout = view.findViewById(R.id.layoutPoll)
-    }
+        inner class ReplyViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val layoutThreadParent: View = view.findViewById(R.id.layoutThreadParent)
+            val ivParentAvatar: ImageView = view.findViewById(R.id.ivParentAvatar)
+            val tvParentName: TextView = view.findViewById(R.id.tvParentName)
+            val tvParentContent: TextView = view.findViewById(R.id.tvParentContent)
+            val layoutReblog: View = view.findViewById(R.id.layoutReblogHeader)
+            val tvRebloggedBy: TextView = view.findViewById(R.id.tvRebloggedBy)
+            val ivAvatar: ImageView = view.findViewById(R.id.ivAvatar)
+            val tvName: TextView = view.findViewById(R.id.tvName)
+            val tvHandle: TextView = view.findViewById(R.id.tvHandle)
+            val tvContent: TextView = view.findViewById(R.id.tvContent)
+            val ivImage: ImageView = view.findViewById(R.id.ivPostImagePreview)
+            val btnLike: View = view.findViewById(R.id.btnLike)
+            val btnShare: View = view.findViewById(R.id.btnShare)
+            val mediaEmbedContainer: LinearLayout = view.findViewById(R.id.mediaEmbedContainer)
+            val cardOriginal: MaterialCardView = view.findViewById(R.id.cardOriginalPost)
+            val ivOriginalAvatar: ImageView = view.findViewById(R.id.ivOriginalAvatar)
+            val tvOriginalName: TextView = view.findViewById(R.id.tvOriginalName)
+            val tvOriginalHandle: TextView = view.findViewById(R.id.tvOriginalHandle)
+            val tvOriginalContent: TextView = view.findViewById(R.id.tvOriginalContent)
+            val ivOriginalPostImage: ImageView = view.findViewById(R.id.ivOriginalPostImage)
+            val layoutPoll: LinearLayout = view.findViewById(R.id.layoutPoll)
+        }
         inner class NotificationViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
     }
 }

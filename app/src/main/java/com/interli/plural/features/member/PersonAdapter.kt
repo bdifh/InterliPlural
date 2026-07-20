@@ -25,7 +25,7 @@ class PersonAdapter(
     private val groups: List<Group>,
     private val people: List<Person>,
     private val onFrontClicked: (Person) -> Unit,
-    private val onProfileClicked: (Person, Int) -> Unit,
+    private val onProfileClicked: (Person, String) -> Unit,
     private val onGroupToggled: (Group) -> Unit,
     private val onGroupLongClicked: (Group) -> Unit,
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -164,7 +164,7 @@ class PersonAdapter(
                 notifyDataSetChanged() 
             }
             holder.nameText.setOnClickListener {
-                onProfileClicked(person, originalIndex)
+                onProfileClicked(person, person.id)
             }
         }
     }

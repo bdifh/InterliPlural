@@ -18,22 +18,6 @@
             android:textSize="16sp"
             android:layout_marginBottom="8dp" />
 
-        <EditText
-            android:id="@+id/etSpToken"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/hint_sp_token"
-            android:inputType="textNoSuggestions|textVisiblePassword"
-            android:scrollHorizontally="true"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnImportSp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/action_import"
-            android:layout_marginBottom="8dp" />
-
         <Button
             android:id="@+id/btnImportSpAvatars"
             style="@style/Widget.Material3.Button.OutlinedButton"

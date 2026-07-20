@@ -218,7 +218,7 @@ class SysmediaProfileActivity : BaseActivity() {
             .show()
     }
     private fun showUrlInputDialog() {
-        val input = EditText(this).apply { 
+        val input = EditText(this).apply {
             hint = "https://example.com/image.jpg"
             setTextColor(ColorHelper.getTextColor(this@SysmediaProfileActivity))
         }
@@ -374,6 +374,36 @@ class SysmediaProfileActivity : BaseActivity() {
         val userPosts = posts.filter { it.senderId == profileUserId }.sortedByDescending { it.timestamp }
         rv.adapter = ProfilePostAdapter(userPosts)
     }
+
+    private fun downloadPostAsImage(view: View, post: SysmediaPost) {
+        val btns = listOf(R.id.btnReply, R.id.btnReblog, R.id.btnLike, R.id.btnShare)
+        btns.forEach { view.findViewById<View>(it)?.visibility = View.INVISIBLE }
+
+        val bitmap = android.graphics.Bitmap.createBitmap(view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        view.background?.draw(canvas) ?: canvas.drawColor(android.graphics.Color.WHITE)
+        view.draw(canvas)
+
+        btns.forEach { view.findViewById<View>(it)?.visibility = View.VISIBLE }
+
+        val fileName = "sysmedia_${post.id.take(5)}_${System.currentTimeMillis()}.jpg"
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES)
+            }
+        }
+
+        val uri = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        uri?.let {
+            contentResolver.openOutputStream(it)?.use { os ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, os)
+            }
+            Toast.makeText(this, getString(R.string.saved_in, "Galerij"), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun renderPoll(holder: ProfilePostAdapter.ViewHolder, post: SysmediaPost) {
         val poll = post.poll
         if (poll == null) {
@@ -484,6 +514,7 @@ class SysmediaProfileActivity : BaseActivity() {
             val btnLike: View = view.findViewById(R.id.btnLike)
             val btnReblog: View = view.findViewById(R.id.btnReblog)
             val btnReply: View = view.findViewById(R.id.btnReply)
+            val btnShare: View = view.findViewById(R.id.btnShare)
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context).inflate(R.layout.item_sysmedia_post, parent, false)
@@ -623,6 +654,10 @@ class SysmediaProfileActivity : BaseActivity() {
                 intent.putExtra("current_user_id", activeMemberId)
                 intent.putExtra("reply_to_id", post.id)
                 startActivity(intent)
+            }
+
+            holder.btnShare.setOnClickListener {
+                downloadPostAsImage(holder.itemView, post)
             }
             holder.itemView.setOnClickListener {
                 val intent = android.content.Intent(this@SysmediaProfileActivity, SysmediaPostDetailActivity::class.java)

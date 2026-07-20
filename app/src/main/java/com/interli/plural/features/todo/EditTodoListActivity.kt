@@ -568,9 +568,11 @@ class EditTodoListActivity : BaseActivity() {
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }
     private fun showNoteSelectionDialog() {
-        val noteTitles = allNotes.map { it.title.ifEmpty { getString(R.string.unnamed_note) } }
+        val filteredNotes = allNotes.filter { it.senderId == null }
+        val noteTitles = filteredNotes.map { it.title.ifEmpty { getString(R.string.unnamed_note) } }
+
         DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_note), noteTitles) { selectedTitle ->
-            selectedNoteId = allNotes.find { it.title == selectedTitle }?.id
+            selectedNoteId = filteredNotes.find { it.title == selectedTitle }?.id
             updateNoteLinkText()
         }
     }

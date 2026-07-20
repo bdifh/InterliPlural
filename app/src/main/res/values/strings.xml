@@ -161,8 +161,8 @@
     <string name="timeline_front_title">Front Timeline</string>
     <string name="visual">Visual</string>
     <string name="timeline_visual_title">Visual Timeline</string>
-    <string name="action_export">Interli Export</string>
-    <string name="action_import">Interli Import</string>
+    <string name="action_export"> Export</string>
+    <string name="action_import"> Import</string>
     <string name="diary">Notes</string>
     <string name="calendar">Calendar</string>
     <string name="sysmedia">Sysmedia</string>
@@ -614,4 +614,9 @@
     <string name="no_restorable_members">No restorable members found in history.</string>
     <string name="restore_member_success">Member %1$s restored!</string>
     <string name="restore_dialog_title">Select member to restore</string>
+
+    <string name="export_images">Profile Pictures</string>
+    <string name="error_enter_token">Please enter a token first</string>
+    <string name="import_members_history_success">Members and history imported!</string>
+    <string name="import_completed_members_history">Import completed: %1$d members and history processed!</string>
 </resources>

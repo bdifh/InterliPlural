@@ -69,7 +69,7 @@ class CropImageView @JvmOverloads constructor(
         val viewHeight = height.toFloat()
         val bitWidth = bitmap.width.toFloat()
         val bitHeight = bitmap.height.toFloat()
-        val scale = maxOf(viewWidth / bitWidth, viewHeight / bitHeight)
+        val scale = minOf(viewWidth / bitWidth, viewHeight / bitHeight)
         mainMatrix.postScale(scale, scale)
         val tx = (viewWidth - bitWidth * scale) / 2f
         val ty = (viewHeight - bitHeight * scale) / 2f
@@ -79,7 +79,7 @@ class CropImageView @JvmOverloads constructor(
         super.onLayout(changed, left, top, right, bottom)
         val viewWidth = width.toFloat()
         val viewHeight = height.toFloat()
-        val size = minOf(viewWidth, viewHeight) * 0.8f
+        val size = minOf(viewWidth, viewHeight) * 1f
         cropRect.set(
             (viewWidth - size) / 2f,
             (viewHeight - size) / 2f,

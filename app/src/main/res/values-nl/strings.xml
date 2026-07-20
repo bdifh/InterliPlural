@@ -158,8 +158,8 @@
     <string name="timeline_front_title">Front Tijdlijn</string>
     <string name="visual">Visueel</string>
     <string name="timeline_visual_title">Visuele Tijdlijn</string>
-    <string name="action_export">Interli Exporteren</string>
-    <string name="action_import">Interli Importeren</string>
+    <string name="action_export">Exporteren</string>
+    <string name="action_import">Importeren</string>
     <string name="diary">Notities</string>
     <string name="calendar">Agenda</string>
     <string name="sysmedia">Sysmedia</string>
@@ -481,4 +481,10 @@
     <string name="no_restorable_members">Geen herstelbare leden gevonden in de geschiedenis.</string>
     <string name="restore_member_success">Lid %1$s hersteld!</string>
     <string name="restore_dialog_title">Selecteer lid om te herstellen</string>
+
+    <string name="export_images">Profielfoto\'s</string>
+    <string name="error_enter_token">Voer eerst een token in</string>
+    <string name="import_members_history_success">Leden en geschiedenis geïmporteerd!</string>
+    <string name="import_completed_members_history">Import voltooid: %1$d leden en geschiedenis verwerkt!</string>
+
 </resources>

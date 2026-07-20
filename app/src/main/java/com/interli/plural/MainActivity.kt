@@ -336,11 +336,11 @@ class MainActivity : BaseActivity() {
             onFrontClicked = { person ->
                 toggleFront(person)
             },
-            onProfileClicked = { person, index ->
+            onProfileClicked = { person, id ->
                 person.messageRead = true
                 savePeople()
                 val intent = android.content.Intent(this, ProfileActivity::class.java)
-                intent.putExtra("person_index", index)
+                intent.putExtra("person_id", id)
                 startActivity(intent)
             },
             onGroupToggled = { group ->

@@ -55,6 +55,7 @@ class SettingsActivity : BaseActivity() {
     private val moodColors = mutableListOf("#fffa94", "#54bd44", "#8844bd", "#4446bd", "#3a3a47")
     private var selectedLangCode = "en"
     private var selectedStartPage = "members"
+    private var pendingInterliSelections: BooleanArray? = null
     private val exportLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
             uri?.let { performExport(it) }
@@ -178,6 +179,7 @@ class SettingsActivity : BaseActivity() {
         findViewById<Button>(R.id.btnManageMoodThemes).setOnClickListener {
             startActivity(android.content.Intent(this, MoodThemesActivity::class.java))
         }
+
         findViewById<Button>(R.id.btnExportMoodHex).setOnClickListener {
             val hexString = moodColors.joinToString(",")
             val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -231,7 +233,7 @@ class SettingsActivity : BaseActivity() {
                 navigateToStartPage()
             }
         }
-        findViewById<Button>(R.id.btnExport).setOnClickListener { exportLauncher.launch("plural_app_backup.zip") }
+        findViewById<Button>(R.id.btnExport).setOnClickListener { showInterliExportDialog() }
         findViewById<Button>(R.id.btnImport).setOnClickListener {
             importLauncher.launch(
                 arrayOf(
@@ -847,14 +849,16 @@ class SettingsActivity : BaseActivity() {
         ColorHelper.styleAlertDialog(dialog, this)
     }
 
-    private fun performExport(uri: Uri) {
-        contentResolver.openOutputStream(uri)?.use {
-            BackupHelper.createBackupZip(this, it)
-        }
-        Toast.makeText(this, getString(R.string.backup_saved), Toast.LENGTH_SHORT).show()
+private fun performExport(uri: Uri) {
+    contentResolver.openOutputStream(uri)?.use {
+        BackupHelper.createBackupZip(this, it, pendingInterliSelections)
     }
+    pendingInterliSelections = null
+    Toast.makeText(this, getString(R.string.backup_saved), Toast.LENGTH_SHORT).show()
+}
 
-    private var pendingPdfSelections: BooleanArray? = null
+
+private var pendingPdfSelections: BooleanArray? = null
     private var pendingPdfStart: Long? = null
     private var pendingPdfEnd: Long? = null
 
@@ -985,16 +989,8 @@ class SettingsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .create()
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val etSpToken = view.findViewById<EditText>(R.id.etSpToken)
         val etPkToken = view.findViewById<EditText>(R.id.etPkToken)
-        etSpToken.setText(sharedPref.getString("sp_token", ""))
         etPkToken.setText(sharedPref.getString("pk_token", ""))
-        view.findViewById<Button>(R.id.btnImportSp).setOnClickListener {
-            val token = etSpToken.text.toString()
-            sharedPref.edit().putString("sp_token", token).apply()
-            importFromSimplyPlural(token)
-            dialog.dismiss()
-        }
         view.findViewById<Button>(R.id.btnImportSpJson).setOnClickListener {
             spJsonLauncher.launch("*/*")
             dialog.dismiss()
@@ -1031,7 +1027,6 @@ class SettingsActivity : BaseActivity() {
         }
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
-        etSpToken.setTextColor(ColorHelper.getTextColor(this))
         etPkToken.setTextColor(ColorHelper.getTextColor(this))
     }
 
@@ -1059,7 +1054,7 @@ class SettingsActivity : BaseActivity() {
 
         historyData.forEach { entry ->
             val start = (entry["startTime"] as? Number)?.toLong() ?: (entry["start"] as? Number)?.toLong() ?: (entry["timestamp"] as? Number)?.toLong() ?: 0L
-            if (start > 0 && sessions.none { it.startTime == start }) {
+            if (start > 0) {
                 val memberId = entry["member"] as? String ?: entry["memberId"] as? String ?: entry["alterId"] as? String
                 val memberName = entry["memberName"] as? String
                 val endTime = (entry["endTime"] as? Number)?.toLong() ?: (entry["end"] as? Number)?.toLong()
@@ -1067,8 +1062,10 @@ class SettingsActivity : BaseActivity() {
 
                 val person = findMemberMatching(people, memberId, memberName)
                 if (person != null) {
-                    sessions.add(FrontSession(person.name, start, if (endTime != null && endTime > 0) endTime else null, person.id, note))
-                    count++
+                    if (sessions.none { it.startTime == start && it.personId == person.id }) {
+                        sessions.add(FrontSession(person.name, start, if (endTime != null && endTime > 0) endTime else null, person.id, note))
+                        count++
+                    }
                 }
             }
         }
@@ -1080,7 +1077,7 @@ class SettingsActivity : BaseActivity() {
     private fun importFromSimplyPlural(tokenInput: String) {
         val token = tokenInput.trim()
         if (token.isBlank()) {
-            Toast.makeText(this, "Voer eerst een token in", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.error_enter_token), Toast.LENGTH_SHORT).show()
             return
         }
         Thread {
@@ -1101,16 +1098,13 @@ class SettingsActivity : BaseActivity() {
                             val json = conn.inputStream.bufferedReader().use { it.readText() }
                             val spMembers: List<Map<String, Any>> = Gson().fromJson(json, object : TypeToken<List<Map<String, Any>>>() {}.type)
 
-                            // Direct verwerken van de leden in deze thread
                             val people = loadPeopleList()
-                            var mCount = 0
                             spMembers.forEach { spm ->
                                 val id = spm["_id"] as? String ?: spm["id"] as? String ?: ""
                                 val content = spm["content"] as? Map<*, *>
                                 val name = content?.get("name") as? String ?: spm["name"] as? String ?: "SP Member"
                                 if (id.isNotEmpty() && people.none { it.manualId == id }) {
                                     people.add(Person(name = name, manualId = id))
-                                    mCount++
                                 }
                             }
                             MemberHelper.savePeople(this, people)
@@ -1123,7 +1117,7 @@ class SettingsActivity : BaseActivity() {
                                 val historyData: List<Map<String, Any>> = Gson().fromJson(hJson, object : TypeToken<List<Map<String, Any>>>() {}.type)
                                 runOnUiThread {
                                     processFrontHistory(historyData, people)
-                                    Toast.makeText(this, "Leden en geschiedenis geïmporteerd!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(this, getString(R.string.import_members_history_success), Toast.LENGTH_SHORT).show()
                                     recreate()
                                 }
                             }
@@ -1135,7 +1129,10 @@ class SettingsActivity : BaseActivity() {
     }
 
     private fun importFromPluralKit(token: String) {
-        if (token.isBlank()) return
+        if (token.isBlank()) {
+            Toast.makeText(this, getString(R.string.error_enter_token), Toast.LENGTH_SHORT).show()
+            return
+        }
         Thread {
             try {
                 val url = URL("https://api.pluralkit.me/v2/systems/@me/members")
@@ -1144,59 +1141,64 @@ class SettingsActivity : BaseActivity() {
                 conn.setRequestProperty("Authorization", token)
                 if (conn.responseCode == 200) {
                     val json = conn.inputStream.bufferedReader().use { it.readText() }
-                    val pkMembers = Gson().fromJson<List<Map<String, Any>>>(
-                        json,
-                        object : TypeToken<List<Map<String, Any>>>() {}.type
-                    )
-                    runOnUiThread {
-                        val people = loadPeopleList()
-                        pkMembers.forEach { pkm ->
-                            val pkId = pkm["id"] as? String ?: ""
-                            val name = pkm["name"] as? String ?: "PK Member"
+                    val pkMembers = Gson().fromJson<List<Map<String, Any>>>(json, object : TypeToken<List<Map<String, Any>>>() {}.type)
+
+                    val people = loadPeopleList()
+                    pkMembers.forEach { pkm ->
+                        val pkId = pkm["id"] as? String ?: ""
+                        val name = pkm["name"] as? String ?: "PK Member"
+                        if (pkId.isNotEmpty() && people.none { it.manualId == pkId }) {
                             val desc = pkm["description"] as? String ?: ""
                             val avatar = pkm["avatar_url"] as? String
                             val colorHex = pkm["color"] as? String
                             var profileColor = -6934396
                             if (!colorHex.isNullOrBlank()) {
                                 try {
-                                    val formattedHex =
-                                        if (colorHex.startsWith("#")) colorHex else "#$colorHex"
+                                    val formattedHex = if (colorHex.startsWith("#")) colorHex else "#$colorHex"
                                     profileColor = android.graphics.Color.parseColor(formattedHex)
-                                } catch (_: Exception) {
-                                }
+                                } catch (_: Exception) {}
                             }
-                            if (pkId.isNotEmpty() && people.none { it.manualId == pkId }) {
-                                val initialHandle = name.replace(" ", "_").lowercase()
-                                    .replace(Regex("[^a-z0-9_]"), "")
-                                people.add(
-                                    Person(
-                                        name = name,
-                                        manualId = pkId,
-                                        profileInfo = desc,
-                                        profilePictureUri = avatar,
-                                        profileColor = profileColor,
-                                        sysmediaProfile = SysmediaProfile(handle = initialHandle)
-                                    )
-                                )
+                            val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+                            people.add(Person(name = name, manualId = pkId, profileInfo = desc, profilePictureUri = avatar, profileColor = profileColor, sysmediaProfile = SysmediaProfile(handle = initialHandle)))
+                        }
+                    }
+                    MemberHelper.savePeople(this@SettingsActivity, people)
+
+                    val swUrl = URL("https://api.pluralkit.me/v2/systems/@me/switches")
+                    val swConn = swUrl.openConnection() as HttpURLConnection
+                    swConn.setRequestProperty("Authorization", token)
+                    if (swConn.responseCode == 200) {
+                        val swJson = swConn.inputStream.bufferedReader().use { it.readText() }
+                        val switches = Gson().fromJson<List<Map<String, Any>>>(swJson, object : TypeToken<List<Map<String, Any>>>() {}.type)
+
+                        val historyEntries = mutableListOf<Map<String, Any>>()
+                        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+                        val sortedSwitches = switches.sortedBy { it["timestamp"] as? String }
+
+                        for (i in sortedSwitches.indices) {
+                            val current = sortedSwitches[i]
+                            val next = if (i + 1 < sortedSwitches.size) sortedSwitches[i + 1] else null
+                            val startStr = current["timestamp"] as? String ?: continue
+                            val startTime = try { sdf.parse(startStr.substringBefore('.').substringBefore('Z'))?.time ?: 0L } catch (_: Exception) { 0L }
+                            if (startTime == 0L) continue
+
+                            val endTime = next?.get("timestamp")?.let { ts ->
+                                try { sdf.parse((ts as String).substringBefore('.').substringBefore('Z'))?.time } catch (_: Exception) { null }
+                            }
+
+                            (current["members"] as? List<String>)?.forEach { mid ->
+                                historyEntries.add(mapOf("startTime" to startTime, "endTime" to (endTime ?: 0L), "memberId" to mid))
                             }
                         }
-                        MemberHelper.savePeople(this@SettingsActivity, people)
-                        Toast.makeText(this, R.string.import_success, Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    runOnUiThread {
-                        Toast.makeText(
-                            this,
-                            "PK Error: ${conn.responseCode}",
-                            Toast.LENGTH_SHORT
-                        ).show()
+
+                        runOnUiThread {
+                            processFrontHistory(historyEntries, people)
+                            Toast.makeText(this, getString(R.string.import_members_history_success), Toast.LENGTH_SHORT).show()
+                            recreate()
+                        }
                     }
                 }
-            } catch (e: Exception) {
-                runOnUiThread {
-                    Toast.makeText(this, "PK Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }.start()
     }
 
@@ -1569,43 +1571,62 @@ class SettingsActivity : BaseActivity() {
     private fun importFromPkJson(uri: Uri) {
         Thread {
             try {
-                val json =
-                    contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                        ?: return@Thread
-                val root = Gson().fromJson<Map<String, Any>>(
-                    json,
-                    object : TypeToken<Map<String, Any>>() {}.type
-                )
+                val json = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: return@Thread
+                val root = Gson().fromJson<Map<String, Any>>(json, object : TypeToken<Map<String, Any>>() {}.type)
+
                 @Suppress("UNCHECKED_CAST")
                 val membersList = root["members"] as? List<Map<String, Any>>
-                if (membersList == null) {
-                    try {
-                        val directList = Gson().fromJson<List<Map<String, Any>>>(
-                            json,
-                            object : TypeToken<List<Map<String, Any>>>() {}.type
-                        )
-                        processPkMembers(directList)
-                        return@Thread
-                    } catch (_: Exception) {
+                val switchesList = root["switches"] as? List<Map<String, Any>>
+
+                if (membersList != null) {
+                    val people = loadPeopleList()
+                    var mCount = 0
+                    membersList.forEach { pkm ->
+                        val id = pkm["id"] as? String ?: ""
+                        val name = pkm["name"] as? String ?: "PK Member"
+                        val desc = pkm["description"] as? String ?: ""
+                        val avatar = pkm["avatar_url"] as? String
+                        val colorHex = pkm["color"] as? String
+                        var profileColor = -6934396
+                        if (!colorHex.isNullOrBlank()) {
+                            try {
+                                val formattedHex = if (colorHex.startsWith("#")) colorHex else "#$colorHex"
+                                profileColor = android.graphics.Color.parseColor(formattedHex)
+                            } catch (_: Exception) {}
+                        }
+                        if (id.isNotEmpty() && people.none { it.manualId == id }) {
+                            val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+                            people.add(Person(name = name, manualId = id, profileInfo = desc, profilePictureUri = avatar, profileColor = profileColor, sysmediaProfile = SysmediaProfile(handle = initialHandle)))
+                            mCount++
+                        }
                     }
+                    MemberHelper.savePeople(this, people)
+
+                    if (switchesList != null) {
+                        processPkSwitches(switchesList, people)
+                    }
+
                     runOnUiThread {
-                        Toast.makeText(
-                            this,
-                            "No members found in PluralKit JSON",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        val msg = if (switchesList != null) {
+                            getString(R.string.import_completed_members_history, mCount)
+                        } else {
+                            "Imported $mCount members from PluralKit JSON"
+                        }
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+                        recreate()
                     }
-                    return@Thread
+                } else {
+                    try {
+                        val directList = Gson().fromJson<List<Map<String, Any>>>(json, object : TypeToken<List<Map<String, Any>>>() {}.type)
+                        processPkMembers(directList)
+                    } catch (_: Exception) {
+                        runOnUiThread {
+                            Toast.makeText(this, "No members found in PluralKit JSON", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
-                processPkMembers(membersList)
             } catch (e: Exception) {
-                runOnUiThread {
-                    Toast.makeText(
-                        this,
-                        "PK JSON Error: ${e.message}",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                runOnUiThread { Toast.makeText(this, "PK JSON Error: ${e.message}", Toast.LENGTH_SHORT).show() }
             }
         }.start()
     }
@@ -1625,28 +1646,54 @@ class SettingsActivity : BaseActivity() {
                     try {
                         val formattedHex = if (colorHex.startsWith("#")) colorHex else "#$colorHex"
                         profileColor = android.graphics.Color.parseColor(formattedHex)
-                    } catch (_: Exception) {
-                    }
+                    } catch (_: Exception) {}
                 }
                 if (id.isNotEmpty() && people.none { it.manualId == id }) {
-                    val initialHandle =
-                        name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
-                    people.add(
-                        Person(
-                            name = name,
-                            manualId = id,
-                            profileInfo = desc,
-                            profilePictureUri = avatar,
-                            profileColor = profileColor,
-                            sysmediaProfile = SysmediaProfile(handle = initialHandle)
-                        )
-                    )
+                    val initialHandle = name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+                    people.add(Person(name = name, manualId = id, profileInfo = desc, profilePictureUri = avatar, profileColor = profileColor, sysmediaProfile = SysmediaProfile(handle = initialHandle)))
                     count++
                 }
             }
             MemberHelper.savePeople(this, people)
-            Toast.makeText(this, "Imported $count members from PluralKit JSON", Toast.LENGTH_SHORT)
-                .show()
+            Toast.makeText(this, "Imported $count members from PluralKit JSON", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun processPkSwitches(switches: List<Map<String, Any>>, people: List<Person>) {
+        val historyEntries = mutableListOf<Map<String, Any>>()
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+        val sortedSwitches = switches.sortedBy { it["timestamp"] as? String }
+
+        for (i in sortedSwitches.indices) {
+            val current = sortedSwitches[i]
+            val next = if (i + 1 < sortedSwitches.size) sortedSwitches[i + 1] else null
+
+            val startStr = current["timestamp"] as? String ?: continue
+            val startTime = try {
+                sdf.parse(startStr.substringBefore('.').substringBefore('Z'))?.time ?: 0L
+            } catch (_: Exception) { 0L }
+
+            if (startTime == 0L) continue
+
+            val endStr = next?.get("timestamp") as? String
+            val endTime = if (endStr != null) {
+                try {
+                    sdf.parse(endStr.substringBefore('.').substringBefore('Z'))?.time
+                } catch (_: Exception) { null }
+            } else null
+
+            val memberIds = current["members"] as? List<String> ?: emptyList()
+            memberIds.forEach { mid ->
+                val entry = mutableMapOf<String, Any>()
+                entry["startTime"] = startTime
+                if (endTime != null && endTime > 0) entry["endTime"] = endTime
+                entry["memberId"] = mid
+                historyEntries.add(entry)
+            }
+        }
+
+        runOnUiThread {
+            processFrontHistory(historyEntries, people)
         }
     }
 
@@ -2301,4 +2348,31 @@ class SettingsActivity : BaseActivity() {
         Toast.makeText(this, "Selected data deleted", Toast.LENGTH_SHORT).show()
         recreate()
     }
+    private fun showInterliExportDialog() {
+        val items = arrayOf(
+            getString(R.string.export_front_data),
+            getString(R.string.export_mood_data),
+            getString(R.string.export_notes_data),
+            getString(R.string.export_todo_data),
+            getString(R.string.module_relations),
+            getString(R.string.settings),
+            getString(R.string.export_images)
+        )
+        val selected = booleanArrayOf(true, true, true, true, true, true, true)
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.action_export)
+            .setMultiChoiceItems(items, selected) { _, which, isChecked ->
+                selected[which] = isChecked
+            }
+            .setPositiveButton(R.string.action_export) { _, _ ->
+                pendingInterliSelections = selected
+                exportLauncher.launch("plural_app_backup.zip")
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
 }

@@ -82,7 +82,7 @@ class SysmediaActivity : BaseActivity() {
     private val switchAccountLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val selectedId = result.data?.getStringExtra("selected_id")
-            loadData() 
+            loadData()
             if (selectedId != null) {
                 activeMemberId = selectedId
             }
@@ -101,8 +101,10 @@ class SysmediaActivity : BaseActivity() {
             .usePlugin(io.noties.markwon.image.coil.CoilImagesPlugin.create(this))
             .build()
         if (activeMemberId == null) {
-            activeMemberId = people.find { it.isFront }?.id ?: people.firstOrNull()?.id
+            val nonArchived = people.filter { !it.isArchived }
+            activeMemberId = nonArchived.find { it.isFront }?.id ?: nonArchived.firstOrNull()?.id
         }
+
         recyclerView = findViewById(R.id.sysmediaRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
         adapter = SysmediaAdapter(mutableListOf())
@@ -227,41 +229,7 @@ class SysmediaActivity : BaseActivity() {
             .setPositiveButton(R.string.close, null)
             .show()
     }
-    private fun showScheduledPostsDialog() {
-        val now = System.currentTimeMillis()
-        val scheduled = posts.filter { it.scheduledTime != null && it.scheduledTime!! > now }.sortedBy { it.scheduledTime }
-        if (scheduled.isEmpty()) {
-            AlertDialog.Builder(this).setMessage("No scheduled posts found.").setPositiveButton(R.string.close, null).show()
-            return
-        }
-        val items = scheduled.map { 
-            val date = SimpleDateFormat("dd MMM HH:mm", Locale.getDefault()).format(Date(it.scheduledTime!!))
-            "[$date] ${it.content.take(30)}..."
-        }.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle(R.string.action_scheduled_posts)
-            .setItems(items) { _, which ->
-                val post = scheduled[which]
-                AlertDialog.Builder(this)
-                    .setTitle("Scheduled Post")
-                    .setMessage(post.content)
-                    .setPositiveButton(R.string.action_edit) { _, _ ->
-                        val intent = android.content.Intent(this, CreatePostActivity::class.java)
-                        intent.putExtra("current_user_id", post.senderId)
-                        intent.putExtra("edit_post_id", post.id)
-                        startActivity(intent)
-                    }
-                    .setNegativeButton(R.string.delete) { _, _ ->
-                        posts.remove(post)
-                        saveData()
-                        filterTab()
-                    }
-                    .setNeutralButton(R.string.close, null)
-                    .show()
-            }
-            .setPositiveButton(R.string.close, null)
-            .show()
-    }
+
     private fun updateTabBadges() {
         val tabLayout = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayoutSysmedia)
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
@@ -269,10 +237,10 @@ class SysmediaActivity : BaseActivity() {
         val lastTimeline = sharedPref.getLong("last_viewed_sysmedia_timeline", 0L)
         val activeMember = people.find { it.id == activeMemberId }
         val followingIds = activeMember?.sysmediaProfile?.followingIds ?: mutableListOf()
-        val unreadTimeline = posts.count { 
-            it.timestamp > lastTimeline && 
-            (it.senderId == activeMemberId || followingIds.contains(it.senderId)) && 
-            (it.scheduledTime == null || it.scheduledTime!! <= now) 
+        val unreadTimeline = posts.count {
+            it.timestamp > lastTimeline &&
+                    (it.senderId == activeMemberId || followingIds.contains(it.senderId)) &&
+                    (it.scheduledTime == null || it.scheduledTime!! <= now)
         }
         setTabBadge(tabLayout, 0, unreadTimeline)
         setTabBadge(tabLayout, 1, 0)
@@ -375,7 +343,7 @@ class SysmediaActivity : BaseActivity() {
                 val allMessages: List<DirectMessage> = Gson().fromJson(msgJson, object : TypeToken<List<DirectMessage>>() {}.type) ?: emptyList()
                 val groupJson = getSharedPreferences("my_app", MODE_PRIVATE).getString("sysmedia_chat_groups", "[]")
                 val chatGroups: List<ChatGroup> = Gson().fromJson(groupJson, object : TypeToken<List<ChatGroup>>() {}.type) ?: emptyList()
-                val myGroups = chatGroups.filter { group -> 
+                val myGroups = chatGroups.filter { group ->
                     group.participantIds.contains(activeMemberId)
                 }
                 val currentId = activeMemberId
@@ -406,7 +374,7 @@ class SysmediaActivity : BaseActivity() {
                     posts.filter { it.scheduledTime == null || it.scheduledTime!! <= now }
                 }
             }
-            else -> emptyList() 
+            else -> emptyList()
         }
         adapter.updateItems(filtered)
     }
@@ -417,11 +385,11 @@ class SysmediaActivity : BaseActivity() {
         }
         val query = searchQuery.lowercase()
         val now = System.currentTimeMillis()
-        val filtered = posts.filter { 
-            (it.content.lowercase().contains(query) || 
-            (query.startsWith("@") && people.any { p -> p.id == it.senderId && (p.name.lowercase().contains(query.drop(1)) || p.sysmediaProfile?.handle?.lowercase()?.contains(query.drop(1)) == true) }) ||
-            (query.startsWith("#") && it.content.lowercase().contains(query))) &&
-            (it.scheduledTime == null || it.scheduledTime!! <= now)
+        val filtered = posts.filter {
+            (it.content.lowercase().contains(query) ||
+                    (query.startsWith("@") && people.any { p -> p.id == it.senderId && (p.name.lowercase().contains(query.drop(1)) || p.sysmediaProfile?.handle?.lowercase()?.contains(query.drop(1)) == true) }) ||
+                    (query.startsWith("#") && it.content.lowercase().contains(query))) &&
+                    (it.scheduledTime == null || it.scheduledTime!! <= now)
         }
         adapter.updateItems(filtered)
     }
@@ -477,28 +445,7 @@ class SysmediaActivity : BaseActivity() {
         val intent = android.content.Intent(this, SysmediaSwitchAccountActivity::class.java)
         switchAccountLauncher.launch(intent)
     }
-    private fun showFollowingDialog(person: Person) {
-        val otherPeople = people.filter { it.id != person.id && !it.isArchived }
-        val names = otherPeople.map { it.name }.toTypedArray()
-        val checked = BooleanArray(otherPeople.size) { i ->
-            person.sysmediaProfile?.followingIds?.contains(otherPeople[i].id) ?: false
-        }
-        AlertDialog.Builder(this)
-            .setTitle("Following")
-            .setMultiChoiceItems(names, checked) { _, which, isChecked ->
-                val targetId = otherPeople[which].id
-                if (isChecked) {
-                    person.sysmediaProfile?.followingIds?.add(targetId)
-                } else {
-                    person.sysmediaProfile?.followingIds?.remove(targetId)
-                }
-            }
-            .setPositiveButton(getString(R.string.done)) { _, _ ->
-                saveData()
-                filterTab()
-            }
-            .show()
-    }
+
     override fun onResume() {
         super.onResume()
         loadData()
@@ -551,6 +498,7 @@ class SysmediaActivity : BaseActivity() {
             val btnReblog: View = view.findViewById(R.id.btnReblog)
             val btnLike: View = view.findViewById(R.id.btnLike)
             val btnReply: View = view.findViewById(R.id.btnReply)
+            val btnShare: View = view.findViewById(R.id.btnShare)
             val ivPostImage: ImageView = view.findViewById(R.id.ivPostImagePreview)
             val mediaEmbedContainer: LinearLayout = view.findViewById(R.id.mediaEmbedContainer)
             val cardOriginal: MaterialCardView = view.findViewById(R.id.cardOriginalPost)
@@ -645,6 +593,9 @@ class SysmediaActivity : BaseActivity() {
                 intent.putExtra("reply_to_id", post.id)
                 startActivity(intent)
             }
+            holder.btnShare.setOnClickListener {
+                downloadPostAsImage(holder.itemView, post)
+            }
             holder.itemView.setOnClickListener {
                 openPostDetail(post.id)
             }
@@ -707,9 +658,9 @@ class SysmediaActivity : BaseActivity() {
                 val end = handleMatcher.end()
                 spannable.setSpan(object : android.text.style.ClickableSpan() {
                     override fun onClick(view: View) {
-                        val target = people.find { 
-                            it.sysmediaProfile?.handle?.lowercase() == handleTag || 
-                            it.name.replace(" ", "_").lowercase() == handleTag 
+                        val target = people.find {
+                            it.sysmediaProfile?.handle?.lowercase() == handleTag ||
+                                    it.name.replace(" ", "_").lowercase() == handleTag
                         }
                         if (target != null) {
                             openProfile(target.id)
@@ -868,7 +819,7 @@ class SysmediaActivity : BaseActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(24.dpToPx(), 16.dpToPx(), 24.dpToPx(), 0)
         }
-        val etName = EditText(this).apply { 
+        val etName = EditText(this).apply {
             hint = "Group Name"
             setTextColor(ColorHelper.getTextColor(this@SysmediaActivity))
         }
@@ -919,6 +870,7 @@ class SysmediaActivity : BaseActivity() {
             val tvOriginalContent: TextView = view.findViewById(R.id.tvOriginalContent)
             val ivOriginalPostImage: ImageView = view.findViewById(R.id.ivOriginalPostImage)
             val layoutPoll: LinearLayout = view.findViewById(R.id.layoutPoll)
+            val btnShare: ImageView = view.findViewById(R.id.btnShare)
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             return ViewHolder(LayoutInflater.from(parent.context).inflate(R.layout.item_sysmedia_post, parent, false))
@@ -1025,6 +977,9 @@ class SysmediaActivity : BaseActivity() {
                     intent.putExtra("current_user_id", activeMemberId)
                     intent.putExtra("reply_to_id", post.id)
                     startActivity(intent)
+                }
+                holder.btnShare.setOnClickListener {
+                    downloadPostAsImage(holder.itemView, post)
                 }
                 holder.itemView.setOnClickListener { openPostDetail(post.id) }
                 holder.itemView.setOnLongClickListener {
@@ -1240,4 +1195,33 @@ class SysmediaActivity : BaseActivity() {
         set(value) {
             setTypeface(typeface, value)
         }
+
+    private fun downloadPostAsImage(view: View, post: SysmediaPost) {
+        val btns = listOf(R.id.btnReply, R.id.btnReblog, R.id.btnLike, R.id.btnShare)
+        btns.forEach { view.findViewById<View>(it)?.visibility = View.INVISIBLE }
+
+        val bitmap = android.graphics.Bitmap.createBitmap(view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        view.background?.draw(canvas) ?: canvas.drawColor(android.graphics.Color.WHITE)
+        view.draw(canvas)
+
+        btns.forEach { view.findViewById<View>(it)?.visibility = View.VISIBLE }
+
+        val fileName = "sysmedia_${post.id.take(5)}_${System.currentTimeMillis()}.jpg"
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES)
+            }
+        }
+
+        val uri = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        uri?.let {
+            contentResolver.openOutputStream(it)?.use { os ->
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, os)
+            }
+            Toast.makeText(this, getString(R.string.saved_in, "Galerij"), Toast.LENGTH_SHORT).show()
+        }
+    }
 }

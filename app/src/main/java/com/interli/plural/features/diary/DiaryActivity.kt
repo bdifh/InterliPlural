@@ -122,10 +122,19 @@ class DiaryActivity : BaseActivity() {
             .setTitle(getString(R.string.edit) + " " + getString(R.string.label_bundle))
             .setView(input)
             .setPositiveButton(R.string.save) { _, _ ->
-                bundle.name = input.text.toString().trim()
-                saveNotes()
-                filterNotes()
+                val newName = input.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    allNotes.forEach {
+                        if (it.bundleId == bundle.id) {
+                            it.bundleName = newName
+                        }
+                    }
+                    bundle.name = newName
+                    saveNotes()
+                    filterNotes()
+                }
             }
+
             .setNeutralButton(R.string.delete) { _, _ ->
                 allNotes.forEach {
                     if (it.bundleId == bundle.id) {

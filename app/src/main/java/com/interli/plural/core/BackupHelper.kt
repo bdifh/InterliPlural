@@ -46,7 +46,7 @@ object BackupHelper {
             )
         }
     }
-    fun createBackupJson(context: Context): String {
+    fun createBackupJson(context: Context, selections: BooleanArray? = null): String {
         val stringWriter = StringWriter()
         val writer = JsonWriter(stringWriter)
         writer.setIndent("  ")
@@ -55,80 +55,118 @@ object BackupHelper {
         writer.beginObject()
         writer.name("data")
         writer.beginObject()
+
+        val exportAll = selections == null
+        val exportFront = exportAll || selections!![0]
+        val exportMood = exportAll || selections!![1]
+        val exportNotes = exportAll || selections!![2]
+        val exportTodo = exportAll || selections!![3]
+        val exportRelations = exportAll || selections!![4]
+        val exportSettings = exportAll || selections!![5]
+        val exportImages = exportAll || selections!![6]
+
+        val frontKeys = listOf("people_list", "sysmedia_people_list", "groups_list", "sessions_list", "last_fronter_name", "current_fronters")
+        val moodKeys = listOf("mood_entries", "mood_color_1", "mood_color_2", "mood_color_3", "mood_color_4", "mood_color_5", "activity_groups")
+        val notesKeys = listOf("diary_notes", "diary_bundles", "sysmedia_posts", "sysmedia_notifications", "sysmedia_dms", "sysmedia_chat_groups")
+        val todoKeys = listOf("todo_lists", "todo_bundles")
+        val relationsKeys = listOf("relations_environments", "relations_data")
+
         dataPrefs.all.forEach { (k, v) ->
-            writer.name(k)
-            when (v) {
-                is String -> writer.value(v)
-                is Boolean -> writer.value(v)
-                is Number -> writer.value(v)
-                is Set<*> -> {
-                    writer.beginArray()
-                    v.forEach { item -> writer.value(item.toString()) }
-                    writer.endArray()
-                }
-                else -> writer.value(v.toString())
+            val shouldExport = when {
+                frontKeys.contains(k) -> exportFront
+                moodKeys.contains(k) -> exportMood
+                notesKeys.contains(k) -> exportNotes
+                todoKeys.contains(k) -> exportTodo
+                relationsKeys.contains(k) -> exportRelations
+                else -> exportAll
             }
-        }
-        writer.endObject()
-        writer.name("settings")
-        writer.beginObject()
-        settingsPrefs.all.forEach { (k, v) ->
-            writer.name(k)
-            when (v) {
-                is String -> writer.value(v)
-                is Boolean -> writer.value(v)
-                is Number -> writer.value(v)
-                is Set<*> -> {
-                    writer.beginArray()
-                    v.forEach { item -> writer.value(item.toString()) }
-                    writer.endArray()
-                }
-                else -> writer.value(v.toString())
-            }
-        }
-        writer.endObject()
-        writer.name("images")
-        writer.beginObject()
-        val people = MemberHelper.loadAllPeople(context)
-        people.forEach { person ->
-            val avatarUri = person.sysmediaProfile?.profilePictureUri ?: person.profilePictureUri
-            avatarUri?.let { uriStr ->
-                try {
-                    val uri = Uri.parse(uriStr)
-                    val inputStream = if (uriStr.startsWith("content://")) {
-                        context.contentResolver.openInputStream(uri)
-                    } else {
-                        val file = if (uriStr.startsWith("file://")) File(uri.path!!) else File(uriStr)
-                        if (file.exists()) FileInputStream(file) else null
+
+            if (shouldExport) {
+                writer.name(k)
+                when (v) {
+                    is String -> writer.value(v)
+                    is Boolean -> writer.value(v)
+                    is Number -> writer.value(v)
+                    is Set<*> -> {
+                        writer.beginArray()
+                        v.forEach { item -> writer.value(item.toString()) }
+                        writer.endArray()
                     }
-                    inputStream?.use { input ->
-                        val bytes = input.readBytes()
-                        val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
-                        writer.name(person.id)
-                        writer.value(base64)
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
+                    else -> writer.value(v.toString())
+                }
             }
         }
         writer.endObject()
+
+        if (exportSettings) {
+            writer.name("settings")
+            writer.beginObject()
+            settingsPrefs.all.forEach { (k, v) ->
+                writer.name(k)
+                when (v) {
+                    is String -> writer.value(v)
+                    is Boolean -> writer.value(v)
+                    is Number -> writer.value(v)
+                    is Set<*> -> {
+                        writer.beginArray()
+                        v.forEach { item -> writer.value(item.toString()) }
+                        writer.endArray()
+                    }
+                    else -> writer.value(v.toString())
+                }
+            }
+            writer.endObject()
+        }
+
+        if (exportImages) {
+            writer.name("images")
+            writer.beginObject()
+            val people = MemberHelper.loadAllPeople(context)
+            people.forEach { person ->
+                val avatarUri = person.sysmediaProfile?.profilePictureUri ?: person.profilePictureUri
+                avatarUri?.let { uriStr ->
+                    try {
+                        val uri = android.net.Uri.parse(uriStr)
+                        val inputStream = if (uriStr.startsWith("content://")) {
+                            context.contentResolver.openInputStream(uri)
+                        } else {
+                            val file = if (uriStr.startsWith("file://")) java.io.File(uri.path!!) else java.io.File(uriStr)
+                            if (file.exists()) java.io.FileInputStream(file) else null
+                        }
+                        inputStream?.use { input ->
+                            val bytes = input.readBytes()
+                            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                            writer.name(person.id)
+                            writer.value(base64)
+                        }
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+            }
+            writer.endObject()
+        }
         writer.endObject()
         writer.close()
         return stringWriter.toString()
     }
-    fun createBackupZip(context: Context, outStream: OutputStream) {
-        val zipOut = ZipOutputStream(outStream)
-        val json = createBackupJson(context)
-        zipOut.putNextEntry(ZipEntry("backup.json"))
+
+    fun createBackupZip(context: Context, outStream: java.io.OutputStream, selections: BooleanArray? = null) {
+        val zipOut = java.util.zip.ZipOutputStream(outStream)
+        val json = createBackupJson(context, selections)
+        zipOut.putNextEntry(java.util.zip.ZipEntry("backup.json"))
         zipOut.write(json.toByteArray())
         zipOut.closeEntry()
-        val filesDir = context.filesDir
-        filesDir.listFiles()?.forEach { file ->
-            if (file.isFile) {
-                try {
-                    zipOut.putNextEntry(ZipEntry("files/${file.name}"))
-                    FileInputStream(file).use { it.copyTo(zipOut) }
-                    zipOut.closeEntry()
-                } catch (e: Exception) { e.printStackTrace() }
+
+        val exportImages = selections == null || selections[6]
+        if (exportImages) {
+            val filesDir = context.filesDir
+            filesDir.listFiles()?.forEach { file ->
+                if (file.isFile) {
+                    try {
+                        zipOut.putNextEntry(java.util.zip.ZipEntry("files/${file.name}"))
+                        java.io.FileInputStream(file).use { it.copyTo(zipOut) }
+                        zipOut.closeEntry()
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
             }
         }
         zipOut.close()

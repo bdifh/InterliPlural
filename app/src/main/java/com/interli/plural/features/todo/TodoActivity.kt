@@ -519,7 +519,11 @@ class TodoActivity : BaseActivity() {
                 } else cal.add(Calendar.DAY_OF_YEAR, 1)
             }
         }
-        if (wasMidnight) { cal.set(Calendar.HOUR_OF_DAY, 0); cal.set(Calendar.MINUTE, 0); cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0) }
+        if (wasMidnight || task.resetType == "NEXT_DAY") {
+            cal.set(Calendar.HOUR_OF_DAY, task.resetHour)
+            cal.set(Calendar.MINUTE, task.resetMinute)
+            cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
+        }
         task.deadline = cal.timeInMillis
         task.status = "EMPTY"
         if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
@@ -556,13 +560,14 @@ class TodoActivity : BaseActivity() {
             list.tasks.forEach { task ->
                 if (task.recurrence != null && task.status == "CHECKED") {
                     if (task.deadline == null) {
-                        val today = Calendar.getInstance().apply { 
-                            set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
+                        val today = Calendar.getInstance().apply {
+                            set(Calendar.HOUR_OF_DAY, if (task.resetType == "NEXT_DAY") task.resetHour else 0)
+                            set(Calendar.MINUTE, if (task.resetType == "NEXT_DAY") task.resetMinute else 0)
+                            set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                         }
                         task.deadline = today.timeInMillis
                         changed = true
                     }
-                    // Reset if the current time is past the deadline
                     while (now.timeInMillis > (task.deadline ?: 0L)) {
                         handleRecurrence(task, showToast = false)
                         changed = true
