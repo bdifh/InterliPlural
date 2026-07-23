@@ -434,15 +434,27 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     getGroupCenter(group)?.let { points.add(it) }
                 }
             }
-            if (points.size >= 2) {
-                val midX = points.map { it.x }.average().toFloat()
-                val midY = points.map { it.y }.average().toFloat()
-                if (Math.abs(x - midX) < 40f && Math.abs(y - midY) < 40f) {
+
+            for (i in 0 until points.size - 1) {
+                val p1 = points[i]
+                val p2 = points[i + 1]
+
+                val distance = distToSegment(x, y, p1.x, p1.y, p2.x, p2.y)
+                if (distance < 60f) {
                     return edge
                 }
             }
         }
         return null
+    }
+    private fun distToSegment(px: Float, py: Float, x1: Float, y1: Float, x2: Float, y2: Float): Float {
+        val l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)
+        if (l2 == 0f) return sqrt((px - x1) * (px - x1) + (py - y1) * (py - y1))
+        var t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2
+        t = Math.max(0f, Math.min(1f, t))
+        val dx = px - (x1 + t * (x2 - x1))
+        val dy = py - (y1 + t * (y2 - y1))
+        return sqrt(dx * dx + dy * dy)
     }
 
     private fun findGroupAt(x: Float, y: Float): RelationGroup? {
