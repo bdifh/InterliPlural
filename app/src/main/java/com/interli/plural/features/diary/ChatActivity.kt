@@ -121,11 +121,9 @@ class ChatActivity : BaseActivity() {
             findViewById<View>(R.id.layoutChatImagePreview).visibility = View.GONE
         }
         val btnSwitchFront = findViewById<ImageButton>(R.id.btnSwitchFrontChat)
-        if (isGroup) {
-            btnSwitchFront.visibility = View.VISIBLE
-            btnSwitchFront.setOnClickListener {
-                showSwitchActiveUserDialog()
-            }
+        btnSwitchFront.visibility = View.VISIBLE
+        btnSwitchFront.setOnClickListener {
+            showSwitchActiveUserDialog()
         }
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
         toolbar.setNavigationOnClickListener { finish() }
@@ -338,8 +336,13 @@ class ChatActivity : BaseActivity() {
             .show()
     }
     private fun showSwitchSenderDialog(msg: DirectMessage, position: Int) {
-        val group = chatGroups.find { it.id == chatId } ?: return
-        val participants = people.filter { group.participantIds.contains(it.id) && !it.isArchived }
+        val participants = if (isGroup) {
+            val group = chatGroups.find { it.id == chatId }
+            people.filter { group?.participantIds?.contains(it.id) == true && !it.isArchived }
+        } else {
+            people.filter { (it.id == currentUser.id || it.id == chatId) && !it.isArchived }
+        }
+        if (participants.isEmpty()) return
         val names = participants.map { it.sysmediaProfile?.displayName ?: it.name }.toTypedArray()
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.action_switch_account)
@@ -362,14 +365,29 @@ class ChatActivity : BaseActivity() {
             .show()
     }
     private fun showSwitchActiveUserDialog() {
-        val group = chatGroups.find { it.id == chatId } ?: return
-        val participants = people.filter { group.participantIds.contains(it.id) && !it.isArchived }
+        val participants = if (isGroup) {
+            val group = chatGroups.find { it.id == chatId }
+            people.filter { group?.participantIds?.contains(it.id) == true && !it.isArchived }
+        } else {
+            people.filter { (it.id == currentUser.id || it.id == chatId) && !it.isArchived }
+        }
+
+        if (participants.isEmpty()) return
+
         val names = participants.map { it.sysmediaProfile?.displayName ?: it.name }.toTypedArray()
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.action_switch_account)
             .setItems(names) { _, which ->
                 currentUser = participants[which]
-                adapter.notifyDataSetChanged()
+                loadData()
+                filterMessages()
+                adapter = ChatAdapter(messages)
+                recyclerView.adapter = adapter
+
+                markMessagesAsRead()
+                if (messages.isNotEmpty()) {
+                    recyclerView.scrollToPosition(messages.size - 1)
+                }
             }
             .show()
     }
@@ -552,9 +570,7 @@ class ChatActivity : BaseActivity() {
                     val options = mutableListOf<String>()
                     options.add("Like")
                     options.add(getString(R.string.reply))
-                    if (isGroup) {
-                        options.add(getString(R.string.action_switch_account))
-                    }
+                    options.add(getString(R.string.action_switch_account))
                     if (m.senderId == currentUser.id) {
                         options.add(getString(R.string.edit))
                     }

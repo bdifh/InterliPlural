@@ -70,7 +70,7 @@
         <ImageView
             android:layout_width="14dp"
             android:layout_height="14dp"
-            android:src="@android:drawable/ic_menu_share"
+            android:src="@drawable/ic_reblog"
             app:tint="#536471" />
         <TextView
             android:id="@+id/tvRebloggedBy"
@@ -284,7 +284,7 @@
                     <ImageView
                         android:layout_width="18dp"
                         android:layout_height="18dp"
-                        android:src="@android:drawable/ic_menu_share"
+                        android:src="@drawable/ic_reblog"
                         app:tint="#536471"
                         android:contentDescription="Reblog" />
                     <TextView

@@ -3,7 +3,7 @@ plugins {
 }
 
 // ------- VERSION DISPLAY !!!! --------
-val versionDisplayed = "V002-3k" // CHANGE THIS ONE WHEN MAKING UPDATES
+val versionDisplayed = "V002-3l" // CHANGE THIS ONE WHEN MAKING UPDATES
 // ------- VERSION DISPLAY !!!! --------
 
 android {
@@ -55,6 +55,7 @@ dependencies {
     implementation("io.noties.markwon:image-coil:4.6.2")
     implementation("io.noties.markwon:linkify:4.6.2")
     implementation("io.noties.markwon:ext-strikethrough:4.6.2")
+    implementation("io.coil-kt:coil-gif:1.4.0")
 
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.appcompat)

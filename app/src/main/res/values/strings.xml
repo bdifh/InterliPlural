@@ -633,4 +633,7 @@
     <string name="arrow_type_start">Arrow to start</string>
     <string name="arrow_type_both">Arrows both ways</string>
 
+    <string name="settings_enable_gifs">Enable animated GIFs</string>
+    <string name="settings_enable_gifs_desc">Show animations for GIF images app-wide</string>
+
 </resources>

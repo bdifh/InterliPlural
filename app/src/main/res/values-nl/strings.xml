@@ -499,4 +499,8 @@
     <string name="arrow_type_end">Pijl naar einde</string>
     <string name="arrow_type_start">Pijl naar begin</string>
     <string name="arrow_type_both">Pijlen beide kanten</string>
+
+    <string name="settings_enable_gifs">Geanimeerde GIF\'s inschakelen</string>
+    <string name="settings_enable_gifs_desc">Toon animaties voor GIF-afbeeldingen in de hele app</string>
+
 </resources>

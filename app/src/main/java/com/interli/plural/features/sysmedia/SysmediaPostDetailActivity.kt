@@ -653,4 +653,40 @@ class SysmediaPostDetailActivity : BaseActivity() {
         }
         inner class NotificationViewHolder(val textView: TextView) : RecyclerView.ViewHolder(textView)
     }
+    private fun renderLikes() {
+        val container = findViewById<LinearLayout>(R.id.layoutLikesContainer)
+        val avatarContainer = findViewById<LinearLayout>(R.id.layoutLikesAvatars)
+        avatarContainer.removeAllViews()
+
+        val likerIds = currentPost.likedByMemberIds.keys.toList()
+        if (likerIds.isEmpty()) {
+            container.visibility = View.GONE
+            return
+        }
+
+        container.visibility = View.VISIBLE
+        val textColor = ColorHelper.getTextColor(this)
+        findViewById<TextView>(R.id.tvLikesHeader).setTextColor(textColor)
+
+        likerIds.forEach { id ->
+            val person = people.find { it.id == id } ?: return@forEach
+            val profile = person.sysmediaProfile
+            val imageView = com.google.android.material.imageview.ShapeableImageView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(32.dpToPx(), 32.dpToPx()).apply {
+                    marginEnd = 8.dpToPx()
+                }
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                shapeAppearanceModel = shapeAppearanceModel.toBuilder()
+                    .setAllCornerSizes(com.google.android.material.shape.RelativeCornerSize(0.5f))
+                    .build()
+
+                val avatarUri = profile?.profilePictureUri ?: person.profilePictureUri
+                if (avatarUri != null) load(avatarUri)
+                else setImageDrawable(android.graphics.drawable.ColorDrawable(person.profileColor ?: ColorHelper.getBtnColor(this@SysmediaPostDetailActivity)))
+
+                setOnClickListener { openProfile(person.id) }
+            }
+            avatarContainer.addView(imageView)
+        }
+    }
 }
