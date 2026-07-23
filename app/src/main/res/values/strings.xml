@@ -619,4 +619,18 @@
     <string name="error_enter_token">Please enter a token first</string>
     <string name="import_members_history_success">Members and history imported!</string>
     <string name="import_completed_members_history">Import completed: %1$d members and history processed!</string>
+
+    <string name="label_image_colon">Image:</string>
+    <string name="label_line_color">Line Color:</string>
+    <string name="label_line_type">Line Type:</string>
+    <string name="label_arrow_direction">Arrow Direction:</string>
+    <string name="label_tag">Label:</string>
+    <string name="line_type_solid">Solid</string>
+    <string name="line_type_dashed">Dashed</string>
+    <string name="line_type_dotted">Dotted</string>
+    <string name="arrow_type_none">None</string>
+    <string name="arrow_type_end">Arrow to end</string>
+    <string name="arrow_type_start">Arrow to start</string>
+    <string name="arrow_type_both">Arrows both ways</string>
+
 </resources>

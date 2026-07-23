@@ -111,7 +111,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     applySmartLayout()
                 }
                 invalidate()
-                postDelayed(this, 100) 
+                postDelayed(this, 100)
             }
         }
     }
@@ -147,6 +147,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
     var onGroupLongClicked: ((RelationGroup) -> Unit)? = null
     var onEdgeLongClicked: ((RelationEdge) -> Unit)? = null
     var onDataChanged: (() -> Unit)? = null
+
     fun setData(newData: RelationsData) {
         data = newData
         preloadImages()
@@ -156,6 +157,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
         invalidate()
     }
+
     private fun getGroupCenter(group: RelationGroup): PointF? {
         val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
         return if (memberNodes.isNotEmpty()) {
@@ -164,6 +166,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             null
         }
     }
+
     private fun getGroupBoundaryPoint(center: PointF, target: PointF, group: RelationGroup): PointF {
         val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
         if (memberNodes.isEmpty()) return center
@@ -194,6 +197,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             )
         }
     }
+
     private fun preloadImages() {
         data.nodes.forEach { node ->
             if (node.imageUri != null && !bitmaps.containsKey(node.imageUri)) {
@@ -211,11 +215,14 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
         }
     }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         canvas.save()
         canvas.translate(offsetX, offsetY)
         canvas.scale(scaleFactor, scaleFactor)
+
+        // 1. Draw Group bubbles
         data.groups.forEach { group ->
             val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
             groupPaint.color = group.color
@@ -237,6 +244,8 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                 canvas.drawText(group.name, centerX, minY, textPaint)
             }
         }
+
+        // 2. Draw Relationship Edges (Lines)
         data.edges.forEach { edge ->
             val points = mutableListOf<PointF>()
             edge.getSafeNodeIds().forEach { id ->
@@ -247,7 +256,16 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     getGroupCenter(group)?.let { points.add(it) }
                 }
             }
+
             if (points.size >= 2) {
+                // Apply line style from edge data
+                edgePaint.color = edge.color ?: Color.GRAY
+                edgePaint.pathEffect = when(edge.lineType) {
+                    1 -> DashPathEffect(floatArrayOf(20f, 10f), 0f) // Dashed
+                    2 -> DashPathEffect(floatArrayOf(5f, 10f), 0f)  // Dotted
+                    else -> null // Solid
+                }
+
                 for (i in 0 until points.size - 1) {
                     val p1 = points[i]
                     val p2 = points[i+1]
@@ -255,6 +273,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     var startY = p1.y
                     var endX = p2.x
                     var endY = p2.y
+
                     val group1 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p1.x) < 5f && Math.abs(it.y - p1.y) < 5f } ?: false }
                     if (group1 != null) {
                         val boundary = getGroupBoundaryPoint(p1, p2, group1)
@@ -282,7 +301,12 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                         }
                     }
                     canvas.drawLine(startX, startY, endX, endY, edgePaint)
+
+                    // Draw Arrows based on configuration
+                    if (edge.arrowType == 1 || edge.arrowType == 3) drawArrowHead(canvas, startX, startY, endX, endY)
+                    if (edge.arrowType == 2 || edge.arrowType == 3) drawArrowHead(canvas, endX, endY, startX, startY)
                 }
+
                 edge.tag?.let { tag ->
                     val midX = points.map { it.x }.average().toFloat()
                     val midY = points.map { it.y }.average().toFloat()
@@ -300,6 +324,8 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                 }
             }
         }
+
+        // 3. Draw dashed lines connecting member instances (multi-board sync visualization)
         val memberGroups = data.nodes.filter { it.memberId != null }.groupBy { it.memberId }
         memberGroups.forEach { (_, nodes) ->
             if (nodes.size > 1) {
@@ -310,6 +336,8 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                 }
             }
         }
+
+        // 4. Draw Nodes (Members and Orbs)
         data.nodes.forEach { node ->
             val bitmap = node.imageUri?.let { bitmaps[it] }
             if (bitmap != null) {
@@ -340,10 +368,12 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
         canvas.restore()
     }
+
     override fun performClick(): Boolean {
         super.performClick()
         return true
     }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_DOWN) {
             performClick()
@@ -384,6 +414,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
         return true
     }
+
     private fun findNodeAt(x: Float, y: Float): RelationNode? {
         return data.nodes.find {
             val dx = it.x - x
@@ -391,6 +422,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             sqrt(dx * dx + dy * dy) <= nodeRadius * 1.5f
         }
     }
+
     private fun findEdgeAt(x: Float, y: Float): RelationEdge? {
         data.edges.forEach { edge ->
             val points = mutableListOf<PointF>()
@@ -412,6 +444,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
         return null
     }
+
     private fun findGroupAt(x: Float, y: Float): RelationGroup? {
         return data.groups.find { group ->
             val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
@@ -430,6 +463,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
         }
     }
+
     fun captureFullMapBitmap(): Bitmap? {
         if (data.nodes.isEmpty()) return null
         val padding = 100f
@@ -460,5 +494,49 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         offsetY = oldOffsetY
         scaleFactor = oldScale
         return bitmap
+    }
+
+    fun centerView() {
+        if (data.nodes.isEmpty()) {
+            offsetX = 100f
+            offsetY = 100f
+            scaleFactor = 0.7f
+            invalidate()
+            return
+        }
+        val minX = data.nodes.minOf { it.x }
+        val maxX = data.nodes.maxOf { it.x }
+        val minY = data.nodes.minOf { it.y }
+        val maxY = data.nodes.maxOf { it.y }
+
+        val centerX = (minX + maxX) / 2
+        val centerY = (minY + maxY) / 2
+
+        post {
+            if (width > 0 && height > 0) {
+                offsetX = width / 2f - (centerX * scaleFactor)
+                offsetY = height / 2f - (centerY * scaleFactor)
+                invalidate()
+            }
+        }
+    }
+
+    private fun drawArrowHead(canvas: Canvas, x1: Float, y1: Float, x2: Float, y2: Float) {
+        val angle = Math.atan2((y2 - y1).toDouble(), (x2 - x1).toDouble())
+        val arrowSize = 25f
+        val path = Path().apply {
+            moveTo(x2, y2)
+            lineTo((x2 - arrowSize * Math.cos(angle - Math.PI / 6)).toFloat(),
+                (y2 - arrowSize * Math.sin(angle - Math.PI / 6)).toFloat())
+            lineTo((x2 - arrowSize * Math.cos(angle + Math.PI / 6)).toFloat(),
+                (y2 - arrowSize * Math.sin(angle + Math.PI / 6)).toFloat())
+            close()
+        }
+        val arrowPaint = Paint(edgePaint).apply {
+            pathEffect = null
+            style = Paint.Style.FILL
+            color = edgePaint.color
+        }
+        canvas.drawPath(path, arrowPaint)
     }
 }

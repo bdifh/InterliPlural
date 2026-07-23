@@ -53,27 +53,121 @@ class RelationsActivity : BaseActivity() {
     }
     private fun showEditEdgeDialogFromMap(edge: RelationEdge) {
         activeDialog?.dismiss()
+        val textColor = ColorHelper.getTextColor(this)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val p = 16.dpToPx()
             setPadding(p, p, p, p)
         }
+
+        // --- SECTION: LINE COLOR ---
+        layout.addView(TextView(this).apply {
+            text = getString(R.string.label_line_color)
+            setTextColor(textColor)
+        })
+        val colors = intArrayOf(Color.GRAY, Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN, Color.BLACK)
+        var selectedColor = edge.color ?: Color.GRAY
+        val colorContainer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val scroll = HorizontalScrollView(this).apply { addView(colorContainer) }
+
+        fun updateColorDots() {
+            colorContainer.removeAllViews()
+            val dotSize = 36.dpToPx()
+            val margin = 8.dpToPx()
+            val activeColors = colors.toMutableList()
+            if (!activeColors.contains(selectedColor)) activeColors.add(selectedColor)
+            activeColors.forEach { color ->
+                val dot = View(this@RelationsActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply { setMargins(0, 0, margin, 0) }
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(color)
+                        if (color == selectedColor) setStroke(3.dpToPx(), textColor)
+                        else setStroke(1.dpToPx(), Color.GRAY)
+                    }
+                    setOnClickListener { selectedColor = color; updateColorDots() }
+                }
+                colorContainer.addView(dot)
+            }
+            val customBtn = ImageButton(this@RelationsActivity).apply {
+                layoutParams = LinearLayout.LayoutParams(dotSize, dotSize)
+                setImageResource(android.R.drawable.ic_menu_edit)
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.LTGRAY) }
+                setOnClickListener {
+                    showCustomColorPickerDialog(selectedColor) { newColor ->
+                        selectedColor = newColor
+                        updateColorDots()
+                    }
+                }
+            }
+            colorContainer.addView(customBtn)
+        }
+        updateColorDots()
+        layout.addView(scroll)
+
+        // --- SECTION: LINE TYPE ---
+        val types = arrayOf(
+            getString(R.string.line_type_solid),
+            getString(R.string.line_type_dashed),
+            getString(R.string.line_type_dotted)
+        )
+        val typeSpinner = Spinner(this).apply {
+            adapter = ColorHelper.createThemedAdapter<String>(this@RelationsActivity, types.toList())
+            setSelection(edge.lineType)
+        }
+        layout.addView(TextView(this).apply {
+            text = getString(R.string.label_line_type)
+            setTextColor(textColor)
+            setPadding(0, 16.dpToPx(), 0, 0)
+        })
+        layout.addView(typeSpinner)
+
+        // --- SECTION: ARROW DIRECTION ---
+        val arrows = arrayOf(
+            getString(R.string.arrow_type_none),
+            getString(R.string.arrow_type_end),
+            getString(R.string.arrow_type_start),
+            getString(R.string.arrow_type_both)
+        )
+        val arrowSpinner = Spinner(this).apply {
+            adapter = ColorHelper.createThemedAdapter<String>(this@RelationsActivity, arrows.toList())
+            setSelection(edge.arrowType)
+        }
+        layout.addView(TextView(this).apply {
+            text = getString(R.string.label_arrow_direction)
+            setTextColor(textColor)
+            setPadding(0, 16.dpToPx(), 0, 0)
+        })
+        layout.addView(arrowSpinner)
+
+        // --- SECTION: TAG AND NOTE ---
         val tagInput = EditText(this).apply {
             hint = getString(R.string.relation_tag)
             setText(edge.tag)
-            setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
+            setTextColor(textColor)
         }
         val noteInput = EditText(this).apply {
             hint = "Note"
             setText(edge.note)
-            setTextColor(ColorHelper.getTextColor(this@RelationsActivity))
+            setTextColor(textColor)
         }
+        layout.addView(TextView(this).apply {
+            text = getString(R.string.label_tag)
+            setTextColor(textColor)
+            setPadding(0, 16.dpToPx(), 0, 0)
+        })
         layout.addView(tagInput)
         layout.addView(noteInput)
+
+        val scrollOuter = ScrollView(this).apply { addView(layout) }
+
         activeDialog = AlertDialog.Builder(this)
             .setTitle(R.string.action_edit)
-            .setView(layout)
+            .setView(scrollOuter)
             .setPositiveButton(R.string.save) { _, _ ->
+                edge.color = selectedColor
+                edge.lineType = typeSpinner.selectedItemPosition
+                edge.arrowType = arrowSpinner.selectedItemPosition
                 edge.tag = tagInput.text.toString()
                 edge.note = noteInput.text.toString()
                 mapView.invalidate()
@@ -87,6 +181,7 @@ class RelationsActivity : BaseActivity() {
             .setNeutralButton(R.string.cancel, null)
             .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
+
     private fun loadData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = sharedPref.getString("relations_environments", null)
@@ -722,29 +817,130 @@ class RelationsActivity : BaseActivity() {
             setPadding(p, p, p, p)
             setBackgroundColor(bgColor)
         }
-        // Section: Info
+
+        // --- SECTIE 1: name/colour/label (Alleen voor Orbs) ---
         if (node.type == NodeType.RELATIONSHIP_ORB) {
             val nameEdit = EditText(this).apply {
                 setText(node.name)
-                hint = "Name"
+                hint = getString(R.string.relationship_orb_name)
                 setTextColor(textColor)
+                addTextChangedListener(object : android.text.TextWatcher {
+                    override fun afterTextChanged(s: android.text.Editable?) {
+                        node.name = s.toString()
+                        mapView.invalidate()
+                        saveData(silent = true)
+                    }
+                    override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+                    override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+                })
             }
             container.addView(nameEdit)
-            nameEdit.addTextChangedListener(object : android.text.TextWatcher {
-                override fun afterTextChanged(s: android.text.Editable?) { 
-                    node.name = s.toString()
-                    mapView.invalidate()
-                    saveData(silent = true)
-                }
-                override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
-                override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+
+            // Colour picker label
+            container.addView(TextView(this).apply {
+                text = getString(R.string.label_color_colon)
+                setTextColor(textColor)
+                setPadding(0, 16.dpToPx(), 0, 8.dpToPx())
+                setTypeface(null, Typeface.BOLD)
             })
+
+            val colors = intArrayOf(Color.GRAY, Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN, Color.BLACK)
+            val colorContainer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            val colorScroll = HorizontalScrollView(this).apply { addView(colorContainer) }
+
+            fun updateColorDots() {
+                colorContainer.removeAllViews()
+                val dotSize = 36.dpToPx()
+                val margin = 8.dpToPx()
+                val activeColors = colors.toMutableList()
+                val currentColor = node.color ?: Color.GRAY
+                if (!activeColors.contains(currentColor)) activeColors.add(currentColor)
+
+                activeColors.forEach { color ->
+                    val dot = View(this@RelationsActivity).apply {
+                        layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply { setMargins(0, 0, margin, 0) }
+                        background = GradientDrawable().apply {
+                            shape = GradientDrawable.OVAL
+                            setColor(color)
+                            if (color == currentColor) setStroke(3.dpToPx(), textColor)
+                            else setStroke(1.dpToPx(), Color.GRAY)
+                        }
+                        setOnClickListener {
+                            node.color = color
+                            updateColorDots()
+                            mapView.invalidate()
+                            saveData(silent = true)
+                        }
+                    }
+                    colorContainer.addView(dot)
+                }
+
+                val customBtn = ImageButton(this@RelationsActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(dotSize, dotSize)
+                    setImageResource(android.R.drawable.ic_menu_edit)
+                    background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.LTGRAY) }
+                    setOnClickListener {
+                        showCustomColorPickerDialog(node.color ?: Color.GRAY) { newColor ->
+                            node.color = newColor
+                            updateColorDots()
+                            mapView.invalidate()
+                            saveData(silent = true)
+                        }
+                    }
+                }
+                colorContainer.addView(customBtn)
+            }
+            updateColorDots()
+            container.addView(colorScroll)
+
+            // picture label
+            container.addView(TextView(this).apply {
+                text = getString(R.string.label_image_colon)
+                setTextColor(textColor)
+                setPadding(0, 16.dpToPx(), 0, 8.dpToPx())
+                setTypeface(null, Typeface.BOLD)
+            })
+
+            val imgPreview = ImageView(this).apply {
+                val size = 100.dpToPx()
+                layoutParams = LinearLayout.LayoutParams(size, size).apply {
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    topMargin = 8.dpToPx()
+                }
+                scaleType = ImageView.ScaleType.CENTER_CROP
+
+                fun refreshImage() {
+                    if (node.imageUri != null) {
+                        imageLoader.enqueue(coil.request.ImageRequest.Builder(this@RelationsActivity)
+                            .data(node.imageUri).target(this).build())
+                    } else {
+                        setImageResource(android.R.drawable.ic_menu_gallery)
+                    }
+                }
+                refreshImage()
+
+                setOnClickListener {
+                    imagePickerCallback = { uri ->
+                        node.imageUri = uri.toString()
+                        refreshImage()
+                        mapView.invalidate()
+                        saveData(silent = true)
+                    }
+                    val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(android.content.Intent.CATEGORY_OPENABLE)
+                        type = "image/*"
+                    }
+                    startActivityForResult(intent, 1003)
+                }
+            }
+            container.addView(imgPreview)
         }
-        // Section: Groups
+
+        // --- SECTIE 2: GROUPS ---
         val titleGroups = TextView(this).apply {
             text = getString(R.string.action_manage_groups)
             textSize = 16f
-            setPadding(0, 16.dpToPx(), 0, 8.dpToPx())
+            setPadding(0, 24.dpToPx(), 0, 8.dpToPx())
             setTextColor(textColor)
             setTypeface(null, Typeface.BOLD)
         }
@@ -766,7 +962,8 @@ class RelationsActivity : BaseActivity() {
             }
             container.addView(cb)
         }
-        // Section: Connections
+
+        // --- SECTIE 3: CONNECTIES ---
         val titleConn = TextView(this).apply {
             text = getString(R.string.action_connections)
             textSize = 16f
@@ -777,14 +974,16 @@ class RelationsActivity : BaseActivity() {
         container.addView(titleConn)
         val connectionsList = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         container.addView(connectionsList)
+
         var editingEdge: RelationEdge? = null
         val addTitle = TextView(this).apply {
-            text = "+ Add Connection"
+            text = "+ ${getString(R.string.add_edge)}"
             setTextColor(textColor)
             setPadding(0, 32.dpToPx(), 0, 4.dpToPx())
             setTypeface(null, Typeface.BOLD)
         }
         container.addView(addTitle)
+
         val allOtherOptions = mutableListOf(getString(R.string.select_member_placeholder))
         val otherNodes = relationsData.nodes.filter { it.id != node.id }
         allOtherOptions.addAll(otherNodes.map { "👤 ${it.name}" })
@@ -793,15 +992,15 @@ class RelationsActivity : BaseActivity() {
             adapter = ColorHelper.createThemedAdapter(this@RelationsActivity, allOtherOptions)
         }
         container.addView(toSpinner)
-        addTitle.setOnClickListener { toSpinner.performClick() }
+
         val tagEdit = EditText(this).apply { hint = getString(R.string.relation_tag); setTextColor(textColor) }
         val noteEdit = EditText(this).apply { hint = "Note"; setTextColor(textColor) }
         container.addView(tagEdit)
         container.addView(noteEdit)
-        val btnAdd = Button(this).apply {
-            text = getString(R.string.action_add)
-        }
+
+        val btnAdd = Button(this).apply { text = getString(R.string.action_add) }
         container.addView(btnAdd)
+
         fun refreshConnections() {
             connectionsList.removeAllViews()
             val actualEdges = relationsData.edges.filter { it.getSafeNodeIds().contains(node.id) }
@@ -824,7 +1023,7 @@ class RelationsActivity : BaseActivity() {
                     background = null
                     setOnClickListener {
                         editingEdge = edge
-                        addTitle.text = "Edit Connection"
+                        addTitle.text = getString(R.string.action_edit)
                         btnAdd.text = getString(R.string.save)
                         tagEdit.setText(edge.tag)
                         noteEdit.setText(edge.note)
@@ -868,11 +1067,8 @@ class RelationsActivity : BaseActivity() {
                     edge.nodeIds.clear()
                     edge.groupIds.clear()
                     edge.nodeIds.add(node.id)
-                    if (pos <= otherNodes.size) {
-                        edge.nodeIds.add(otherNodes[pos - 1].id)
-                    } else {
-                        edge.groupIds.add(relationsData.groups[pos - otherNodes.size - 1].id)
-                    }
+                    if (pos <= otherNodes.size) edge.nodeIds.add(otherNodes[pos - 1].id)
+                    else edge.groupIds.add(relationsData.groups[pos - otherNodes.size - 1].id)
                 } else {
                     val edge = if (pos <= otherNodes.size) {
                         RelationEdge(nodeIds = mutableListOf(node.id, otherNodes[pos - 1].id), tag = tag, note = note)
@@ -883,9 +1079,8 @@ class RelationsActivity : BaseActivity() {
                 }
                 mapView.invalidate()
                 saveData(silent = true)
-                // Reset form
                 editingEdge = null
-                addTitle.text = "+ Add Connection"
+                addTitle.text = "+ ${getString(R.string.add_edge)}"
                 btnAdd.text = getString(R.string.action_add)
                 tagEdit.setText("")
                 noteEdit.setText("")
@@ -893,14 +1088,13 @@ class RelationsActivity : BaseActivity() {
                 refreshConnections()
             }
         }
-        // Section: Delete Node
+
+        // --- SECTIE 4: VERWIJDEREN ---
         var deleteClicks = 0
         val btnDeleteNode = Button(this).apply {
-            text = getString(R.string.delete) + " " + node.name + " (8)"
+            text = "${getString(R.string.delete)} ${node.name} (8)"
             setTextColor(Color.RED)
-            layoutParams = LinearLayout.LayoutParams(-1, -2).apply {
-                topMargin = 48.dpToPx()
-            }
+            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 48.dpToPx() }
             setOnClickListener {
                 deleteClicks++
                 if (deleteClicks >= 8) {
@@ -916,6 +1110,7 @@ class RelationsActivity : BaseActivity() {
             }
         }
         container.addView(btnDeleteNode)
+
         val scroll = ScrollView(this).apply { addView(container) }
         activeDialog = AlertDialog.Builder(this)
             .setTitle(node.name)
@@ -923,6 +1118,7 @@ class RelationsActivity : BaseActivity() {
             .setPositiveButton(R.string.done, null)
             .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
+
     private fun showCustomColorPickerDialog(currentColor: Int, onColorSelected: (Int) -> Unit) {
         activeDialog?.dismiss()
         val container = LinearLayout(this).apply {

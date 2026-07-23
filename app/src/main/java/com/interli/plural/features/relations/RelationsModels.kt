@@ -22,7 +22,10 @@ data class RelationEdge(
     var tag: String? = null,
     var note: String? = null,
     val fromNodeId: String? = null,
-    val toNodeId: String? = null
+    val toNodeId: String? = null,
+    var color: Int? = null,
+    var lineType: Int = 0, // 0: Solid, 1: Dashed, 2: Dotted
+    var arrowType: Int = 0 // 0: Geen, 1: Naar (Einde), 2: Van (Begin), 3: Beide
 ) {
     fun getSafeNodeIds(): List<String> {
         if (nodeIds.isNotEmpty()) return nodeIds
@@ -32,6 +35,7 @@ data class RelationEdge(
         return legacy
     }
 }
+
 data class RelationGroup(
     val id: String = UUID.randomUUID().toString(),
     var name: String = "",

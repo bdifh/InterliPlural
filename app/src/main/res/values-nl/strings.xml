@@ -487,4 +487,16 @@
     <string name="import_members_history_success">Leden en geschiedenis geïmporteerd!</string>
     <string name="import_completed_members_history">Import voltooid: %1$d leden en geschiedenis verwerkt!</string>
 
+    <string name="label_image_colon">Afbeelding:</string>
+    <string name="label_line_color">Lijnkleur:</string>
+    <string name="label_line_type">Lijntype:</string>
+    <string name="label_arrow_direction">Pijlrichting:</string>
+    <string name="label_tag">Label:</string>
+    <string name="line_type_solid">Ononderbroken (Solid)</string>
+    <string name="line_type_dashed">Gestreept (Dashed)</string>
+    <string name="line_type_dotted">Gestippeld (Dotted)</string>
+    <string name="arrow_type_none">Geen</string>
+    <string name="arrow_type_end">Pijl naar einde</string>
+    <string name="arrow_type_start">Pijl naar begin</string>
+    <string name="arrow_type_both">Pijlen beide kanten</string>
 </resources>
