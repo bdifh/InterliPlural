@@ -448,7 +448,21 @@ object ColorHelper {
             is com.google.android.material.tabs.TabLayout -> {
                 view.setBackgroundColor(bgColor)
                 view.setTabTextColors(globalTextColor, btnColor)
+                val states = arrayOf(intArrayOf(android.R.attr.state_selected), intArrayOf())
+                val colors = intArrayOf(btnColor, globalTextColor)
+                view.tabIconTint = android.content.res.ColorStateList(states, colors)
                 view.setSelectedTabIndicatorColor(btnColor)
+                val indicator = android.graphics.drawable.GradientDrawable()
+                indicator.shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                indicator.setColor(btnColor)
+                val indicatorHeight = (3 * view.context.resources.displayMetrics.density).toInt()
+                indicator.setSize(-1, indicatorHeight)
+                view.setSelectedTabIndicator(indicator)
+                try {
+                    view.setSelectedTabIndicatorGravity(com.google.android.material.tabs.TabLayout.INDICATOR_GRAVITY_BOTTOM)
+                    view.setTabIndicatorAnimationMode(com.google.android.material.tabs.TabLayout.INDICATOR_ANIMATION_MODE_LINEAR)
+                    view.setTabIndicatorFullWidth(true)
+                } catch (_: Exception) {}
             }
             is com.google.android.material.floatingactionbutton.FloatingActionButton -> {
                 view.backgroundTintList = android.content.res.ColorStateList.valueOf(btnColor)
@@ -472,15 +486,21 @@ object ColorHelper {
         val groupTag = group.getTag(R.id.color_tag)
         if (groupTag == "skip") return
         if (groupTag is String && groupTag.startsWith("#") && !groupTag.contains("|")) return
-        if (group !is com.google.android.material.card.MaterialCardView && 
+
+        if (group !is com.google.android.material.card.MaterialCardView &&
             group !is androidx.recyclerview.widget.RecyclerView &&
-            group !is com.google.android.material.chip.ChipGroup) {
+            group !is com.google.android.material.chip.ChipGroup &&
+            group !is com.google.android.material.tabs.TabLayout) {
             group.setBackgroundColor(bgColor)
         }
+
         for (i in 0 until group.childCount) {
             val child = group.getChildAt(i)
             applyToView(child, bgColor, btnColor, btnTextColor, globalTextColor)
-            if (child is ViewGroup && child !is androidx.recyclerview.widget.RecyclerView) {
+
+            if (child is ViewGroup &&
+                child !is androidx.recyclerview.widget.RecyclerView &&
+                child !is com.google.android.material.tabs.TabLayout) {
                 applyToViewGroup(child, bgColor, btnColor, btnTextColor, globalTextColor)
             }
         }

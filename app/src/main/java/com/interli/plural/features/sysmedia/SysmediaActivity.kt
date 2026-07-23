@@ -137,8 +137,6 @@ class SysmediaActivity : BaseActivity() {
         val btnColor = ColorHelper.getBtnColor(this)
         findViewById<View>(R.id.sysmediaRoot).setBackgroundColor(ColorHelper.getBgColor(this))
         val tabLayout = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayoutSysmedia)
-        tabLayout.tabIconTint = android.content.res.ColorStateList.valueOf(textColor)
-        tabLayout.setSelectedTabIndicatorColor(btnColor)
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
         toolbar.setTitleTextColor(textColor)
         toolbar.setNavigationIconTint(textColor)
