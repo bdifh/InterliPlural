@@ -129,6 +129,15 @@ class SysmediaProfileActivity : BaseActivity() {
         btnEdit.setOnClickListener {
             showEditProfileDialog()
         }
+        findViewById<View>(R.id.layoutFollowing).setOnClickListener {
+            showUserListDialog("Following", profileUser.sysmediaProfile?.followingIds ?: emptyList())
+        }
+
+        findViewById<View>(R.id.layoutFollowers).setOnClickListener {
+            val followerIds = people.filter { it.sysmediaProfile?.followingIds?.contains(profileUserId) == true }.map { it.id }
+            showUserListDialog("Followers", followerIds)
+        }
+
         btnFollow.setOnClickListener {
             val activePerson = people.find { it.id == activeMemberId }
             activePerson?.sysmediaProfile?.let { profile ->
@@ -344,21 +353,26 @@ class SysmediaProfileActivity : BaseActivity() {
     private fun renderProfileInfo() {
         val textColor = ColorHelper.getTextColor(this)
         val profile = profileUser.sysmediaProfile
+
         findViewById<TextView>(R.id.tvProfileName).apply {
             text = profile?.displayName ?: profileUser.name
             setTextColor(textColor)
         }
+
         val handle = profile?.handle ?: profileUser.name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
         findViewById<TextView>(R.id.tvProfileHandle).apply {
             text = "@$handle"
             setTextColor(textColor and 0x88FFFFFF.toInt())
         }
+
         findViewById<TextView>(R.id.tvProfileBio).apply {
             markwon.setMarkdown(this, profile?.bio ?: "No bio")
             setTextColor(textColor)
         }
+
         val mediaContainer = findViewById<LinearLayout>(R.id.mediaEmbedContainerProfile)
         MediaEmbedHelper.addEmbedsToContainer(mediaContainer, profile?.bio ?: "")
+
         val avatarUri = profile?.profilePictureUri ?: profileUser.profilePictureUri
         val ivAvatar = findViewById<ImageView>(R.id.ivProfileAvatar)
         if (avatarUri != null) {
@@ -367,6 +381,17 @@ class SysmediaProfileActivity : BaseActivity() {
             val color = if (profileUser.profileColor == -6934396) ColorHelper.getBtnColor(this) else profileUser.profileColor
             ivAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(color))
         }
+
+        val followingCount = profile?.followingIds?.size ?: 0
+        findViewById<TextView>(R.id.tvFollowingCount).text = followingCount.toString()
+
+        val followersCount = people.count { it.sysmediaProfile?.followingIds?.contains(profileUserId) == true }
+        findViewById<TextView>(R.id.tvFollowersCount).text = followersCount.toString()
+
+        findViewById<TextView>(R.id.tvFollowingCount).setTextColor(textColor)
+        findViewById<TextView>(R.id.tvFollowersCount).setTextColor(textColor)
+        findViewById<TextView>(R.id.tvFollowingLabel).setTextColor(textColor and 0x88FFFFFF.toInt())
+        findViewById<TextView>(R.id.tvFollowersLabel).setTextColor(textColor and 0x88FFFFFF.toInt())
     }
     private fun setupRecyclerView() {
         val rv = findViewById<RecyclerView>(R.id.rvProfilePosts)
@@ -515,6 +540,9 @@ class SysmediaProfileActivity : BaseActivity() {
             val btnReblog: View = view.findViewById(R.id.btnReblog)
             val btnReply: View = view.findViewById(R.id.btnReply)
             val btnShare: View = view.findViewById(R.id.btnShare)
+            val ivParentAvatar: ImageView = view.findViewById(R.id.ivParentAvatar)
+            val tvParentName: TextView = view.findViewById(R.id.tvParentName)
+            val tvParentContent: TextView = view.findViewById(R.id.tvParentContent)
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context).inflate(R.layout.item_sysmedia_post, parent, false)
@@ -527,6 +555,28 @@ class SysmediaProfileActivity : BaseActivity() {
             holder.layoutReblog.visibility = View.GONE
             holder.cardOriginal.visibility = View.GONE
             holder.layoutThreadParent.visibility = View.GONE
+            if (post.replyToId != null) {
+                val parentPost = posts.find { it.id == post.replyToId }
+                if (parentPost != null) {
+                    holder.layoutThreadParent.visibility = View.VISIBLE
+                    val parentSender = people.find { it.id == parentPost.senderId }
+                    val parentProfile = parentSender?.sysmediaProfile
+                    holder.tvParentName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
+                    holder.tvParentContent.text = parentPost.content
+
+                    val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
+                    val pColor = parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)
+                    if (parentAvatar != null) {
+                        holder.ivParentAvatar.load(parentAvatar) {
+                            error(android.graphics.drawable.ColorDrawable(pColor))
+                        }
+                    } else {
+                        holder.ivParentAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(pColor))
+                    }
+                    holder.tvParentName.setTextColor(textColor and 0xCCFFFFFF.toInt())
+                    holder.tvParentContent.setTextColor(textColor and 0xCCFFFFFF.toInt())
+                }
+            }
             if (post.reblogOfId != null) {
                 holder.layoutReblog.visibility = View.VISIBLE
                 holder.tvRebloggedBy.text = getString(R.string.reblogged_by, profileUser.name)
@@ -667,5 +717,38 @@ class SysmediaProfileActivity : BaseActivity() {
             }
         }
         override fun getItemCount() = items.size
+    }
+    private fun showUserListDialog(title: String, userIds: List<String>) {
+        val filteredPeople = people.filter { userIds.contains(it.id) }
+
+        val adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(p: ViewGroup, t: Int) = object : RecyclerView.ViewHolder(
+                LayoutInflater.from(p.context).inflate(R.layout.item_sysmedia_account, p, false)) {}
+
+            override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {
+                val person = filteredPeople[pos]
+                val prof = person.sysmediaProfile
+                h.itemView.findViewById<TextView>(R.id.tvName).text = prof?.displayName ?: person.name
+                h.itemView.findViewById<TextView>(R.id.tvHandle).text = "@${prof?.handle ?: person.name}"
+                val iv = h.itemView.findViewById<ImageView>(R.id.ivAvatar)
+                val uri = prof?.profilePictureUri ?: person.profilePictureUri
+                if (uri != null) iv.load(uri) else iv.setImageResource(R.drawable.ic_stat_name)
+
+                h.itemView.setOnClickListener {
+                    val intent = Intent(this@SysmediaProfileActivity, SysmediaProfileActivity::class.java)
+                    intent.putExtra("profile_user_id", person.id)
+                    intent.putExtra("active_member_id", activeMemberId)
+                    startActivity(intent)
+                }
+            }
+            override fun getItemCount() = filteredPeople.size
+        }
+
+        val rv = RecyclerView(this).apply {
+            layoutManager = LinearLayoutManager(this@SysmediaProfileActivity)
+            this.adapter = adapter
+        }
+
+        AlertDialog.Builder(this).setTitle(title).setView(rv).setPositiveButton(R.string.done, null).show()
     }
 }

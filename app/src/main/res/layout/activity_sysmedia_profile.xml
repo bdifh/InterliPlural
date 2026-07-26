@@ -86,6 +86,67 @@
                     android:textColor="#000000"
                     android:textSize="14sp" />
 
+                <!-- Statistieken Sectie -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="12dp">
+
+                    <LinearLayout
+                        android:id="@+id/layoutFollowing"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground"
+                        android:paddingEnd="16dp">
+
+                        <TextView
+                            android:id="@+id/tvFollowingCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textStyle="bold"
+                            android:textColor="#000000"
+                            android:text="0" />
+
+                        <TextView
+                            android:id="@+id/tvFollowingLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="#536471"
+                            android:layout_marginStart="4dp"
+                            android:text="Following" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layoutFollowers"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground">
+
+                        <TextView
+                            android:id="@+id/tvFollowersCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textStyle="bold"
+                            android:textColor="#000000"
+                            android:text="0" />
+
+                        <TextView
+                            android:id="@+id/tvFollowersLabel"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="#536471"
+                            android:layout_marginStart="4dp"
+                            android:text="Followers" />
+                    </LinearLayout>
+                </LinearLayout>
+
                 <!-- Media Embed Container -->
                 <LinearLayout
                     android:id="@+id/mediaEmbedContainerProfile"
