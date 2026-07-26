@@ -1,6 +1,5 @@
 package com.interli.plural.core
 
-import android.R
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
@@ -27,41 +26,35 @@ import java.net.URL
 import java.util.regex.Pattern
 
 object MediaEmbedHelper {
-    private val YOUTUBE_PATTERN = Pattern.compile(
-        "(?:https?://)?(?:www\\.)?(?:youtube\\.com/(?:[^/\\n\\s]+/[^/\\n\\s]+/|(?:v|e(?:mbed)?)/|\\S*?[?&]v=)|youtu\\.be/)([a-zA-Z0-9_-]{11})",
-        Pattern.CASE_INSENSITIVE
-    )
-    private val SPOTIFY_PATTERN = Pattern.compile(
-        "(?:https?://)?open\\.spotify\\.com/(track|album|playlist|artist|episode|show)/([a-zA-Z0-9]+)",
-        Pattern.CASE_INSENSITIVE
-    )
+    private val YOUTUBE_PATTERN = Pattern.compile("(?:https?://)?(?:www\\.)?(?:youtube\\.com/\\S*v=|youtu\\.be/)([a-zA-Z0-9_-]{11})", Pattern.CASE_INSENSITIVE)
+    private val SPOTIFY_PATTERN = Pattern.compile("(?:https?://)?open\\.spotify\\.com/(track|album|playlist|artist)/([a-zA-Z0-9]+)", Pattern.CASE_INSENSITIVE)
+    private val TUMBLR_PATTERN = Pattern.compile("(?:https?://)?(?:www\\.tumblr\\.com/([a-zA-Z0-9_-]+)/(\\d+)|([a-zA-Z0-9_-]+)\\.tumblr\\.com/post/(\\d+))", Pattern.CASE_INSENSITIVE)
+    private val IMAGE_PATTERN = Pattern.compile("https?://\\S+\\.(?:gif|gifv|jpg|jpeg|png|webp|avif)", Pattern.CASE_INSENSITIVE)
 
-    private val TUMBLR_PATTERN = Pattern.compile(
-        "(?:https?://)?(?:(?:www\\.)?tumblr\\.com/([a-zA-Z0-9_-]+)/(\\d+)|([a-zA-Z0-9_-]+)\\.tumblr\\.com/post/(\\d+))",
-        Pattern.CASE_INSENSITIVE
-    )
     private val metadataCache = mutableMapOf<String, EmbedMetadata>()
     private val gson = Gson()
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
     data class MediaInfo(val type: String, val id: String, val url: String, val category: String? = null)
     data class EmbedMetadata(val title: String?, val thumbnail_url: String?)
+
     fun findMedia(content: String): List<MediaInfo> {
         val results = mutableListOf<MediaInfo>()
+        val imgMatcher = IMAGE_PATTERN.matcher(content)
+        while (imgMatcher.find()) {
+            var url = imgMatcher.group(0)!!
+            if (url.endsWith(".gifv", true)) url = url.substring(0, url.length - 1)
+            results.add(MediaInfo("IMAGE", url, url))
+        }
         val ytMatcher = YOUTUBE_PATTERN.matcher(content)
-        while (ytMatcher.find()) {
-            results.add(MediaInfo("YOUTUBE", ytMatcher.group(1)!!, ytMatcher.group(0)!!))
-        }
+        while (ytMatcher.find()) results.add(MediaInfo("YOUTUBE", ytMatcher.group(1)!!, ytMatcher.group(0)!!))
         val spMatcher = SPOTIFY_PATTERN.matcher(content)
-        while (spMatcher.find()) {
-            results.add(MediaInfo("SPOTIFY", spMatcher.group(2)!!, spMatcher.group(0)!!, spMatcher.group(1)))
-        }
+        while (spMatcher.find()) results.add(MediaInfo("SPOTIFY", spMatcher.group(2)!!, spMatcher.group(0)!!, spMatcher.group(1)))
         val tmMatcher = TUMBLR_PATTERN.matcher(content)
         while (tmMatcher.find()) {
-            val username = tmMatcher.group(1) ?: tmMatcher.group(3)
+            val user = tmMatcher.group(1) ?: tmMatcher.group(3)
             val id = tmMatcher.group(2) ?: tmMatcher.group(4)
-            if (username != null && id != null) {
-                results.add(MediaInfo("TUMBLR", id, tmMatcher.group(0)!!, username))
-            }
+            if (user != null && id != null) results.add(MediaInfo("TUMBLR", id, tmMatcher.group(0)!!, user))
         }
         return results.distinctBy { it.url }
     }
@@ -74,155 +67,131 @@ object MediaEmbedHelper {
             return
         }
         container.visibility = View.VISIBLE
+
         mediaList.forEach { info ->
             val context = container.context
             val card = MaterialCardView(context).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    topMargin = (12 * context.resources.displayMetrics.density).toInt()
-                    bottomMargin = (4 * context.resources.displayMetrics.density).toInt()
-                }
-                radius = (12 * context.resources.displayMetrics.density)
-                cardElevation = (4 * context.resources.displayMetrics.density)
-                strokeWidth = 1
-                strokeColor = 0x11000000
+                layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = 12.dpToPx(context); bottomMargin = 4.dpToPx(context) }
+                radius = 12f * context.resources.displayMetrics.density
+                cardElevation = 4f * context.resources.displayMetrics.density
                 setCardBackgroundColor(ColorHelper.getBgColor(context))
             }
+
             val rootLayout = FrameLayout(context)
-            val previewLayout = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-            }
-            val thumbnailContainer = FrameLayout(context)
+            val previewLayout = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+
+            val thumbContainer = FrameLayout(context)
             val bigImage = ImageView(context).apply {
-                layoutParams = FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    (200 * context.resources.displayMetrics.density).toInt()
-                )
-                scaleType = ImageView.ScaleType.CENTER_CROP
+                layoutParams = FrameLayout.LayoutParams(-1, if (info.type == "IMAGE") -2 else 180.dpToPx(context))
+                adjustViewBounds = true
+                scaleType = if (info.type == "IMAGE") ImageView.ScaleType.FIT_CENTER else ImageView.ScaleType.CENTER_CROP
                 setBackgroundColor(0x11000000)
             }
-            thumbnailContainer.addView(bigImage)
-            val playIcon = ImageView(context).apply {
-                setImageResource(R.drawable.ic_media_play)
-                layoutParams = FrameLayout.LayoutParams(
-                    (64 * context.resources.displayMetrics.density).toInt(),
-                    (64 * context.resources.displayMetrics.density).toInt()
-                ).apply {
-                    gravity = Gravity.CENTER
+            thumbContainer.addView(bigImage)
+
+            if (info.type != "IMAGE") {
+                val playIcon = ImageView(context).apply {
+                    setImageResource(android.R.drawable.ic_media_play)
+                    layoutParams = FrameLayout.LayoutParams(64.dpToPx(context), 64.dpToPx(context)).apply { gravity = Gravity.CENTER }
+                    alpha = 0.8f
+                    setBackgroundResource(android.R.drawable.presence_online)
                 }
-                alpha = 0.9f
-                setPadding(16, 16, 16, 16)
-                setBackgroundResource(R.drawable.presence_online)
-                background?.setTint(0xCC000000.toInt())
+                thumbContainer.addView(playIcon)
+            } else {
+                bigImage.load(info.url) { crossfade(true) }
             }
-            thumbnailContainer.addView(playIcon)
-            previewLayout.addView(thumbnailContainer)
-            val textLayout = LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(16.dpToPx(context), 12.dpToPx(context), 16.dpToPx(context), 12.dpToPx(context))
-            }
-            val titleTv = TextView(context).apply {
-                text = when (info.type) {
-                    "YOUTUBE" -> "YouTube Video"
-                    "SPOTIFY" -> "Spotify ${info.category?.lowercase()?.replaceFirstChar { it.uppercase() }}"
-                    "TUMBLR" -> "Tumblr Post van ${info.category}"
-                    else -> "Media"
+            previewLayout.addView(thumbContainer)
+
+            if (info.type != "IMAGE") {
+                val textPadding = 12.dpToPx(context)
+                val infoLayout = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    setPadding(textPadding, textPadding, textPadding, textPadding)
                 }
-                textSize = 16f
-                setTypeface(null, Typeface.BOLD)
-                setTextColor(ColorHelper.getTextColor(context))
-                maxLines = 2
-                ellipsize = TextUtils.TruncateAt.END
-            }
-            val sourceTv = TextView(context).apply {
-                text = when (info.type) {
-                    "YOUTUBE" -> "YouTube"
-                    "SPOTIFY" -> "Spotify"
-                    "TUMBLR" -> "Tumblr"
-                    else -> ""
+                val sourceTv = TextView(context).apply {
+                    text = info.type; textSize = 11f; setTypeface(null, Typeface.BOLD); alpha = 0.6f
+                    setTextColor(ColorHelper.getTextColor(context))
                 }
-                textSize = 12f
-                setTextColor(when (info.type) {
-                    "YOUTUBE" -> 0xFFFF0000.toInt()
-                    "SPOTIFY" -> 0xFF1DB954.toInt()
-                    "TUMBLR" -> 0xFF35465c.toInt() // Tumblr Blauw
-                    else -> 0xFF888888.toInt()
-                })
-                setTypeface(null, Typeface.BOLD)
-                alpha = 0.8f
+                val titleTv = TextView(context).apply {
+                    text = if (info.type == "TUMBLR") "Tumblr post van ${info.category}" else "Laden..."
+                    textSize = 15f; setTypeface(null, Typeface.BOLD); maxLines = 2; ellipsize = TextUtils.TruncateAt.END
+                    setTextColor(ColorHelper.getTextColor(context))
+                }
+                infoLayout.addView(sourceTv)
+                infoLayout.addView(titleTv)
+                previewLayout.addView(infoLayout)
+                loadMetadata(info, bigImage, titleTv)
             }
 
-            textLayout.addView(sourceTv)
-            textLayout.addView(titleTv)
-            previewLayout.addView(textLayout)
-            rootLayout.addView(previewLayout)
             card.setOnClickListener {
-                startPlayer(rootLayout, previewLayout, info)
+                if (info.type != "IMAGE") startPlayer(rootLayout, previewLayout, info)
             }
-            card.addView(rootLayout)
+
+            card.addView(rootLayout.apply { addView(previewLayout) })
             container.addView(card)
-            loadMetadata(info, bigImage, titleTv)
         }
     }
+
     @SuppressLint("SetJavaScriptEnabled")
     private fun startPlayer(root: FrameLayout, preview: View, info: MediaInfo) {
         val context = root.context
         preview.visibility = View.GONE
-
         val webView = WebView(context).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                (if (info.type == "YOUTUBE") 250 else 352).dpToPx(context)
-            )
-
-            android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+            layoutParams = FrameLayout.LayoutParams(-1, if (info.type == "YOUTUBE") 250.dpToPx(context) else 450.dpToPx(context))
 
             settings.apply {
                 javaScriptEnabled = true
                 domStorageEnabled = true
-                loadWithOverviewMode = true
-                useWideViewPort = true
-                mediaPlaybackRequiresUserGesture = false
+                databaseEnabled = true
+                userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            }
 
-                mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-
-                if (info.type == "YOUTUBE") {
-                    userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36"
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    if (info.type == "TUMBLR") {
+                        val script = """
+                            (function() {
+                                var selectors = [
+                                    '.tmblr-iframe--gdpr-banner', 
+                                    '#qc-cmp2-container', 
+                                    '.t-privacy-consent-wall',
+                                    '.glass-container'
+                                ];
+                                selectors.forEach(function(selector) {
+                                    var element = document.querySelector(selector);
+                                    if (element) element.style.display = 'none';
+                                });
+                                // Verwijder de 'overflow: hidden' van de body zodat je kunt scrollen
+                                document.body.style.overflow = 'auto';
+                                document.documentElement.style.overflow = 'auto';
+                            })();
+                        """.trimIndent()
+                        view?.evaluateJavascript(script, null)
+                    }
                 }
             }
 
-            webViewClient = WebViewClient()
-            webChromeClient = WebChromeClient()
-
             val embedUrl = when (info.type) {
-                "YOUTUBE" -> "https://www.youtube-nocookie.com/embed/${info.id}?autoplay=1&rel=0&showinfo=0&enablejsapi=1&origin=https://www.youtube-nocookie.com"
-                "SPOTIFY" -> "https://open.spotify.com/embed/${info.category}/${info.id}?utm_source=generator"
+                "YOUTUBE" -> "https://www.youtube-nocookie.com/embed/${info.id}?autoplay=1"
+                "SPOTIFY" -> "https://open.spotify.com/embed/${info.category}/${info.id}"
                 "TUMBLR" -> "https://www.tumblr.com/embed/post/${info.category}/${info.id}"
                 else -> ""
             }
-
-            val headers = mutableMapOf<String, String>()
-            if (info.type == "YOUTUBE") {
-                headers["Referer"] = "https://www.youtube-nocookie.com"
-            }
-
-            loadUrl(embedUrl, headers)
+            loadUrl(embedUrl)
         }
         root.addView(webView)
     }
 
-
     private fun loadMetadata(info: MediaInfo, imageView: ImageView, titleTv: TextView) {
         val cached = metadataCache[info.url]
         if (cached != null) {
-            updateUi(info, cached, imageView, titleTv)
+            titleTv.text = cached.title ?: titleTv.text
+            cached.thumbnail_url?.let { url -> imageView.load(url) }
             return
         }
-        if (info.type == "YOUTUBE") {
-            imageView.load("https://img.youtube.com/vi/${info.id}/hqdefault.jpg")
-        }
+
+        if (info.type == "YOUTUBE") imageView.load("https://img.youtube.com/vi/${info.id}/hqdefault.jpg")
+
         scope.launch {
             val metadata = withContext(Dispatchers.IO) {
                 try {
@@ -232,28 +201,16 @@ object MediaEmbedHelper {
                         "TUMBLR" -> "https://www.tumblr.com/oembed/1.0?url=${info.url}"
                         else -> null
                     }
-                    if (oEmbedUrl != null) {
-                        val json = URL(oEmbedUrl).readText()
-                        gson.fromJson(json, EmbedMetadata::class.java)
-                    } else null
-                } catch (e: Exception) {
-                    null
-                }
+                    oEmbedUrl?.let { gson.fromJson(URL(it).readText(), EmbedMetadata::class.java) }
+                } catch (e: Exception) { null }
             }
-            if (metadata != null) {
-                metadataCache[info.url] = metadata
-                updateUi(info, metadata, imageView, titleTv)
+            metadata?.let {
+                metadataCache[info.url] = it
+                titleTv.text = it.title ?: titleTv.text
+                it.thumbnail_url?.let { url -> imageView.load(url) }
             }
         }
     }
-    private fun updateUi(info: MediaInfo, metadata: EmbedMetadata, imageView: ImageView, titleTv: TextView) {
-        metadata.title?.let { titleTv.text = it }
-        metadata.thumbnail_url?.let {
-            imageView.load(it) {
-                crossfade(true)
-            }
-        }
-    }
-    private fun Int.dpToPx(context: Context): Int =
-        (this * context.resources.displayMetrics.density).toInt()
+
+    private fun Int.dpToPx(context: Context): Int = (this * context.resources.displayMetrics.density).toInt()
 }

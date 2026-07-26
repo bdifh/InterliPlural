@@ -16,9 +16,8 @@ class MainApplication : Application() {
             .componentRegistry {
                 if (SDK_INT >= 28) {
                     add(ImageDecoderDecoder(this@MainApplication))
-                } else {
-                    add(GifDecoder())
                 }
+                add(GifDecoder())
             }
             .okHttpClient {
                 OkHttpClient.Builder()
