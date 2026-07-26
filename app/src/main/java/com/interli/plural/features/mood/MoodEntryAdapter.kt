@@ -110,9 +110,9 @@ class MoodEntryAdapter(
         holder.tvTime.setTextColor(textColor)
 
         val moodKeys = listOf("mood_awful", "mood_bad", "mood_meh", "mood_good", "mood_rad")
-        val displayLabel = entry.moodLabel.replace("mood_", "").capitalize()
-        holder.tvLabel.text = " • $displayLabel"
-        holder.tvLabel.setTextColor(textColor)
+        val moodIndex = moodKeys.indexOf(entry.moodLabel)
+        val scoreLabel = if (moodIndex != -1) (moodIndex + 1).toString() else "?"
+        holder.tvLabel.text = " • Score: $scoreLabel"
 
         if (entry.activities.isNotEmpty()) {
             holder.tvActivities.visibility = View.VISIBLE
@@ -132,7 +132,6 @@ class MoodEntryAdapter(
             holder.mediaEmbedContainer.visibility = View.GONE
         }
 
-        // AFBEELDING WEERGAVE
         if (!entry.imageUri.isNullOrEmpty()) {
             holder.ivMoodImage.visibility = View.VISIBLE
             context.imageLoader.enqueue(coil.request.ImageRequest.Builder(context)

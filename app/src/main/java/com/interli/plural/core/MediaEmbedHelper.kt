@@ -143,6 +143,7 @@ object MediaEmbedHelper {
                 javaScriptEnabled = true
                 domStorageEnabled = true
                 databaseEnabled = true
+                mediaPlaybackRequiresUserGesture = false
                 userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
             }
 
@@ -161,7 +162,6 @@ object MediaEmbedHelper {
                                     var element = document.querySelector(selector);
                                     if (element) element.style.display = 'none';
                                 });
-                                // Verwijder de 'overflow: hidden' van de body zodat je kunt scrollen
                                 document.body.style.overflow = 'auto';
                                 document.documentElement.style.overflow = 'auto';
                             })();
@@ -171,13 +171,21 @@ object MediaEmbedHelper {
                 }
             }
 
+            webChromeClient = WebChromeClient()
+
             val embedUrl = when (info.type) {
-                "YOUTUBE" -> "https://www.youtube-nocookie.com/embed/${info.id}?autoplay=1"
+                "YOUTUBE" -> "https://www.youtube-nocookie.com/embed/${info.id}?autoplay=1&rel=0&enablejsapi=1&origin=https://www.youtube-nocookie.com"
                 "SPOTIFY" -> "https://open.spotify.com/embed/${info.category}/${info.id}"
                 "TUMBLR" -> "https://www.tumblr.com/embed/post/${info.category}/${info.id}"
                 else -> ""
             }
-            loadUrl(embedUrl)
+
+            val headers = mutableMapOf<String, String>()
+            if (info.type == "YOUTUBE") {
+                headers["Referer"] = "https://www.youtube-nocookie.com"
+            }
+
+            loadUrl(embedUrl, headers)
         }
         root.addView(webView)
     }

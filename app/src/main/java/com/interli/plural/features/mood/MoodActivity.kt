@@ -296,7 +296,7 @@ class MoodActivity : BaseActivity() {
                 selectedRotation = rotation
                 selectedMoodLabel = moodKey
                 selectedMoodColor = color
-                setupMoodButtons() // Herteken voor selectie-effect
+                setupMoodButtons()
             }
             moodEmojiContainer.addView(moodView)
         }

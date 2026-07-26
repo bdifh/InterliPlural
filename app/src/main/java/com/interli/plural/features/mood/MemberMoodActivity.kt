@@ -45,7 +45,6 @@ class MemberMoodActivity : BaseActivity() {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         val gson = Gson()
 
-        // --- HIER GAAT HET VAAK MIS: DE INLAAD LOGICA ---
         val moodJson = prefs.getString("mood_entries", "[]") ?: "[]"
         val rawList: List<Map<String, Any?>> = try {
             gson.fromJson(moodJson, object : TypeToken<List<Map<String, Any?>>>() {}.type) ?: emptyList()
@@ -66,7 +65,7 @@ class MemberMoodActivity : BaseActivity() {
                 note = (map["note"] as? String) ?: "",
                 linkedNoteId = map["linkedNoteId"] as? String,
                 linkedTodoId = map["linkedTodoId"] as? String,
-                imageUri = map["imageUri"] as? String // CRUCIALE REGEL
+                imageUri = map["imageUri"] as? String
             )
         }
 
@@ -127,6 +126,9 @@ class MemberMoodActivity : BaseActivity() {
             }
 
             info.addView(TextView(this).apply {
+                val moodKeys = listOf("mood_awful", "mood_bad", "mood_meh", "mood_good", "mood_rad")
+                val moodIndex = moodKeys.indexOf(entry.moodLabel)
+                val scoreLabel = if (moodIndex != -1) (moodIndex + 1).toString() else "?"
                 text = sdf.format(Date(entry.timestamp)) + " • " + entry.moodLabel.replace("mood_", "").capitalize()
                 textSize = 12f
                 setTextColor(textColor)
@@ -151,7 +153,6 @@ class MemberMoodActivity : BaseActivity() {
                 })
             }
 
-            // AFBEELDING WEERGAVE
             if (!entry.imageUri.isNullOrEmpty()) {
                 val iv = ImageView(this).apply {
                     layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {

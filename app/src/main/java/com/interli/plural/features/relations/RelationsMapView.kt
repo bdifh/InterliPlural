@@ -89,19 +89,20 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         override fun onLongPress(e: MotionEvent) {
             val worldX = (e.x - offsetX) / scaleFactor
             val worldY = (e.y - offsetY) / scaleFactor
+
             val clickedNode = findNodeAt(worldX, worldY)
             if (clickedNode != null) {
                 onNodeLongClicked?.invoke(clickedNode)
-            } else {
-                val clickedGroup = findGroupAt(worldX, worldY)
-                if (clickedGroup != null) {
-                    onGroupLongClicked?.invoke(clickedGroup)
-                } else {
-                    val clickedEdge = findEdgeAt(worldX, worldY)
-                    if (clickedEdge != null) {
-                        onEdgeLongClicked?.invoke(clickedEdge)
-                    }
-                }
+                return
+            }
+            val clickedEdge = findEdgeAt(worldX, worldY)
+            if (clickedEdge != null) {
+                onEdgeLongClicked?.invoke(clickedEdge)
+                return
+            }
+            val clickedGroup = findGroupAt(worldX, worldY)
+            if (clickedGroup != null) {
+                onGroupLongClicked?.invoke(clickedGroup)
             }
         }
         override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
