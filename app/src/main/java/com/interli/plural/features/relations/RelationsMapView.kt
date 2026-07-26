@@ -20,6 +20,7 @@ import kotlin.math.sqrt
 
 class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
     private var data: RelationsData = RelationsData()
+    var onNoteClicked: ((String) -> Unit)? = null
     private val nodeRadius = 60f
     private val bitmaps = mutableMapOf<String, Bitmap>()
     private var draggedNodeId: String? = null
@@ -103,7 +104,50 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                 }
             }
         }
+        override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+            val worldX = (e.x - offsetX) / scaleFactor
+            val worldY = (e.y - offsetY) / scaleFactor
+
+            data.nodes.forEach { node ->
+                if (!node.note.isNullOrBlank()) {
+                    val iconX = node.x + nodeRadius - 10f
+                    val iconY = node.y - nodeRadius + 10f
+                    val size = 25f
+                    if (worldX in (iconX - size)..(iconX + size) && worldY in (iconY - size)..(iconY + size)) {
+                        onNoteClicked?.invoke(node.note!!)
+                        return true
+                    }
+                }
+            }
+
+            data.edges.forEach { edge ->
+                if (!edge.note.isNullOrBlank()) {
+                    val points = mutableListOf<PointF>()
+                    edge.getSafeNodeIds().forEach { id ->
+                        data.nodes.find { it.id == id }?.let { points.add(PointF(it.x, it.y)) }
+                    }
+                    edge.groupIds.forEach { id ->
+                        data.groups.find { it.id == id }?.let { group ->
+                            getGroupCenter(group)?.let { points.add(it) }
+                        }
+                    }
+                    if (points.isNotEmpty()) {
+                        val midX = points.map { it.x }.average().toFloat()
+                        val midY = points.map { it.y }.average().toFloat()
+                        val iconX = midX
+                        val iconY = midY + 25f
+                        val size = 30f
+                        if (worldX in (iconX - size)..(iconX + size) && worldY in (iconY - size)..(iconY + size)) {
+                            onNoteClicked?.invoke(edge.note!!)
+                            return true
+                        }
+                    }
+                }
+            }
+            return false
+        }
     })
+
     private val smartLayoutRunnable = object : Runnable {
         override fun run() {
             if (data.smartLayoutEnabled) {
@@ -258,12 +302,13 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
 
             if (points.size >= 2) {
-                // Apply line style from edge data
+                // Apply line style and thickness
                 edgePaint.color = edge.color ?: Color.GRAY
+                edgePaint.strokeWidth = edge.width
                 edgePaint.pathEffect = when(edge.lineType) {
                     1 -> DashPathEffect(floatArrayOf(20f, 10f), 0f) // Dashed
                     2 -> DashPathEffect(floatArrayOf(5f, 10f), 0f)  // Dotted
-                    else -> null // Solid
+                    else -> null // Solid or Wavy
                 }
 
                 for (i in 0 until points.size - 1) {
@@ -274,12 +319,14 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     var endX = p2.x
                     var endY = p2.y
 
+                    // Boundary calculation for groups
                     val group1 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p1.x) < 5f && Math.abs(it.y - p1.y) < 5f } ?: false }
                     if (group1 != null) {
                         val boundary = getGroupBoundaryPoint(p1, p2, group1)
                         startX = boundary.x
                         startY = boundary.y
                     } else {
+                        // Boundary calculation for nodes
                         val node1 = data.nodes.find { Math.abs(it.x - p1.x) < 5f && Math.abs(it.y - p1.y) < 5f }
                         if (node1 != null) {
                             val angle = Math.atan2((p2.y - p1.y).toDouble(), (p2.x - p1.x).toDouble())
@@ -287,6 +334,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                             startY += (nodeRadius * Math.sin(angle)).toFloat()
                         }
                     }
+
                     val group2 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p2.x) < 5f && Math.abs(it.y - p2.y) < 5f } ?: false }
                     if (group2 != null) {
                         val boundary = getGroupBoundaryPoint(p2, p1, group2)
@@ -300,19 +348,28 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                             endY += (nodeRadius * Math.sin(angle)).toFloat()
                         }
                     }
-                    canvas.drawLine(startX, startY, endX, endY, edgePaint)
 
-                    // Draw Arrows based on configuration
+                    // Draw the line based on type
+                    if (edge.lineType == 3) {
+                        drawWavyLine(canvas, startX, startY, endX, endY, edgePaint)
+                    } else {
+                        canvas.drawLine(startX, startY, endX, endY, edgePaint)
+                    }
+
+                    // Draw Arrows
                     if (edge.arrowType == 1 || edge.arrowType == 3) drawArrowHead(canvas, startX, startY, endX, endY)
                     if (edge.arrowType == 2 || edge.arrowType == 3) drawArrowHead(canvas, endX, endY, startX, startY)
                 }
 
+                // Draw edge tag
                 edge.tag?.let { tag ->
                     val midX = points.map { it.x }.average().toFloat()
                     val midY = points.map { it.y }.average().toFloat()
                     tagPaint.color = ColorHelper.getTextColor(context)
                     canvas.drawText(tag, midX, midY - 10f, tagPaint)
                 }
+
+                // Draw edge note icon
                 if (!edge.note.isNullOrBlank()) {
                     val midX = points.map { it.x }.average().toFloat()
                     val midY = points.map { it.y }.average().toFloat()
@@ -325,7 +382,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
         }
 
-        // 3. Draw dashed lines connecting member instances (multi-board sync visualization)
+        // 3. Draw dashed lines for member instances (multi-board sync)
         val memberGroups = data.nodes.filter { it.memberId != null }.groupBy { it.memberId }
         memberGroups.forEach { (_, nodes) ->
             if (nodes.size > 1) {
@@ -363,11 +420,24 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                 nodePaint.color = node.color ?: Color.LTGRAY
                 canvas.drawCircle(node.x, node.y, nodeRadius, nodePaint)
             }
+
+            // Draw Note Icon if orb/node has a note
+            if (!node.note.isNullOrBlank()) {
+                val size = 15f
+                val iconX = node.x + nodeRadius - 10f
+                val iconY = node.y - nodeRadius + 10f
+                canvas.drawRect(iconX - size, iconY - size, iconX + size, iconY + size, noteIconPaint)
+                canvas.drawRect(iconX - size, iconY - size, iconX + size, iconY + size, noteStrokePaint)
+                canvas.drawLine(iconX - size + 5f, iconY - 5f, iconX + size - 5f, iconY - 5f, noteStrokePaint)
+                canvas.drawLine(iconX - size + 5f, iconY + 5f, iconX + size - 5f, iconY + 5f, noteStrokePaint)
+            }
+
             textPaint.color = ColorHelper.getTextColor(context)
             canvas.drawText(node.name, node.x, node.y + nodeRadius + 30f, textPaint)
         }
         canvas.restore()
     }
+
 
     override fun performClick(): Boolean {
         super.performClick()
@@ -551,4 +621,37 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
         canvas.drawPath(path, arrowPaint)
     }
+
+    private fun drawWavyLine(canvas: Canvas, x1: Float, y1: Float, x2: Float, y2: Float, paint: Paint) {
+        val path = Path()
+        val dx = x2 - x1
+        val dy = y2 - y1
+        val distance = Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+        if (distance < 5f) return
+
+        val angle = Math.atan2(dy.toDouble(), dx.toDouble()).toFloat()
+        val waveLength = 30f
+        val waveAmplitude = 6f
+        val steps = (distance / 2f).toInt().coerceAtLeast(10)
+
+        path.moveTo(x1, y1)
+        for (i in 1..steps) {
+            val t = i.toFloat() / steps
+            val px = x1 + t * dx
+            val py = y1 + t * dy
+
+            val distAtPoint = t * distance
+            val waveOffset = Math.sin((distAtPoint / waveLength) * 2 * Math.PI).toFloat() * waveAmplitude
+
+            val offsetX = -Math.sin(angle.toDouble()).toFloat() * waveOffset
+            val offsetY = Math.cos(angle.toDouble()).toFloat() * waveOffset
+
+            path.lineTo(px + offsetX, py + offsetY)
+        }
+        val originalEffect = paint.pathEffect
+        paint.pathEffect = null
+        canvas.drawPath(path, paint)
+        paint.pathEffect = originalEffect
+    }
+
 }

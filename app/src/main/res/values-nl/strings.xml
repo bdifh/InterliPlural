@@ -503,4 +503,6 @@
     <string name="settings_enable_gifs">Geanimeerde GIF\'s inschakelen</string>
     <string name="settings_enable_gifs_desc">Toon animaties voor GIF-afbeeldingen in de hele app</string>
 
+    <string name="line_type_wavy">Golvend</string>
+    <string name="label_line_thickness">Lijndikte</string>
 </resources>

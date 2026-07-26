@@ -27,8 +27,8 @@ import com.interli.plural.Group
 import com.interli.plural.Person
 import com.interli.plural.R
 
-private var activeDialog: AlertDialog? = null
 class RelationsActivity : BaseActivity() {
+    private var activeDialog: AlertDialog? = null
     private lateinit var mapView: RelationsMapView
     private var environments = mutableListOf<RelationEnvironment>()
     private var currentEnvIndex = 0
@@ -50,6 +50,13 @@ class RelationsActivity : BaseActivity() {
         mapView.onGroupLongClicked = { group -> showEditGroupDialog(group) }
         mapView.onEdgeLongClicked = { edge -> showEditEdgeDialogFromMap(edge) }
         mapView.onDataChanged = { saveData(silent = true) }
+        mapView.onNoteClicked = { note ->
+            AlertDialog.Builder(this)
+                .setMessage(note)
+                .setPositiveButton(R.string.done, null)
+                .show()
+                .also { ColorHelper.styleAlertDialog(it, this) }
+        }
     }
     private fun showEditEdgeDialogFromMap(edge: RelationEdge) {
         activeDialog?.dismiss()
@@ -109,7 +116,8 @@ class RelationsActivity : BaseActivity() {
         val types = arrayOf(
             getString(R.string.line_type_solid),
             getString(R.string.line_type_dashed),
-            getString(R.string.line_type_dotted)
+            getString(R.string.line_type_dotted),
+            getString(R.string.line_type_wavy)
         )
         val typeSpinner = Spinner(this).apply {
             adapter = ColorHelper.createThemedAdapter<String>(this@RelationsActivity, types.toList())
@@ -121,6 +129,19 @@ class RelationsActivity : BaseActivity() {
             setPadding(0, 16.dpToPx(), 0, 0)
         })
         layout.addView(typeSpinner)
+
+        // --- SECTION: LINE THICKNESS ---
+        layout.addView(TextView(this).apply {
+            text = getString(R.string.label_line_thickness)
+            setTextColor(textColor)
+            setPadding(0, 16.dpToPx(), 0, 0)
+        })
+        val thicknessSeek = SeekBar(this).apply {
+            max = 20
+            progress = edge.width.toInt().coerceIn(1, 20)
+        }
+        layout.addView(thicknessSeek)
+
 
         // --- SECTION: ARROW DIRECTION ---
         val arrows = arrayOf(
@@ -170,6 +191,9 @@ class RelationsActivity : BaseActivity() {
                 edge.arrowType = arrowSpinner.selectedItemPosition
                 edge.tag = tagInput.text.toString()
                 edge.note = noteInput.text.toString()
+                mapView.invalidate()
+                saveData(silent = true)
+                edge.width = thicknessSeek.progress.toFloat().coerceAtLeast(1f)
                 mapView.invalidate()
                 saveData(silent = true)
             }
@@ -251,6 +275,11 @@ class RelationsActivity : BaseActivity() {
         val nameInput = EditText(this).apply {
             hint = getString(R.string.relationship_orb_name)
             setText(existingNode?.name ?: "")
+            setTextColor(textColor)
+        }
+        val noteInput = EditText(this).apply {
+            hint = "Note"
+            setText(existingNode?.note ?: "")
             setTextColor(textColor)
         }
         layout.addView(nameInput)
@@ -343,12 +372,14 @@ class RelationsActivity : BaseActivity() {
             .setView(layout)
             .setPositiveButton(R.string.save) { _, _ ->
                 val name = nameInput.text.toString()
+                val note = noteInput.text.toString()
                 if (name.isNotBlank()) {
                     if (isNew) {
                         val offset = (relationsData.nodes.size * 100f) % 400f
                         val newNode = RelationNode(
                             type = NodeType.RELATIONSHIP_ORB,
                             name = name,
+                            note = note,
                             color = selectedColor,
                             imageUri = selectedImageUri,
                             x = 300f + offset,
@@ -357,6 +388,7 @@ class RelationsActivity : BaseActivity() {
                         relationsData.nodes.add(newNode)
                     } else {
                         existingNode?.name = name
+                        existingNode?.note = note
                         existingNode?.color = selectedColor
                         existingNode?.imageUri = selectedImageUri
                     }
@@ -548,15 +580,44 @@ class RelationsActivity : BaseActivity() {
             .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
     private fun showEnvironmentOptionsDialog() {
-        val options = arrayOf(getString(R.string.action_edit), getString(R.string.delete))
+        val options = mutableListOf<String>()
+        options.add(getString(R.string.action_edit))
+        options.add(getString(R.string.delete))
+
+        if (currentEnvIndex > 0) {
+            options.add(getString(R.string.action_move_up))
+        }
+        if (currentEnvIndex < environments.size - 1) {
+            options.add(getString(R.string.action_move_down))
+        }
+
         activeDialog?.dismiss()
         activeDialog = AlertDialog.Builder(this)
             .setTitle(environments[currentEnvIndex].name)
-            .setItems(options) { _, which ->
-                if (which == 0) showRenameEnvironmentDialog()
-                else showDeleteEnvironmentDialog()
+            .setItems(options.toTypedArray()) { _, which ->
+                val selected = options[which]
+                when (selected) {
+                    getString(R.string.action_edit) -> showRenameEnvironmentDialog()
+                    getString(R.string.delete) -> showDeleteEnvironmentDialog()
+                    getString(R.string.action_move_up) -> moveEnvironment(-1)
+                    getString(R.string.action_move_down) -> moveEnvironment(1)
+                }
             }
             .show().also { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun moveEnvironment(delta: Int) {
+        val newIndex = currentEnvIndex + delta
+        if (newIndex in 0 until environments.size) {
+            val item = environments.removeAt(currentEnvIndex)
+            environments.add(newIndex, item)
+
+            currentEnvIndex = newIndex
+
+            saveData(silent = true)
+            setupEnvironmentSpinner()
+            mapView.setData(relationsData)
+        }
     }
     private fun showAddEdgeDialog() {
         if (relationsData.nodes.size + relationsData.groups.size < 2) return
@@ -818,7 +879,7 @@ class RelationsActivity : BaseActivity() {
             setBackgroundColor(bgColor)
         }
 
-        // --- SECTIE 1: name/colour/label (Alleen voor Orbs) ---
+        // --- SECTIE 1: name/colour/label (Orbs) ---
         if (node.type == NodeType.RELATIONSHIP_ORB) {
             val nameEdit = EditText(this).apply {
                 setText(node.name)
@@ -836,7 +897,24 @@ class RelationsActivity : BaseActivity() {
             }
             container.addView(nameEdit)
 
-            // Colour picker label
+            // NOTES ON ORBS
+            val orbNoteEdit = EditText(this).apply {
+                setText(node.note)
+                hint = "Note"
+                setTextColor(textColor)
+                addTextChangedListener(object : android.text.TextWatcher {
+                    override fun afterTextChanged(s: android.text.Editable?) {
+                        node.note = s.toString()
+                        mapView.invalidate()
+                        saveData(silent = true)
+                    }
+                    override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+                    override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+                })
+            }
+            container.addView(orbNoteEdit)
+
+            // COLOURPICKER label
             container.addView(TextView(this).apply {
                 text = getString(R.string.label_color_colon)
                 setTextColor(textColor)
@@ -893,7 +971,7 @@ class RelationsActivity : BaseActivity() {
             updateColorDots()
             container.addView(colorScroll)
 
-            // picture label
+            // PICTURE label
             container.addView(TextView(this).apply {
                 text = getString(R.string.label_image_colon)
                 setTextColor(textColor)
@@ -963,7 +1041,7 @@ class RelationsActivity : BaseActivity() {
             container.addView(cb)
         }
 
-        // --- SECTIE 3: CONNECTIES ---
+        // --- SECTIE 3: CONNECTIONS ---
         val titleConn = TextView(this).apply {
             text = getString(R.string.action_connections)
             textSize = 16f
@@ -1089,7 +1167,7 @@ class RelationsActivity : BaseActivity() {
             }
         }
 
-        // --- SECTIE 4: VERWIJDEREN ---
+        // --- SECTIE 4: Delete ---
         var deleteClicks = 0
         val btnDeleteNode = Button(this).apply {
             text = "${getString(R.string.delete)} ${node.name} (8)"
@@ -1120,7 +1198,6 @@ class RelationsActivity : BaseActivity() {
     }
 
     private fun showCustomColorPickerDialog(currentColor: Int, onColorSelected: (Int) -> Unit) {
-        activeDialog?.dismiss()
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             val p = 16.dpToPx()
@@ -1191,7 +1268,7 @@ class RelationsActivity : BaseActivity() {
             override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
             override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
         })
-        activeDialog = AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle(R.string.choose_color_hex)
             .setView(container)
             .setPositiveButton(R.string.save) { _, _ ->
@@ -1202,7 +1279,7 @@ class RelationsActivity : BaseActivity() {
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
-            .also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
+            .also { ColorHelper.styleAlertDialog(it, this) }
     }
     private fun exportToPdf() {
         val intent = android.content.Intent(android.content.Intent.ACTION_CREATE_DOCUMENT).apply {

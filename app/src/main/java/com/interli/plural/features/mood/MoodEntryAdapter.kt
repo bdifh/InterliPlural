@@ -7,16 +7,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import coil.imageLoader
 import com.google.android.material.card.MaterialCardView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.DiaryNote
 import com.interli.plural.core.MediaEmbedHelper
-import com.interli.plural.features.mood.MoodActivity
 import com.interli.plural.Person
 import com.interli.plural.R
 import com.interli.plural.TodoList
@@ -38,6 +39,7 @@ class MoodEntryAdapter(
     private var allNotes: List<DiaryNote> = emptyList()
     private var allTodos: List<TodoList> = emptyList()
     private val deleteClickCounts = mutableMapOf<String, Int>()
+
     init {
         val prefs = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val notesJson = prefs.getString("diary_notes", "[]") ?: "[]"
@@ -49,10 +51,12 @@ class MoodEntryAdapter(
             gson.fromJson(todoJson, object : TypeToken<List<TodoList>>() {}.type)
         } catch (e: Exception) { emptyList() }
     }
+
     fun updateData(newEntries: List<MoodActivity.MoodEntry>) {
         entries = newEntries
         notifyDataSetChanged()
     }
+
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val daySeparator: LinearLayout = view.findViewById(R.id.daySeparator)
         val tvDayHeader: TextView = view.findViewById(R.id.tvDayHeader)
@@ -63,6 +67,7 @@ class MoodEntryAdapter(
         val tvLabel: TextView = view.findViewById(R.id.tvMoodLabel)
         val tvActivities: TextView = view.findViewById(R.id.tvMoodActivities)
         val tvNote: TextView = view.findViewById(R.id.tvMoodNote)
+        val ivMoodImage: ImageView = view.findViewById(R.id.ivMoodImage)
         val mediaEmbedContainer: LinearLayout = view.findViewById(R.id.mediaEmbedContainerMood)
         val tvMembers: TextView = view.findViewById(R.id.tvMoodMembers)
         val tvLinkedNote: TextView = view.findViewById(R.id.tvMoodLinkedNote)
@@ -70,15 +75,18 @@ class MoodEntryAdapter(
         val btnEdit: ImageButton = view.findViewById(R.id.btnEditMood)
         val btnDelete: ImageButton = view.findViewById(R.id.btnDeleteMood)
     }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(context).inflate(R.layout.item_mood_entry, parent, false)
         return ViewHolder(view)
     }
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val entry = entries[position]
         val prevEntry = if (position > 0) entries[position - 1] else null
         val currentDay = getDayString(entry.timestamp)
         val prevDay = prevEntry?.let { getDayString(it.timestamp) }
+
         if (prevDay == null || currentDay != prevDay) {
             holder.daySeparator.visibility = View.VISIBLE
             holder.tvDayHeader.text = currentDay
@@ -87,6 +95,7 @@ class MoodEntryAdapter(
         } else {
             holder.daySeparator.visibility = View.GONE
         }
+
         holder.card.setCardBackgroundColor(bgColor)
         holder.card.setOnClickListener { onEdit(entry) }
         holder.moodIndicator.setTag(R.id.color_tag, "skip")
@@ -94,23 +103,17 @@ class MoodEntryAdapter(
             shape = GradientDrawable.OVAL
             setColor(ColorHelper.getMoodColor(context, entry.moodLabel))
         }
+
         holder.tvEmoji.text = entry.moodEmoji
         holder.tvEmoji.rotation = entry.moodRotation
         holder.tvTime.text = timeSdf.format(Date(entry.timestamp))
         holder.tvTime.setTextColor(textColor)
+
         val moodKeys = listOf("mood_awful", "mood_bad", "mood_meh", "mood_good", "mood_rad")
-        val moodIndex = moodKeys.indexOf(entry.moodLabel).let { 
-            if (it == -1) {
-                val labels = moodKeys.map { key ->
-                    val resId = context.resources.getIdentifier(key, "string", context.packageName)
-                    if (resId != 0) context.getString(resId) else key
-                }
-                labels.indexOf(entry.moodLabel)
-            } else it
-        }
-        val displayLabel = if (moodIndex != -1) context.getString(R.string.stats_score_value, (moodIndex + 1).toString()) else entry.moodLabel
+        val displayLabel = entry.moodLabel.replace("mood_", "").capitalize()
         holder.tvLabel.text = " • $displayLabel"
         holder.tvLabel.setTextColor(textColor)
+
         if (entry.activities.isNotEmpty()) {
             holder.tvActivities.visibility = View.VISIBLE
             holder.tvActivities.text = entry.activities.joinToString(", ")
@@ -118,6 +121,7 @@ class MoodEntryAdapter(
         } else {
             holder.tvActivities.visibility = View.GONE
         }
+
         if (entry.note.isNotEmpty()) {
             holder.tvNote.visibility = View.VISIBLE
             holder.tvNote.text = entry.note
@@ -127,6 +131,18 @@ class MoodEntryAdapter(
             holder.tvNote.visibility = View.GONE
             holder.mediaEmbedContainer.visibility = View.GONE
         }
+
+        // AFBEELDING WEERGAVE
+        if (!entry.imageUri.isNullOrEmpty()) {
+            holder.ivMoodImage.visibility = View.VISIBLE
+            context.imageLoader.enqueue(coil.request.ImageRequest.Builder(context)
+                .data(entry.imageUri)
+                .target(holder.ivMoodImage)
+                .build())
+        } else {
+            holder.ivMoodImage.visibility = View.GONE
+        }
+
         if (entry.memberIds.isNotEmpty()) {
             val memberNames = people.filter { entry.memberIds.contains(it.id) && !it.isArchived }.map { it.name }
             if (memberNames.isNotEmpty()) {
@@ -139,22 +155,15 @@ class MoodEntryAdapter(
         } else {
             holder.tvMembers.visibility = View.GONE
         }
+
         val linkedNote = allNotes.find { it.id == entry.linkedNoteId }
-        if (linkedNote != null) {
-            holder.tvLinkedNote.visibility = View.VISIBLE
-            holder.tvLinkedNote.text = context.getString(R.string.label_linked_note, linkedNote.title)
-            holder.tvLinkedNote.setTextColor(textColor)
-        } else {
-            holder.tvLinkedNote.visibility = View.GONE
-        }
+        holder.tvLinkedNote.visibility = if (linkedNote != null) View.VISIBLE else View.GONE
+        linkedNote?.let { holder.tvLinkedNote.text = context.getString(R.string.label_linked_note, it.title); holder.tvLinkedNote.setTextColor(textColor) }
+
         val linkedTodo = allTodos.find { it.id == entry.linkedTodoId }
-        if (linkedTodo != null) {
-            holder.tvLinkedTodo.visibility = View.VISIBLE
-            holder.tvLinkedTodo.text = context.getString(R.string.label_linked_todo, linkedTodo.title)
-            holder.tvLinkedTodo.setTextColor(textColor)
-        } else {
-            holder.tvLinkedTodo.visibility = View.GONE
-        }
+        holder.tvLinkedTodo.visibility = if (linkedTodo != null) View.VISIBLE else View.GONE
+        linkedTodo?.let { holder.tvLinkedTodo.text = context.getString(R.string.label_linked_todo, it.title); holder.tvLinkedTodo.setTextColor(textColor) }
+
         holder.btnEdit.setOnClickListener { onEdit(entry) }
         holder.btnDelete.setOnClickListener {
             val currentClicks = (deleteClickCounts[entry.id] ?: 0) + 1
@@ -167,9 +176,9 @@ class MoodEntryAdapter(
             }
         }
     }
+
     private fun getDayString(timestamp: Long): String {
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = timestamp
+        val calendar = Calendar.getInstance().apply { timeInMillis = timestamp }
         val now = Calendar.getInstance()
         return when {
             isSameDay(calendar, now) -> context.getString(R.string.today)
@@ -177,9 +186,10 @@ class MoodEntryAdapter(
             else -> daySdf.format(calendar.time)
         }
     }
+
     private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
-        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+        return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) && cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
+
     override fun getItemCount(): Int = entries.size
 }

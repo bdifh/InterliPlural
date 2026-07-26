@@ -114,7 +114,8 @@ class MoodTimelineActivity : BaseActivity() {
                     activities = (map["activities"] as? List<*>)?.filterIsInstance<String>() ?: emptyList(),
                     note = (map["note"] as? String) ?: "",
                     linkedNoteId = map["linkedNoteId"] as? String,
-                    linkedTodoId = map["linkedTodoId"] as? String
+                    linkedTodoId = map["linkedTodoId"] as? String,
+                    imageUri = map["imageUri"] as? String
                 )
             } catch (e: Exception) {
                 MoodActivity.MoodEntry(timestamp = 0L, moodEmoji = "❓", moodRotation = 0f, moodLabel = "error", moodColor = 0)

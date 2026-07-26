@@ -10,7 +10,8 @@ data class RelationNode(
     var imageUri: String? = null,
     var x: Float = 500f,
     var y: Float = 500f,
-    val memberId: String? = null
+    val memberId: String? = null,
+    var note: String? = null
 )
 enum class NodeType {
     MEMBER, LOCATION, RELATIONSHIP_ORB
@@ -25,7 +26,8 @@ data class RelationEdge(
     val toNodeId: String? = null,
     var color: Int? = null,
     var lineType: Int = 0, // 0: Solid, 1: Dashed, 2: Dotted
-    var arrowType: Int = 0 // 0: Geen, 1: Naar (Einde), 2: Van (Begin), 3: Beide
+    var arrowType: Int = 0, // 0: Geen, 1: Naar (Einde), 2: Van (Begin), 3: Beide
+    var width: Float = 4f
 ) {
     fun getSafeNodeIds(): List<String> {
         if (nodeIds.isNotEmpty()) return nodeIds
