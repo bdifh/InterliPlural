@@ -486,7 +486,6 @@
     <string name="error_enter_token">Voer eerst een token in</string>
     <string name="import_members_history_success">Leden en geschiedenis geïmporteerd!</string>
     <string name="import_completed_members_history">Import voltooid: %1$d leden en geschiedenis verwerkt!</string>
-
     <string name="label_image_colon">Afbeelding:</string>
     <string name="label_line_color">Lijnkleur:</string>
     <string name="label_line_type">Lijntype:</string>
@@ -499,10 +498,11 @@
     <string name="arrow_type_end">Pijl naar einde</string>
     <string name="arrow_type_start">Pijl naar begin</string>
     <string name="arrow_type_both">Pijlen beide kanten</string>
-
     <string name="settings_enable_gifs">Geanimeerde GIF\'s inschakelen</string>
     <string name="settings_enable_gifs_desc">Toon animaties voor GIF-afbeeldingen in de hele app</string>
-
     <string name="line_type_wavy">Golvend</string>
     <string name="label_line_thickness">Lijndikte</string>
+    <string name="label_set_reminder">Herinnering instellen</string>
+    <string name="reminder_none">Geen herinnering</string>
+    <string name="reminder_at_start">Bij aanvang</string>
 </resources>

@@ -195,7 +195,8 @@ data class CalendarEvent(
     var hideInMonth: Boolean = false,
     var hideInYear: Boolean = false,
     var excludedDates: MutableList<Long>? = null,
-    var recurrenceUntil: Long? = null
+    var recurrenceUntil: Long? = null,
+    var reminderTime: Long? = null
 )
 data class SysmediaPost(
     val id: String = java.util.UUID.randomUUID().toString(),

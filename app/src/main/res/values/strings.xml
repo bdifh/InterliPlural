@@ -614,12 +614,10 @@
     <string name="no_restorable_members">No restorable members found in history.</string>
     <string name="restore_member_success">Member %1$s restored!</string>
     <string name="restore_dialog_title">Select member to restore</string>
-
     <string name="export_images">Profile Pictures</string>
     <string name="error_enter_token">Please enter a token first</string>
     <string name="import_members_history_success">Members and history imported!</string>
     <string name="import_completed_members_history">Import completed: %1$d members and history processed!</string>
-
     <string name="label_image_colon">Image:</string>
     <string name="label_line_color">Line Color:</string>
     <string name="label_line_type">Line Type:</string>
@@ -632,10 +630,11 @@
     <string name="arrow_type_end">Arrow to end</string>
     <string name="arrow_type_start">Arrow to start</string>
     <string name="arrow_type_both">Arrows both ways</string>
-
     <string name="settings_enable_gifs">Enable animated GIFs</string>
     <string name="settings_enable_gifs_desc">Show animations for GIF images app-wide</string>
-
     <string name="line_type_wavy">Wavy</string>
     <string name="label_line_thickness">Line Thickness</string>
+    <string name="label_set_reminder">Set Reminder</string>
+    <string name="reminder_none">No reminder</string>
+    <string name="reminder_at_start">At start of event</string>
 </resources>
