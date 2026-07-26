@@ -465,12 +465,6 @@ class ProfileActivity : BaseActivity() {
                 val processedValue = displayValue.replace("\n", "  \n")
                 markwon.setMarkdown(markdownTextView, processedValue)
                 row.addView(markdownTextView)
-                val mediaContainer = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                }
-                MediaEmbedHelper.addEmbedsToContainer(mediaContainer, displayValue)
-                row.addView(mediaContainer)
             } else {
                 val horizontalLayout = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
