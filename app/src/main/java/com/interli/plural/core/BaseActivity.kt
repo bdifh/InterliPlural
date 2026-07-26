@@ -33,6 +33,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val config = android.content.res.Configuration(res.configuration)
         val isTablet = config.smallestScreenWidthDp >= 600
         val targetWidthDp = if (isTablet) 600f else 446f
+        val shorterSidePx = kotlin.math.min(dm.widthPixels, dm.heightPixels).toFloat()
         val targetDensity = dm.widthPixels / targetWidthDp
         val targetDensityDpi = (160 * targetDensity).toInt()
         val sharedPref = context.getSharedPreferences("settings_prefs", android.content.Context.MODE_PRIVATE)
