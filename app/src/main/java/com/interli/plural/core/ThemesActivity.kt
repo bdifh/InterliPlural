@@ -89,19 +89,19 @@ class ThemesActivity : BaseActivity() {
         textHex = sharedPref.getString("text_color", "#1A1811") ?: "#1A1811"
         updatePreviews()
         findViewById<View>(R.id.cardBgColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_bg_color), bgHex) { bgHex = it; updatePreviews() }
+            showSimpleColorPicker(getString(R.string.hint_bg_color), 1, bgHex) { bgHex = it; updatePreviews() }
         }
         findViewById<View>(R.id.cardBtnColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_btn_color), btnHex) { btnHex = it; updatePreviews() }
+            showSimpleColorPicker(getString(R.string.hint_btn_color), 2, btnHex) { btnHex = it; updatePreviews() }
         }
         findViewById<View>(R.id.cardBtnTextColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_btn_text_color), btnTextHex) { btnTextHex = it; updatePreviews() }
+            showSimpleColorPicker(getString(R.string.hint_btn_text_color), 3, btnTextHex) { btnTextHex = it; updatePreviews() }
         }
         findViewById<View>(R.id.cardFrontColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_front_color), frontHex) { frontHex = it; updatePreviews() }
+            showSimpleColorPicker(getString(R.string.hint_front_color), 4, frontHex) { frontHex = it; updatePreviews() }
         }
         findViewById<View>(R.id.cardTextColor).setOnClickListener {
-            showSimpleColorPicker(getString(R.string.hint_text_color), textHex) { textHex = it; updatePreviews() }
+            showSimpleColorPicker(getString(R.string.hint_text_color), 5, textHex) { textHex = it; updatePreviews() }
         }
         findViewById<Button>(R.id.btnSaveAsTheme).setOnClickListener {
             val newTheme = AppTheme(
@@ -382,9 +382,9 @@ class ThemesActivity : BaseActivity() {
         findViewById<View>(R.id.frontPreview).setBackgroundColor(android.graphics.Color.parseColor(frontHex))
         findViewById<View>(R.id.textPreview).setBackgroundColor(android.graphics.Color.parseColor(textHex))
     }
-    private fun showSimpleColorPicker(title: String, currentHex: String, onColorChosen: (String) -> Unit) {
-        val tempTheme = AppTheme(name = "", bgColor = currentHex, btnColor = "", btnTextColor = "", frontColor = "", textColor = "")
-        showColorPicker(tempTheme, 1) { newHex ->
+    private fun showSimpleColorPicker(title: String, colorIndex: Int, currentHex: String, onColorChosen: (String) -> Unit) {
+        val tempTheme = AppTheme(name = "", bgColor = currentHex, btnColor = currentHex, btnTextColor = currentHex, frontColor = currentHex, textColor = currentHex)
+        showColorPicker(tempTheme, colorIndex) { newHex ->
             onColorChosen(newHex)
         }
     }

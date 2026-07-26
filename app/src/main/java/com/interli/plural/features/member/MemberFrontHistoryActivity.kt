@@ -159,8 +159,10 @@ class MemberFrontHistoryActivity : BaseActivity() {
             5 -> customEndDate?.timeInMillis ?: now.timeInMillis
             else -> now.timeInMillis
         }
-        filteredSessions = allSessions.filter { 
-            it.personId == personId && (it.endTime ?: now.timeInMillis) >= (if (position == 0) 0L else startTime) && it.startTime <= endTime
+        filteredSessions = allSessions.filter {
+            (it.personId == personId || (it.personId == null && it.personName.equals(person.name, ignoreCase = true))) &&
+                    (it.endTime ?: now.timeInMillis) >= (if (position == 0) 0L else startTime) &&
+                    it.startTime <= endTime
         }
         hourlyChartView.setData(filteredSessions, listOf(person), startTime, endTime)
         // Compute Stats
@@ -206,7 +208,9 @@ class MemberFrontHistoryActivity : BaseActivity() {
         return "${hours}h ${mins}m"
     }
     private fun renderTimeline() {
-        val sessions = allSessions.filter { it.personId == personId }.sortedByDescending { it.startTime }
+        val sessions = allSessions.filter {
+            it.personId == personId || (it.personId == null && it.personName.equals(person.name, ignoreCase = true))
+        }.sortedByDescending { it.startTime }
         rvTimeline.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         rvTimeline.adapter = TimelineAdapter(sessions) { session ->
             DialogHelper.showSessionDetailsDialog(this, session, people, allSessions.toMutableList()) {

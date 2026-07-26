@@ -251,6 +251,11 @@ class ProfileActivity : BaseActivity() {
             val currentPerson = people[personIndex]
             if (currentPerson.isArchived) {
                 currentPerson.isArchived = false
+                sessions.forEach { session ->
+                    if (session.personId == null && session.personName.equals(currentPerson.name, ignoreCase = true)) {
+                        session.personId = currentPerson.id
+                    }
+                }
                 saveData()
                 Toast.makeText(this, getString(R.string.member_unarchived), Toast.LENGTH_SHORT).show()
                 finish()
