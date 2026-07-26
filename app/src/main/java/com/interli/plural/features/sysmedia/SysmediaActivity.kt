@@ -30,12 +30,6 @@ import com.interli.plural.features.diary.ChatActivity
 import com.interli.plural.features.diary.CreatePostActivity
 import com.interli.plural.core.MediaEmbedHelper
 import com.interli.plural.features.member.MemberHelper
-import com.interli.plural.features.sysmedia.SysmediaGhostActivity
-import com.interli.plural.features.sysmedia.SysmediaMemberListActivity
-import com.interli.plural.features.sysmedia.SysmediaPostDetailActivity
-import com.interli.plural.features.sysmedia.SysmediaProfileActivity
-import com.interli.plural.features.sysmedia.SysmediaScheduledPostsActivity
-import com.interli.plural.features.sysmedia.SysmediaSwitchAccountActivity
 import com.interli.plural.Group
 import com.interli.plural.Person
 import com.interli.plural.R
@@ -446,10 +440,12 @@ class SysmediaActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+        val recyclerViewState = recyclerView.layoutManager?.onSaveInstanceState()
         loadData()
         filterTab()
         updateActiveMemberHeader()
         updateTabBadges()
+        recyclerView.layoutManager?.onRestoreInstanceState(recyclerViewState)
     }
     private fun handleLike(post: SysmediaPost, onUpdate: () -> Unit) {
         val memberId = activeMemberId ?: return

@@ -6,11 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.EditText
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.interli.plural.core.BaseActivity
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.features.member.MemberHelper
@@ -41,8 +43,10 @@ class SysmediaSwitchAccountActivity : BaseActivity() {
                 val fromPos = viewHolder.bindingAdapterPosition
                 val toPos = target.bindingAdapterPosition
                 if (fromPos == RecyclerView.NO_POSITION || toPos == RecyclerView.NO_POSITION) return false
-                val etSearch = findViewById<android.widget.EditText>(R.id.etSearch)
+
+                val etSearch = findViewById<EditText>(R.id.etSearch)
                 if (etSearch.text.isNotEmpty()) return false
+
                 Collections.swap(filteredPeople, fromPos, toPos)
                 adapter.notifyItemMoved(fromPos, toPos)
                 return true
@@ -52,9 +56,14 @@ class SysmediaSwitchAccountActivity : BaseActivity() {
 
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
-                val etSearch = findViewById<android.widget.EditText>(R.id.etSearch)
+                val etSearch = findViewById<EditText>(R.id.etSearch)
                 if (etSearch.text.isEmpty()) {
-                      val archived = people.filter { it.isArchived }
+                    val order = filteredPeople.map { it.id }
+                    getSharedPreferences("my_app", MODE_PRIVATE).edit()
+                        .putString("sysmedia_account_sort_order", gson.toJson(order))
+                        .apply()
+
+                    val archived = people.filter { it.isArchived }
                     people.clear()
                     people.addAll(filteredPeople)
                     people.addAll(archived)
@@ -64,7 +73,7 @@ class SysmediaSwitchAccountActivity : BaseActivity() {
         })
         itemTouchHelper.attachToRecyclerView(rv)
 
-        val etSearch = findViewById<android.widget.EditText>(R.id.etSearch)
+        val etSearch = findViewById<EditText>(R.id.etSearch)
         val tvHint = findViewById<TextView>(R.id.tvHint)
         etSearch.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -99,7 +108,20 @@ class SysmediaSwitchAccountActivity : BaseActivity() {
     }
 
     private fun loadData() {
-        people = MemberHelper.loadAllPeople(this)
+        val allPeople = MemberHelper.loadAllPeople(this)
+        val sp = getSharedPreferences("my_app", MODE_PRIVATE)
+        val sortOrderJson = sp.getString("sysmedia_account_sort_order", null)
+
+        if (sortOrderJson != null) {
+            val type = object : TypeToken<List<String>>() {}.type
+            val order: List<String> = gson.fromJson(sortOrderJson, type)
+            people = allPeople.sortedBy { person ->
+                val index = order.indexOf(person.id)
+                if (index != -1) index else Int.MAX_VALUE
+            }.toMutableList()
+        } else {
+            people = allPeople
+        }
     }
 
     private fun saveData() {

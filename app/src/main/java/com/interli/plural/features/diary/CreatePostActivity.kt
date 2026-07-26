@@ -107,12 +107,14 @@ class CreatePostActivity : BaseActivity() {
                     val currentWord = if (lastSpace == -1) part else part.substring(lastSpace + 1)
                     if (currentWord.startsWith("@")) {
                         val query = currentWord.substring(1).lowercase()
-                        val filtered = people.filter { 
-                            it.name.lowercase().contains(query) || 
-                            it.sysmediaProfile?.handle?.lowercase()?.contains(query) == true 
-                        }.map { 
+                        val filtered = people.filter {
+                            !it.isArchived && (
+                                    it.name.lowercase().contains(query) ||
+                                            it.sysmediaProfile?.handle?.lowercase()?.contains(query) == true
+                                    )
+                        }.map {
                             val handle = it.sysmediaProfile?.handle ?: it.name.replace(" ", "_").lowercase()
-                            SuggestionItem(it.name + " (@$handle)", handle, "USER") 
+                            SuggestionItem(it.name + " (@$handle)", handle, "USER")
                         }.toMutableList()
                         if ("everyone".contains(query) || query.isEmpty()) {
                             filtered.add(0, SuggestionItem("@everyone (Notify all)", "everyone", "USER"))
@@ -371,7 +373,7 @@ class CreatePostActivity : BaseActivity() {
             val taggedIds = mutableSetOf<String>()
             if (content.contains("@everyone", ignoreCase = true)) {
                 people.forEach { person ->
-                    if (person.id != currentUser.id) {
+                    if (person.id != currentUser.id && !person.isArchived) {
                         taggedIds.add(person.id)
                         notifications.add(0, SysmediaNotification(
                             receiverId = person.id,

@@ -63,6 +63,7 @@ class ChatActivity : BaseActivity() {
         }
     }
     private var isChangingGroupPicture = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
@@ -71,29 +72,19 @@ class ChatActivity : BaseActivity() {
         isGroup = intent.getBooleanExtra("is_group", false)
         loadData()
         currentUser = people.find { it.id == currentId } ?: people.first()
-        val tvChatName = findViewById<TextView>(R.id.tvChatName)
-        val ivChatAvatar = findViewById<ImageView>(R.id.ivChatAvatar)
+
+        updateHeader()
+
         if (isGroup) {
-            val group = chatGroups.find { it.id == chatId }
-            tvChatName.text = group?.name ?: "Group"
-            if (group?.groupPictureUri != null) {
-                ivChatAvatar.load(group.groupPictureUri)
-            } else {
-                ivChatAvatar.setImageResource(android.R.drawable.ic_menu_myplaces)
-            }
-            ivChatAvatar.setOnClickListener {
+            findViewById<ImageView>(R.id.ivChatAvatar).setOnClickListener {
                 isChangingGroupPicture = true
                 pickImage.launch("image/*")
             }
             val btnManage = findViewById<ImageButton>(R.id.btnManageGroup)
             btnManage.visibility = View.VISIBLE
             btnManage.setOnClickListener { showManageGroupDialog() }
-        } else {
-            val otherUser = people.find { it.id == chatId }
-            tvChatName.text = otherUser?.sysmediaProfile?.displayName ?: otherUser?.name ?: "User"
-            val avatarUri = otherUser?.sysmediaProfile?.profilePictureUri ?: otherUser?.profilePictureUri
-            if (avatarUri != null) ivChatAvatar.load(avatarUri) else ivChatAvatar.setImageResource(R.drawable.ic_stat_name)
         }
+
         recyclerView = findViewById(R.id.chatRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         filterMessages()
@@ -109,9 +100,7 @@ class ChatActivity : BaseActivity() {
                 cancelReply()
             }
         }
-        findViewById<ImageButton>(R.id.btnCancelReply).setOnClickListener {
-            cancelReply()
-        }
+        findViewById<ImageButton>(R.id.btnCancelReply).setOnClickListener { cancelReply() }
         findViewById<ImageButton>(R.id.btnAddChatMedia).setOnClickListener {
             isChangingGroupPicture = false
             pickImage.launch("image/*")
@@ -122,18 +111,16 @@ class ChatActivity : BaseActivity() {
         }
         val btnSwitchFront = findViewById<ImageButton>(R.id.btnSwitchFrontChat)
         btnSwitchFront.visibility = View.VISIBLE
-        btnSwitchFront.setOnClickListener {
-            showSwitchActiveUserDialog()
-        }
+        btnSwitchFront.setOnClickListener { showSwitchActiveUserDialog() }
+
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
         toolbar.setNavigationOnClickListener { finish() }
         ColorHelper.applySettings(this)
         val textColor = ColorHelper.getTextColor(this)
         val btnColor = ColorHelper.getBtnColor(this)
-        val btnTextColor = ColorHelper.getBtnTextColor(this)
         val bgColor = ColorHelper.getBgColor(this)
         toolbar.setBackgroundColor(bgColor)
-        tvChatName.setTextColor(textColor)
+        findViewById<TextView>(R.id.tvChatName).setTextColor(textColor)
         toolbar.setNavigationIconTint(textColor)
         findViewById<ImageButton>(R.id.btnSendChat).setColorFilter(btnColor)
         findViewById<ImageButton>(R.id.btnManageGroup).setColorFilter(textColor)
@@ -155,6 +142,88 @@ class ChatActivity : BaseActivity() {
             .build()
         markMessagesAsRead()
     }
+
+    private fun updateHeader() {
+        val tvChatName = findViewById<TextView>(R.id.tvChatName)
+        val ivChatAvatar = findViewById<ImageView>(R.id.ivChatAvatar)
+        if (isGroup) {
+            val group = chatGroups.find { it.id == chatId }
+            tvChatName.text = group?.name ?: "Group"
+            if (group?.groupPictureUri != null) {
+                ivChatAvatar.load(group.groupPictureUri)
+            } else {
+                ivChatAvatar.setImageResource(android.R.drawable.ic_menu_myplaces)
+            }
+        } else {
+            val otherUser = people.find { it.id == chatId }
+            tvChatName.text = otherUser?.sysmediaProfile?.displayName ?: otherUser?.name ?: "User"
+            val avatarUri = otherUser?.sysmediaProfile?.profilePictureUri ?: otherUser?.profilePictureUri
+            if (avatarUri != null) ivChatAvatar.load(avatarUri) else ivChatAvatar.setImageResource(R.drawable.ic_stat_name)
+        }
+    }
+
+    private fun showSwitchActiveUserDialog() {
+        val participants = if (isGroup) {
+            val group = chatGroups.find { it.id == chatId }
+            people.filter { group?.participantIds?.contains(it.id) == true && !it.isArchived }
+        } else {
+            people.filter { (it.id == currentUser.id || it.id == chatId) && !it.isArchived }
+        }
+
+        if (participants.isEmpty()) return
+
+        val names = participants.map { it.sysmediaProfile?.displayName ?: it.name }.toTypedArray()
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.action_switch_account)
+            .setItems(names) { _, which ->
+                val selectedUser = participants[which]
+
+
+                if (!isGroup && selectedUser.id != currentUser.id) {
+                    val oldMeId = currentUser.id
+                    currentUser = selectedUser
+                    chatId = oldMeId
+                } else {
+                    currentUser = selectedUser
+                }
+
+                loadData()
+                filterMessages()
+                adapter = ChatAdapter(messages)
+                recyclerView.adapter = adapter
+                updateHeader()
+
+                markMessagesAsRead()
+                if (messages.isNotEmpty()) {
+                    recyclerView.scrollToPosition(messages.size - 1)
+                }
+            }
+            .show()
+    }
+
+    private fun loadData() {
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        people = MemberHelper.loadAllPeople(this)
+        val msgJson = sharedPref.getString("sysmedia_dms", "[]")
+        val typeMsg = object : TypeToken<MutableList<DirectMessage>>() {}.type
+        val loadedMessages: MutableList<DirectMessage> = Gson().fromJson(msgJson, typeMsg) ?: mutableListOf()
+        loadedMessages.forEach { msg ->
+            if (msg.likedByMemberIds == null) msg.likedByMemberIds = mutableMapOf()
+        }
+        val groupJson = sharedPref.getString("sysmedia_chat_groups", "[]")
+        val typeGroup = object : TypeToken<MutableList<ChatGroup>>() {}.type
+        chatGroups = Gson().fromJson(groupJson, typeGroup) ?: mutableListOf()
+        messages = loadedMessages
+    }
+
+    private fun filterMessages() {
+        val targetChatId = if (isGroup) chatId else {
+            val ids = listOf(currentUser.id, chatId!!).sorted()
+            "${ids[0]}_${ids[1]}"
+        }
+        messages = messages.filter { it.chatId == targetChatId }.sortedBy { it.timestamp }.toMutableList()
+    }
+
     private fun showManageGroupDialog() {
         val group = chatGroups.find { it.id == chatId } ?: return
         val memberNames = people.filter { group.participantIds.contains(it.id) && !it.isArchived }.map { it.name }.toMutableList()
@@ -177,6 +246,7 @@ class ChatActivity : BaseActivity() {
             .setPositiveButton(R.string.done, null)
             .show()
     }
+
     private fun showAddMemberDialog(group: ChatGroup) {
         val nonParticipants = people.filter { !group.participantIds.contains(it.id) && !it.isArchived }
         if (nonParticipants.isEmpty()) {
@@ -193,10 +263,12 @@ class ChatActivity : BaseActivity() {
             }
             .show()
     }
+
     private fun saveGroups() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         sharedPref.edit { putString("sysmedia_chat_groups", Gson().toJson(chatGroups)) }
     }
+
     private fun getDayString(timestamp: Long): String {
         val cal = Calendar.getInstance().apply { timeInMillis = timestamp }
         val now = Calendar.getInstance()
@@ -206,10 +278,38 @@ class ChatActivity : BaseActivity() {
             else -> SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(cal.time)
         }
     }
+
     private fun isSameDay(cal1: Calendar, cal2: Calendar): Boolean {
         return cal1.get(Calendar.YEAR) == cal2.get(Calendar.YEAR) &&
-               cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
+                cal1.get(Calendar.DAY_OF_YEAR) == cal2.get(Calendar.DAY_OF_YEAR)
     }
+
+    private fun sendMessage(content: String) {
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val msgJson = sharedPref.getString("sysmedia_dms", "[]")
+        val typeMsg = object : TypeToken<MutableList<DirectMessage>>() {}.type
+        val allMessages: MutableList<DirectMessage> = Gson().fromJson(msgJson, typeMsg) ?: mutableListOf()
+        val targetChatId = if (isGroup) chatId!! else {
+            val ids = listOf(currentUser.id, chatId!!).sorted()
+            "${ids[0]}_${ids[1]}"
+        }
+        val newMsg = DirectMessage(
+            senderId = currentUser.id,
+            chatId = targetChatId,
+            content = content,
+            isRead = false,
+            imageUri = selectedImageUri?.toString(),
+            replyToId = replyingTo?.id
+        )
+        allMessages.add(newMsg)
+        sharedPref.edit(commit = true) { putString("sysmedia_dms", Gson().toJson(allMessages)) }
+        val notifyId = if (isGroup) chatId!! else chatId!!
+        SysmediaNotificationHelper.checkAndNotify(this, notifyId)
+        messages.add(newMsg)
+        adapter.notifyItemInserted(messages.size - 1)
+        recyclerView.scrollToPosition(messages.size - 1)
+    }
+
     private fun markMessagesAsRead() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val msgJson = sharedPref.getString("sysmedia_dms", "[]")
@@ -228,27 +328,12 @@ class ChatActivity : BaseActivity() {
             sharedPref.edit { putString("sysmedia_dms", Gson().toJson(allMessages)) }
         }
     }
-    private fun loadData() {
-        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-        people = MemberHelper.loadAllPeople(this)
-        val msgJson = sharedPref.getString("sysmedia_dms", "[]")
-        val typeMsg = object : TypeToken<MutableList<DirectMessage>>() {}.type
-        val loadedMessages: MutableList<DirectMessage> = Gson().fromJson(msgJson, typeMsg) ?: mutableListOf()
-        loadedMessages.forEach { msg ->
-            if (msg.likedByMemberIds == null) msg.likedByMemberIds = mutableMapOf()
-        }
-        val groupJson = sharedPref.getString("sysmedia_chat_groups", "[]")
-        val typeGroup = object : TypeToken<MutableList<ChatGroup>>() {}.type
-        chatGroups = Gson().fromJson(groupJson, typeGroup) ?: mutableListOf()
-        messages = loadedMessages
+
+    private fun cancelReply() {
+        replyingTo = null
+        findViewById<View>(R.id.layoutReplyPreview).visibility = View.GONE
     }
-    private fun filterMessages() {
-        val targetChatId = if (isGroup) chatId else {
-            val ids = listOf(currentUser.id, chatId!!).sorted()
-            "${ids[0]}_${ids[1]}"
-        }
-        messages = messages.filter { it.chatId == targetChatId }.sortedBy { it.timestamp }.toMutableList()
-    }
+
     private fun startReply(msg: DirectMessage) {
         replyingTo = msg
         val layoutPreview = findViewById<View>(R.id.layoutReplyPreview)
@@ -262,35 +347,7 @@ class ChatActivity : BaseActivity() {
         val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         imm.showSoftInput(findViewById(R.id.etChatMessage), 0)
     }
-    private fun cancelReply() {
-        replyingTo = null
-        findViewById<View>(R.id.layoutReplyPreview).visibility = View.GONE
-    }
-    private fun sendMessage(content: String) {
-        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-        val msgJson = sharedPref.getString("sysmedia_dms", "[]")
-        val typeMsg = object : TypeToken<MutableList<DirectMessage>>() {}.type
-        val allMessages: MutableList<DirectMessage> = Gson().fromJson(msgJson, typeMsg) ?: mutableListOf()
-        val targetChatId = if (isGroup) chatId!! else {
-            val ids = listOf(currentUser.id, chatId!!).sorted()
-            "${ids[0]}_${ids[1]}"
-        }
-        val newMsg = DirectMessage(
-            senderId = currentUser.id, 
-            chatId = targetChatId, 
-            content = content, 
-            isRead = false,
-            imageUri = selectedImageUri?.toString(),
-            replyToId = replyingTo?.id
-        )
-        allMessages.add(newMsg)
-        sharedPref.edit(commit = true) { putString("sysmedia_dms", Gson().toJson(allMessages)) }
-        val notifyId = if (isGroup) chatId!! else chatId!!
-        SysmediaNotificationHelper.checkAndNotify(this, notifyId)
-        messages.add(newMsg)
-        adapter.notifyItemInserted(messages.size - 1)
-        recyclerView.scrollToPosition(messages.size - 1)
-    }
+
     private fun updateGroupPicture(uri: String) {
         val group = chatGroups.find { it.id == chatId } ?: return
         group.groupPictureUri = uri
@@ -300,6 +357,7 @@ class ChatActivity : BaseActivity() {
         }
         findViewById<ImageView>(R.id.ivChatAvatar).load(uri)
     }
+
     private fun showEditMessageDialog(msg: DirectMessage, position: Int) {
         val input = android.widget.EditText(this).apply {
             setText(msg.content)
@@ -335,6 +393,7 @@ class ChatActivity : BaseActivity() {
             .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
+
     private fun showSwitchSenderDialog(msg: DirectMessage, position: Int) {
         val participants = if (isGroup) {
             val group = chatGroups.find { it.id == chatId }
@@ -364,33 +423,7 @@ class ChatActivity : BaseActivity() {
             }
             .show()
     }
-    private fun showSwitchActiveUserDialog() {
-        val participants = if (isGroup) {
-            val group = chatGroups.find { it.id == chatId }
-            people.filter { group?.participantIds?.contains(it.id) == true && !it.isArchived }
-        } else {
-            people.filter { (it.id == currentUser.id || it.id == chatId) && !it.isArchived }
-        }
 
-        if (participants.isEmpty()) return
-
-        val names = participants.map { it.sysmediaProfile?.displayName ?: it.name }.toTypedArray()
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(R.string.action_switch_account)
-            .setItems(names) { _, which ->
-                currentUser = participants[which]
-                loadData()
-                filterMessages()
-                adapter = ChatAdapter(messages)
-                recyclerView.adapter = adapter
-
-                markMessagesAsRead()
-                if (messages.isNotEmpty()) {
-                    recyclerView.scrollToPosition(messages.size - 1)
-                }
-            }
-            .show()
-    }
     private fun handleLikeClick(msg: DirectMessage, position: Int) {
         val activeMemberId = currentUser.id
         val currentLikes = msg.safeLikedByMemberIds[activeMemberId] ?: 0
@@ -413,10 +446,13 @@ class ChatActivity : BaseActivity() {
         }
         adapter.notifyItemChanged(position)
     }
+
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
+
     private inner class ChatAdapter(private val items: List<DirectMessage>) :
         RecyclerView.Adapter<ChatAdapter.ViewHolder>() {
         private val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val layoutBubbleRow: LinearLayout = view.findViewById(R.id.layoutBubbleRow)
             val btnLikeLeft: View = view.findViewById(R.id.btnLikeChatLeft)
@@ -441,10 +477,12 @@ class ChatActivity : BaseActivity() {
             val viewColorLineSide: View = view.findViewById(R.id.viewColorLineSide)
             val viewColorLineSideRight: View = view.findViewById(R.id.viewColorLineSideRight)
         }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val view = LayoutInflater.from(parent.context).inflate(R.layout.item_chat_bubble, parent, false)
             return ViewHolder(view)
         }
+
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val msg = items[position]
             val prevMsg = if (position > 0) items[position - 1] else null
@@ -469,7 +507,7 @@ class ChatActivity : BaseActivity() {
             val displayMetrics = resources.displayMetrics
             val density = displayMetrics.density
             val maxBubbleWidth = (displayMetrics.widthPixels * 0.8).toInt()
-            val innerPadding = (24 * density).toInt() // 12dp padding on each side from layoutBubbleContent in XML
+            val innerPadding = (24 * density).toInt()
             val targetImageWidth = maxBubbleWidth - innerPadding
             if (msg.imageUri != null) {
                 holder.ivImage.visibility = View.VISIBLE
@@ -560,6 +598,7 @@ class ChatActivity : BaseActivity() {
             } else {
                 holder.layoutReplyContext.visibility = View.GONE
             }
+
             val longClickListener = View.OnLongClickListener { holder.itemView.performLongClick() }
             holder.tvMessage.setOnLongClickListener(longClickListener)
             holder.cardBubble.setOnLongClickListener(longClickListener)
@@ -581,7 +620,6 @@ class ChatActivity : BaseActivity() {
                             when (selectedOption) {
                                 "Like" -> handleLikeClick(m, pos)
                                 getString(R.string.reply) -> startReply(m)
-                                getString(R.string.reply) -> startReply(m)
                                 getString(R.string.action_switch_account) -> showSwitchSenderDialog(m, pos)
                                 getString(R.string.edit) -> showEditMessageDialog(m, pos)
                                 getString(R.string.delete) -> {
@@ -600,8 +638,8 @@ class ChatActivity : BaseActivity() {
                                         }
                                         .setNegativeButton(R.string.cancel, null)
                                         .show()
-                                        .let { dialog: androidx.appcompat.app.AlertDialog -> 
-                                            ColorHelper.styleAlertDialog(dialog, this@ChatActivity) 
+                                        .let { dialog: androidx.appcompat.app.AlertDialog ->
+                                            ColorHelper.styleAlertDialog(dialog, this@ChatActivity)
                                         }
                                 }
                             }
