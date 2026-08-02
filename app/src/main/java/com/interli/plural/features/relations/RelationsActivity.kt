@@ -34,6 +34,7 @@ class RelationsActivity : BaseActivity() {
     private var currentEnvIndex = 0
     private val relationsData: RelationsData get() = environments[currentEnvIndex].data
     private val gson = Gson()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_relations)
@@ -58,6 +59,7 @@ class RelationsActivity : BaseActivity() {
                 .also { ColorHelper.styleAlertDialog(it, this) }
         }
     }
+
     private fun showEditEdgeDialogFromMap(edge: RelationEdge) {
         activeDialog?.dismiss()
         val textColor = ColorHelper.getTextColor(this)
@@ -72,45 +74,13 @@ class RelationsActivity : BaseActivity() {
             text = getString(R.string.label_line_color)
             setTextColor(textColor)
         })
-        val colors = intArrayOf(Color.GRAY, Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN, Color.BLACK)
+
         var selectedColor = edge.color ?: Color.GRAY
         val colorContainer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val scroll = HorizontalScrollView(this).apply { addView(colorContainer) }
-
-        fun updateColorDots() {
-            colorContainer.removeAllViews()
-            val dotSize = 36.dpToPx()
-            val margin = 8.dpToPx()
-            val activeColors = colors.toMutableList()
-            if (!activeColors.contains(selectedColor)) activeColors.add(selectedColor)
-            activeColors.forEach { color ->
-                val dot = View(this@RelationsActivity).apply {
-                    layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply { setMargins(0, 0, margin, 0) }
-                    background = GradientDrawable().apply {
-                        shape = GradientDrawable.OVAL
-                        setColor(color)
-                        if (color == selectedColor) setStroke(3.dpToPx(), textColor)
-                        else setStroke(1.dpToPx(), Color.GRAY)
-                    }
-                    setOnClickListener { selectedColor = color; updateColorDots() }
-                }
-                colorContainer.addView(dot)
-            }
-            val customBtn = ImageButton(this@RelationsActivity).apply {
-                layoutParams = LinearLayout.LayoutParams(dotSize, dotSize)
-                setImageResource(android.R.drawable.ic_menu_edit)
-                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.LTGRAY) }
-                setOnClickListener {
-                    showCustomColorPickerDialog(selectedColor) { newColor ->
-                        selectedColor = newColor
-                        updateColorDots()
-                    }
-                }
-            }
-            colorContainer.addView(customBtn)
+        layout.addView(HorizontalScrollView(this).apply { addView(colorContainer) })
+        DialogHelper.setupColorPicker(this, colorContainer, selectedColor) { color ->
+            selectedColor = color ?: Color.GRAY
         }
-        updateColorDots()
-        layout.addView(scroll)
 
         // --- SECTION: LINE TYPE ---
         val types = arrayOf(
@@ -191,8 +161,6 @@ class RelationsActivity : BaseActivity() {
                 edge.arrowType = arrowSpinner.selectedItemPosition
                 edge.tag = tagInput.text.toString()
                 edge.note = noteInput.text.toString()
-                mapView.invalidate()
-                saveData(silent = true)
                 edge.width = thicknessSeek.progress.toFloat().coerceAtLeast(1f)
                 mapView.invalidate()
                 saveData(silent = true)
@@ -223,6 +191,7 @@ class RelationsActivity : BaseActivity() {
         syncMemberNodes()
         mapView.setData(relationsData)
     }
+
     private fun syncMemberNodes() {
         val people = MemberHelper.loadAllPeople(this)
         var changed = false
@@ -241,6 +210,7 @@ class RelationsActivity : BaseActivity() {
         }
         if (changed) saveData(silent = true)
     }
+
     private fun saveData(silent: Boolean = false) {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = gson.toJson(environments)
@@ -249,6 +219,7 @@ class RelationsActivity : BaseActivity() {
             Toast.makeText(this, getString(R.string.backup_saved), Toast.LENGTH_SHORT).show()
         }
     }
+
     private fun showAddNodeDialog() {
         activeDialog?.dismiss()
         val options = arrayOf(
@@ -264,6 +235,7 @@ class RelationsActivity : BaseActivity() {
             .show()
             .also { ColorHelper.styleAlertDialog(it, this) }
     }
+
     private fun showEditRelationshipOrbDialog(existingNode: RelationNode?) {
         val isNew = existingNode == null
         val layout = LinearLayout(this).apply {
@@ -283,62 +255,19 @@ class RelationsActivity : BaseActivity() {
             setTextColor(textColor)
         }
         layout.addView(nameInput)
-        val colors = intArrayOf(Color.GRAY, Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN, Color.BLACK)
+        layout.addView(noteInput)
+
         var selectedColor = existingNode?.color ?: Color.GRAY
-        val colorContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
-        }
-        val scroll = HorizontalScrollView(this).apply {
-            addView(colorContainer)
-        }
-        fun updateColorDots() {
-            colorContainer.removeAllViews()
-            val dotSize = 36.dpToPx()
-            val margin = 8.dpToPx()
-            val activeColors = colors.toMutableList()
-            if (!activeColors.contains(selectedColor)) activeColors.add(selectedColor)
-            activeColors.forEach { color ->
-                val dot = View(this@RelationsActivity).apply {
-                    layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply { setMargins(0, 0, margin, 0) }
-                    background = GradientDrawable().apply {
-                        shape = GradientDrawable.OVAL
-                        setColor(color)
-                        if (color == selectedColor) {
-                            setStroke(3.dpToPx(), textColor)
-                        } else {
-                            setStroke(1.dpToPx(), Color.GRAY)
-                        }
-                    }
-                    setOnClickListener {
-                        selectedColor = color
-                        updateColorDots()
-                    }
-                }
-                colorContainer.addView(dot)
-            }
-            val customBtn = ImageButton(this@RelationsActivity).apply {
-                layoutParams = LinearLayout.LayoutParams(dotSize, dotSize)
-                setImageResource(android.R.drawable.ic_menu_edit)
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(Color.LTGRAY)
-                }
-                setOnClickListener {
-                    showCustomColorPickerDialog(selectedColor) { newColor ->
-                        selectedColor = newColor
-                        updateColorDots()
-                    }
-                }
-            }
-            colorContainer.addView(customBtn)
-        }
-        updateColorDots()
         layout.addView(TextView(this).apply { text = getString(R.string.label_color_colon); setTextColor(textColor); setPadding(0, 8.dpToPx(), 0, 0) })
-        layout.addView(scroll)
+        val colorContainer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        layout.addView(HorizontalScrollView(this).apply { addView(colorContainer) })
+        DialogHelper.setupColorPicker(this, colorContainer, selectedColor) { color ->
+            selectedColor = color ?: Color.GRAY
+        }
+
         var selectedImageUri = existingNode?.imageUri
         val imgPreview = ImageView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(100.dpToPx(), 100.dpToPx()).apply { 
+            layoutParams = LinearLayout.LayoutParams(100.dpToPx(), 100.dpToPx()).apply {
                 gravity = Gravity.CENTER_HORIZONTAL
                 topMargin = 16.dpToPx()
             }
@@ -367,6 +296,7 @@ class RelationsActivity : BaseActivity() {
             }
         }
         layout.addView(imgPreview)
+
         activeDialog = AlertDialog.Builder(this)
             .setTitle(if (isNew) R.string.add_relationship_orb else R.string.action_edit)
             .setView(layout)
@@ -400,7 +330,9 @@ class RelationsActivity : BaseActivity() {
             .show()
             .also { ColorHelper.styleAlertDialog(it, this) }
     }
+
     private var imagePickerCallback: ((android.net.Uri) -> Unit)? = null
+
     private fun showSelectMemberDialog() {
         val allPeople = MemberHelper.loadAllPeople(this)
         val filteredPeople = allPeople.filter { p -> !p.isArchived }
@@ -454,6 +386,7 @@ class RelationsActivity : BaseActivity() {
             }
         }
     }
+
     private fun showSelectGroupForConnectionDialog(node: RelationNode) {
         if (relationsData.groups.isEmpty()) return
         val names = relationsData.groups.map { it.name }.toTypedArray()
@@ -471,6 +404,7 @@ class RelationsActivity : BaseActivity() {
             .show()
             .also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
     }
+
     private fun setupEnvironmentSpinner() {
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
         toolbar.removeView(toolbar.findViewWithTag("envSpinner"))
@@ -519,6 +453,7 @@ class RelationsActivity : BaseActivity() {
         lpCb.marginEnd = 8.dpToPx()
         toolbar.addView(cbSmartLayout, lpCb)
     }
+
     private fun showCreateEnvironmentDialog() {
         activeDialog?.dismiss()
         val input = EditText(this).apply { hint = getString(R.string.hint_environment_name) }
@@ -539,6 +474,7 @@ class RelationsActivity : BaseActivity() {
             .show()
             .also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
     }
+
     private fun showRenameEnvironmentDialog() {
         activeDialog?.dismiss()
         val currentEnv = environments[currentEnvIndex]
@@ -560,6 +496,7 @@ class RelationsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
+
     private fun showDeleteEnvironmentDialog() {
         if (environments.size <= 1) {
             Toast.makeText(this, "Cannot delete the last environment", Toast.LENGTH_SHORT).show()
@@ -579,6 +516,7 @@ class RelationsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
+
     private fun showEnvironmentOptionsDialog() {
         val options = mutableListOf<String>()
         options.add(getString(R.string.action_edit))
@@ -611,18 +549,17 @@ class RelationsActivity : BaseActivity() {
         if (newIndex in 0 until environments.size) {
             val item = environments.removeAt(currentEnvIndex)
             environments.add(newIndex, item)
-
             currentEnvIndex = newIndex
-
             saveData(silent = true)
             setupEnvironmentSpinner()
             mapView.setData(relationsData)
         }
     }
+
     private fun showAddEdgeDialog() {
         if (relationsData.nodes.size + relationsData.groups.size < 2) return
         activeDialog?.dismiss()
-        val selectedNodeIndices = mutableListOf(-1, -1) 
+        val selectedNodeIndices = mutableListOf(-1, -1)
         val selectedGroupIndices = mutableListOf(-1, -1)
         val textColor = ColorHelper.getTextColor(this)
         val bgColor = ColorHelper.getBgColor(this)
@@ -700,9 +637,7 @@ class RelationsActivity : BaseActivity() {
             setHintTextColor(textColor and 0x80FFFFFF.toInt())
         }
         layout.addView(noteInput)
-        val scroll = ScrollView(this).apply {
-            addView(layout)
-        }
+        val scroll = ScrollView(this).apply { addView(layout) }
         activeDialog = AlertDialog.Builder(this)
             .setTitle(R.string.add_edge)
             .setView(scroll)
@@ -716,8 +651,8 @@ class RelationsActivity : BaseActivity() {
                 }
                 if (nodeIds.size + groupIds.size >= 2) {
                     val edge = RelationEdge(
-                        nodeIds = nodeIds, 
-                        groupIds = groupIds, 
+                        nodeIds = nodeIds,
+                        groupIds = groupIds,
                         tag = tagInput.text.toString(),
                         note = layout.findViewWithTag<EditText>("noteInput")?.text?.toString()
                     )
@@ -729,6 +664,7 @@ class RelationsActivity : BaseActivity() {
             .setNegativeButton(R.string.cancel, null)
             .show().also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
     }
+
     private fun showGroupsListDialog() {
         activeDialog?.dismiss()
         val options = mutableListOf(" + " + getString(R.string.action_new_group))
@@ -742,6 +678,7 @@ class RelationsActivity : BaseActivity() {
             .show()
             .also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
     }
+
     private fun showEditGroupDialog(group: RelationGroup) {
         activeDialog?.dismiss()
         val isNew = !relationsData.groups.contains(group)
@@ -754,66 +691,22 @@ class RelationsActivity : BaseActivity() {
             setText(group.name)
         }
         val textColor = ColorHelper.getTextColor(this)
-        val colors = intArrayOf(Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN, Color.LTGRAY)
+
         var selectedColor = group.color
-        val colorContainer = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
+        layout.addView(TextView(this).apply { text = getString(R.string.label_name_colon); setTextColor(textColor) })
+        layout.addView(nameInput)
+        layout.addView(TextView(this).apply { text = getString(R.string.label_color_colon); setTextColor(textColor); setPadding(0, 8.dpToPx(), 0, 0) })
+        val colorContainer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        layout.addView(HorizontalScrollView(this).apply { addView(colorContainer) })
+        DialogHelper.setupColorPicker(this, colorContainer, selectedColor) { color ->
+            selectedColor = color ?: Color.RED
         }
-        val scroll = HorizontalScrollView(this).apply {
-            addView(colorContainer)
-        }
-        fun updateDots() {
-            colorContainer.removeAllViews()
-            val dotSize = 36.dpToPx()
-            val margin = 8.dpToPx()
-            val activeColors = colors.toMutableList()
-            if (!activeColors.contains(selectedColor)) activeColors.add(selectedColor)
-            activeColors.forEach { color ->
-                val dot = View(this@RelationsActivity).apply {
-                    layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply { setMargins(0, 0, margin, 0) }
-                    background = GradientDrawable().apply {
-                        shape = GradientDrawable.OVAL
-                        setColor(color)
-                        if (color == selectedColor) {
-                            setStroke(3.dpToPx(), textColor)
-                        } else {
-                            setStroke(1.dpToPx(), Color.GRAY)
-                        }
-                    }
-                    setOnClickListener {
-                        selectedColor = color
-                        updateDots()
-                    }
-                }
-                colorContainer.addView(dot)
-            }
-            val customBtn = ImageButton(this@RelationsActivity).apply {
-                layoutParams = LinearLayout.LayoutParams(dotSize, dotSize)
-                setImageResource(android.R.drawable.ic_menu_edit)
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(Color.LTGRAY)
-                }
-                setOnClickListener {
-                    showCustomColorPickerDialog(selectedColor) { newColor ->
-                        selectedColor = newColor
-                        updateDots()
-                    }
-                }
-            }
-            colorContainer.addView(customBtn)
-        }
-        updateDots()
+
         val cbSnap = CheckBox(this).apply {
             text = getString(R.string.snap_members)
             isChecked = group.snapEnabled
             setTextColor(textColor)
         }
-        layout.addView(TextView(this).apply { text = getString(R.string.label_name_colon); setTextColor(textColor) })
-        layout.addView(nameInput)
-        layout.addView(TextView(this).apply { text = getString(R.string.label_color_colon); setTextColor(textColor); setPadding(0, 8.dpToPx(), 0, 0) })
-        layout.addView(scroll)
         layout.addView(cbSnap)
         layout.addView(TextView(this).apply {
             text = getString(R.string.label_linked_members)
@@ -833,9 +726,7 @@ class RelationsActivity : BaseActivity() {
             }
             layout.addView(cb)
         }
-        val scrollOuter = ScrollView(this).apply {
-            addView(layout)
-        }
+        val scrollOuter = ScrollView(this).apply { addView(layout) }
         activeDialog = AlertDialog.Builder(this)
             .setTitle(if (isNew) getString(R.string.new_group_bubble) else getString(R.string.edit_group_bubble))
             .setView(scrollOuter)
@@ -868,6 +759,7 @@ class RelationsActivity : BaseActivity() {
             .show()
             .also { ColorHelper.styleAlertDialog(it, this) }
     }
+
     private fun showManageNodeDialog(node: RelationNode) {
         activeDialog?.dismiss()
         val textColor = ColorHelper.getTextColor(this)
@@ -879,7 +771,6 @@ class RelationsActivity : BaseActivity() {
             setBackgroundColor(bgColor)
         }
 
-        // --- SECTIE 1: name/colour/label (Orbs) ---
         if (node.type == NodeType.RELATIONSHIP_ORB) {
             val nameEdit = EditText(this).apply {
                 setText(node.name)
@@ -896,8 +787,6 @@ class RelationsActivity : BaseActivity() {
                 })
             }
             container.addView(nameEdit)
-
-            // NOTES ON ORBS
             val orbNoteEdit = EditText(this).apply {
                 setText(node.note)
                 hint = "Note"
@@ -914,7 +803,6 @@ class RelationsActivity : BaseActivity() {
             }
             container.addView(orbNoteEdit)
 
-            // COLOURPICKER label
             container.addView(TextView(this).apply {
                 text = getString(R.string.label_color_colon)
                 setTextColor(textColor)
@@ -922,56 +810,14 @@ class RelationsActivity : BaseActivity() {
                 setTypeface(null, Typeface.BOLD)
             })
 
-            val colors = intArrayOf(Color.GRAY, Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW, Color.MAGENTA, Color.CYAN, Color.BLACK)
             val colorContainer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-            val colorScroll = HorizontalScrollView(this).apply { addView(colorContainer) }
-
-            fun updateColorDots() {
-                colorContainer.removeAllViews()
-                val dotSize = 36.dpToPx()
-                val margin = 8.dpToPx()
-                val activeColors = colors.toMutableList()
-                val currentColor = node.color ?: Color.GRAY
-                if (!activeColors.contains(currentColor)) activeColors.add(currentColor)
-
-                activeColors.forEach { color ->
-                    val dot = View(this@RelationsActivity).apply {
-                        layoutParams = LinearLayout.LayoutParams(dotSize, dotSize).apply { setMargins(0, 0, margin, 0) }
-                        background = GradientDrawable().apply {
-                            shape = GradientDrawable.OVAL
-                            setColor(color)
-                            if (color == currentColor) setStroke(3.dpToPx(), textColor)
-                            else setStroke(1.dpToPx(), Color.GRAY)
-                        }
-                        setOnClickListener {
-                            node.color = color
-                            updateColorDots()
-                            mapView.invalidate()
-                            saveData(silent = true)
-                        }
-                    }
-                    colorContainer.addView(dot)
-                }
-
-                val customBtn = ImageButton(this@RelationsActivity).apply {
-                    layoutParams = LinearLayout.LayoutParams(dotSize, dotSize)
-                    setImageResource(android.R.drawable.ic_menu_edit)
-                    background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.LTGRAY) }
-                    setOnClickListener {
-                        showCustomColorPickerDialog(node.color ?: Color.GRAY) { newColor ->
-                            node.color = newColor
-                            updateColorDots()
-                            mapView.invalidate()
-                            saveData(silent = true)
-                        }
-                    }
-                }
-                colorContainer.addView(customBtn)
+            container.addView(HorizontalScrollView(this).apply { addView(colorContainer) })
+            DialogHelper.setupColorPicker(this, colorContainer, node.color) { color ->
+                node.color = color ?: Color.GRAY
+                mapView.invalidate()
+                saveData(silent = true)
             }
-            updateColorDots()
-            container.addView(colorScroll)
 
-            // PICTURE label
             container.addView(TextView(this).apply {
                 text = getString(R.string.label_image_colon)
                 setTextColor(textColor)
@@ -986,7 +832,6 @@ class RelationsActivity : BaseActivity() {
                     topMargin = 8.dpToPx()
                 }
                 scaleType = ImageView.ScaleType.CENTER_CROP
-
                 fun refreshImage() {
                     if (node.imageUri != null) {
                         imageLoader.enqueue(coil.request.ImageRequest.Builder(this@RelationsActivity)
@@ -996,7 +841,6 @@ class RelationsActivity : BaseActivity() {
                     }
                 }
                 refreshImage()
-
                 setOnClickListener {
                     imagePickerCallback = { uri ->
                         node.imageUri = uri.toString()
@@ -1014,7 +858,6 @@ class RelationsActivity : BaseActivity() {
             container.addView(imgPreview)
         }
 
-        // --- SECTIE 2: GROUPS ---
         val titleGroups = TextView(this).apply {
             text = getString(R.string.action_manage_groups)
             textSize = 16f
@@ -1041,7 +884,6 @@ class RelationsActivity : BaseActivity() {
             container.addView(cb)
         }
 
-        // --- SECTIE 3: CONNECTIONS ---
         val titleConn = TextView(this).apply {
             text = getString(R.string.action_connections)
             textSize = 16f
@@ -1075,7 +917,6 @@ class RelationsActivity : BaseActivity() {
         val noteEdit = EditText(this).apply { hint = "Note"; setTextColor(textColor) }
         container.addView(tagEdit)
         container.addView(noteEdit)
-
         val btnAdd = Button(this).apply { text = getString(R.string.action_add) }
         container.addView(btnAdd)
 
@@ -1167,7 +1008,6 @@ class RelationsActivity : BaseActivity() {
             }
         }
 
-        // --- SECTIE 4: Delete ---
         var deleteClicks = 0
         val btnDeleteNode = Button(this).apply {
             text = "${getString(R.string.delete)} ${node.name} (8)"
@@ -1197,90 +1037,6 @@ class RelationsActivity : BaseActivity() {
             .show().also { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    private fun showCustomColorPickerDialog(currentColor: Int, onColorSelected: (Int) -> Unit) {
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val p = 16.dpToPx()
-            setPadding(p, p, p, p)
-        }
-        val hsv = FloatArray(3)
-        Color.colorToHSV(currentColor, hsv)
-        val preview = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 40.dpToPx()).apply {
-                bottomMargin = 8.dpToPx()
-            }
-            setBackgroundColor(currentColor)
-        }
-        container.addView(preview)
-        val hexInput = EditText(this).apply {
-            setText(String.format("#%06X", (0xFFFFFF and currentColor)))
-            hint = "#RRGGBB"
-            setSingleLine(true)
-        }
-        container.addView(hexInput)
-        val hueSeek = SeekBar(this).apply { max = 360; progress = hsv[0].toInt() }
-        val satSeek = SeekBar(this).apply { max = 100; progress = (hsv[1] * 100).toInt() }
-        val valSeek = SeekBar(this).apply { max = 100; progress = (hsv[2] * 100).toInt() }
-        val textColor = ColorHelper.getTextColor(this)
-        container.addView(TextView(this).apply { text = getString(R.string.label_hue); setTextColor(textColor) })
-        container.addView(hueSeek)
-        container.addView(TextView(this).apply { text = getString(R.string.label_saturation); setTextColor(textColor) })
-        container.addView(satSeek)
-        container.addView(TextView(this).apply { text = getString(R.string.label_brightness); setTextColor(textColor) })
-        container.addView(valSeek)
-        var isUpdating = false
-        val updatePreview = {
-            if (!isUpdating) {
-                isUpdating = true
-                try {
-                    val color = Color.HSVToColor(floatArrayOf(hueSeek.progress.toFloat(), satSeek.progress / 100f, valSeek.progress / 100f))
-                    preview.setBackgroundColor(color)
-                    hexInput.setText(String.format("#%06X", (0xFFFFFF and color)))
-                } catch (_: Exception) {}
-                isUpdating = false
-            }
-        }
-        val seekListener = object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) { if (p2) updatePreview() }
-            override fun onStartTrackingTouch(p0: SeekBar?) {}
-            override fun onStopTrackingTouch(p0: SeekBar?) {}
-        }
-        hueSeek.setOnSeekBarChangeListener(seekListener)
-        satSeek.setOnSeekBarChangeListener(seekListener)
-        valSeek.setOnSeekBarChangeListener(seekListener)
-        hexInput.addTextChangedListener(object : android.text.TextWatcher {
-            override fun afterTextChanged(s: android.text.Editable?) {
-                if (isUpdating) return
-                val str = s.toString()
-                if (str.length == 7 && str.startsWith("#")) {
-                    try {
-                        isUpdating = true
-                        val color = Color.parseColor(str)
-                        preview.setBackgroundColor(color)
-                        Color.colorToHSV(color, hsv)
-                        hueSeek.progress = hsv[0].toInt()
-                        satSeek.progress = (hsv[1] * 100).toInt()
-                        valSeek.progress = (hsv[2] * 100).toInt()
-                        isUpdating = false
-                    } catch (_: Exception) { isUpdating = false }
-                }
-            }
-            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
-            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
-        })
-        AlertDialog.Builder(this)
-            .setTitle(R.string.choose_color_hex)
-            .setView(container)
-            .setPositiveButton(R.string.save) { _, _ ->
-                try {
-                    val color = Color.HSVToColor(floatArrayOf(hueSeek.progress.toFloat(), satSeek.progress / 100f, valSeek.progress / 100f))
-                    onColorSelected(color)
-                } catch (_: Exception) {}
-            }
-            .setNegativeButton(R.string.cancel, null)
-            .show()
-            .also { ColorHelper.styleAlertDialog(it, this) }
-    }
     private fun exportToPdf() {
         val intent = android.content.Intent(android.content.Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(android.content.Intent.CATEGORY_OPENABLE)
@@ -1289,12 +1045,11 @@ class RelationsActivity : BaseActivity() {
         }
         startActivityForResult(intent, 1002)
     }
+
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == 1002 && resultCode == RESULT_OK) {
-            data?.data?.let { uri ->
-                PdfExportHelper.exportRelationsToPdf(this, uri, relationsData, mapView)
-            }
+            data?.data?.let { uri -> PdfExportHelper.exportRelationsToPdf(this, uri, relationsData, mapView) }
         } else if (requestCode == 1003 && resultCode == RESULT_OK) {
             data?.data?.let { uri ->
                 contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)

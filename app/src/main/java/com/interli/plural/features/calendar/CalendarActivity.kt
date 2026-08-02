@@ -38,6 +38,7 @@ class CalendarActivity : BaseActivity() {
     private var allTodoLists = mutableListOf<TodoList>()
     private var currentViewMode = 0 // 0: Agenda, 1: Day, 2: Week, 3: Month, 4: Year
     private var selectedDate = Calendar.getInstance()
+    private var isDialogShowing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -139,6 +140,8 @@ class CalendarActivity : BaseActivity() {
     }
 
     private fun showEditEventDialog(event: CalendarEvent?) {
+        if (isDialogShowing) return
+        isDialogShowing = true
         val view = layoutInflater.inflate(R.layout.dialog_edit_calendar_event, null)
         val etTitle = view.findViewById<EditText>(R.id.etEventTitle)
         val etLocation = view.findViewById<EditText>(R.id.etEventLocation)
@@ -151,6 +154,81 @@ class CalendarActivity : BaseActivity() {
         var startTime = event?.startTime ?: System.currentTimeMillis()
         var endTime = event?.endTime ?: (System.currentTimeMillis() + 3600000)
         var selectedReminderTime = event?.reminderTime
+        var selectedColor = event?.color
+        val selectedMemberIds = event?.linkedMemberIds?.toMutableList() ?: mutableListOf()
+        var selectedNoteId = event?.linkedNoteId
+        var selectedTodoListId = event?.linkedTodoListId
+
+        val colorContainer = view.findViewById<LinearLayout>(R.id.layoutEventColors)
+        val colorOptions = listOf(null, "#FF5252", "#FF4081", "#E040FB", "#7C4DFF", "#536DFE", "#448AFF", "#40C4FF", "#18FFFF", "#64FFDA", "#69F0AE", "#B2FF59", "#EEFF41", "#FFFF00", "#FFD740", "#FFAB40", "#FF6E40")
+        DialogHelper.setupColorPicker(this, colorContainer, selectedColor) { color ->
+            selectedColor = color
+        }
+
+        fun updateColorSelection() {
+            colorContainer.removeAllViews()
+            colorOptions.forEach { hex ->
+                val color = hex?.let { android.graphics.Color.parseColor(it) } ?: ColorHelper.getBtnColor(this)
+                val view = View(this).apply {
+                    val size = (32 * resources.displayMetrics.density).toInt()
+                    layoutParams = LinearLayout.LayoutParams(size, size).apply { marginEnd = (8 * resources.displayMetrics.density).toInt() }
+                    val drawable = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.OVAL
+                        setColor(color)
+                        if ((hex == null && selectedColor == null) || (hex != null && selectedColor == color)) {
+                            setStroke((3 * resources.displayMetrics.density).toInt(), android.graphics.Color.WHITE)
+                        }
+                    }
+                    background = drawable
+                    setOnClickListener { selectedColor = if (hex == null) null else color; updateColorSelection() }
+                }
+                colorContainer.addView(view)
+            }
+        }
+        updateColorSelection()
+
+        val tvMembers = view.findViewById<TextView>(R.id.tvLinkedMemberName)
+        val tvNote = view.findViewById<TextView>(R.id.tvLinkedNoteTitle)
+        val tvTodo = view.findViewById<TextView>(R.id.tvLinkedTodoTitle)
+
+        fun updateLinkTexts() {
+            tvMembers.text = if (selectedMemberIds.isEmpty()) "" else selectedMemberIds.mapNotNull { id -> people.find { it.id == id }?.name }.joinToString(", ")
+            tvMembers.visibility = if (tvMembers.text.isEmpty()) View.GONE else View.VISIBLE
+
+            tvNote.text = allNotes.find { it.id == selectedNoteId }?.title ?: ""
+            tvNote.visibility = if (tvNote.text.isEmpty()) View.GONE else View.VISIBLE
+
+            tvTodo.text = allTodoLists.find { it.id == selectedTodoListId }?.title ?: ""
+            tvTodo.visibility = if (tvTodo.text.isEmpty()) View.GONE else View.VISIBLE
+        }
+        updateLinkTexts()
+
+        view.findViewById<Button>(R.id.btnLinkMemberEvent).setOnClickListener {
+            val groups = try {
+                val json = getSharedPreferences("my_app", MODE_PRIVATE).getString("groups_list", "[]")
+                Gson().fromJson<List<com.interli.plural.Group>>(json, object : TypeToken<List<com.interli.plural.Group>>() {}.type)
+            } catch(_: Exception) { emptyList() }
+
+            DialogHelper.showMemberSelectionDialog(this, getString(R.string.select_member), people, groups, selectedMemberIds) { ids ->
+                selectedMemberIds.clear(); selectedMemberIds.addAll(ids); updateLinkTexts()
+            }
+        }
+
+        view.findViewById<Button>(R.id.btnLinkNoteEvent).setOnClickListener {
+            val titles = allNotes.map { it.title.ifEmpty { "Naamloze notitie" } }
+            DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_note), titles) { title ->
+                selectedNoteId = allNotes.find { it.title == title || (it.title.isEmpty() && title == "Naamloze notitie") }?.id
+                updateLinkTexts()
+            }
+        }
+
+        view.findViewById<Button>(R.id.btnLinkTodoEvent).setOnClickListener {
+            val titles = allTodoLists.map { it.title.ifEmpty { "To Do Lijst" } }
+            DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_todo), titles) { title ->
+                selectedTodoListId = allTodoLists.find { it.title == title || (it.title.isEmpty() && title == "To Do Lijst") }?.id
+                updateLinkTexts()
+            }
+        }
 
         val updateTimes = {
             val sdfD = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -172,7 +250,7 @@ class CalendarActivity : BaseActivity() {
                 }
             }
         }
-        (view.findViewById<LinearLayout>(R.id.layoutHideIn).parent as LinearLayout).addView(btnReminder, 8)
+        (view.findViewById<View>(R.id.layoutHideIn).parent as LinearLayout).addView(btnReminder, 8)
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(if (event == null) R.string.add_event else R.string.edit_event)
@@ -180,7 +258,7 @@ class CalendarActivity : BaseActivity() {
             .setPositiveButton(R.string.save) { _, _ ->
                 val title = etTitle.text.toString().trim()
                 if (title.isNotEmpty()) {
-                    val e = event ?: CalendarEvent(title = title, startTime = startTime, endTime = endTime).also { events.add(it) }
+                    val e = event ?: events.find { it.id == event?.id } ?: CalendarEvent(title = title, startTime = startTime, endTime = endTime).also { events.add(it) }
                     e.title = title
                     e.description = etDesc.text.toString()
                     e.location = etLocation.text.toString()
@@ -188,17 +266,27 @@ class CalendarActivity : BaseActivity() {
                     e.endTime = endTime
                     e.reminderTime = selectedReminderTime
                     e.isAllDay = view.findViewById<CheckBox>(R.id.cbAllDay).isChecked
+                    e.hideInOverview = view.findViewById<CheckBox>(R.id.cbHideAgenda).isChecked
+                    e.hideInDay = view.findViewById<CheckBox>(R.id.cbHideDay).isChecked
+                    e.hideInWeek = view.findViewById<CheckBox>(R.id.cbHideWeek).isChecked
+                    e.hideInMonth = view.findViewById<CheckBox>(R.id.cbHideMonth).isChecked
+                    e.hideInYear = view.findViewById<CheckBox>(R.id.cbHideYear).isChecked
                     saveData()
                     scheduleCalendarAlarm(e)
                     updateCalendarView()
                 }
             }
             .setNegativeButton(R.string.cancel, null)
+            .setOnDismissListener { isDialogShowing = false }
             .create()
 
         if (event != null) {
             etTitle.setText(event.title); etLocation.setText(event.location); etDesc.setText(event.description)
             view.findViewById<CheckBox>(R.id.cbHideAgenda).isChecked = event.hideInOverview
+            view.findViewById<CheckBox>(R.id.cbHideDay).isChecked = event.hideInDay
+            view.findViewById<CheckBox>(R.id.cbHideWeek).isChecked = event.hideInWeek
+            view.findViewById<CheckBox>(R.id.cbHideMonth).isChecked = event.hideInMonth
+            view.findViewById<CheckBox>(R.id.cbHideYear).isChecked = event.hideInYear
         }
 
         btnStartDate.setOnClickListener { showDatePicker(startTime) { startTime = it; updateTimes() } }
@@ -229,10 +317,72 @@ class CalendarActivity : BaseActivity() {
         } else (rv.adapter as? CalendarAgendaAdapter)?.updateData(agendaItems)
     }
 
-    private fun renderDayView(container: LinearLayout) { /*...*/ }
-    private fun renderWeekView(container: LinearLayout) { /*...*/ }
-    private fun renderMonthView(container: LinearLayout) { /*...*/ }
-    private fun renderYearView(container: LinearLayout) { /*...*/ }
+    private fun renderDayView(container: LinearLayout) {
+        container.removeAllViews()
+        val view = CalendarTimelineView(this)
+        container.addView(view)
+
+        val startOfDay = selectedDate.clone() as Calendar
+        startOfDay.set(Calendar.HOUR_OF_DAY, 0); startOfDay.set(Calendar.MINUTE, 0)
+        startOfDay.set(Calendar.SECOND, 0); startOfDay.set(Calendar.MILLISECOND, 0)
+        val endOfDay = startOfDay.timeInMillis + 24 * 3600 * 1000
+
+        val dayEvents = events.filter {
+            it.endTime >= startOfDay.timeInMillis && it.startTime <= endOfDay && !it.hideInDay
+        }
+
+        view.setEvents(dayEvents, people, allNotes, allTodoLists, selectedDate, 1)
+        view.onEventClicked = { showEditEventDialog(it) }
+    }
+
+    private fun renderWeekView(container: LinearLayout) {
+        container.removeAllViews()
+        val view = CalendarTimelineView(this)
+        container.addView(view)
+
+        val startOfWeek = selectedDate.clone() as Calendar
+        startOfWeek.set(Calendar.DAY_OF_WEEK, startOfWeek.firstDayOfWeek)
+        startOfWeek.set(Calendar.HOUR_OF_DAY, 0); startOfWeek.set(Calendar.MINUTE, 0)
+        startOfWeek.set(Calendar.SECOND, 0); startOfWeek.set(Calendar.MILLISECOND, 0)
+        val endOfWeek = startOfWeek.timeInMillis + 7L * 24 * 3600 * 1000
+
+        val weekEvents = events.filter {
+            it.endTime >= startOfWeek.timeInMillis && it.startTime <= endOfWeek && !it.hideInWeek
+        }
+
+        view.setEvents(weekEvents, people, allNotes, allTodoLists, selectedDate, 7)
+        view.onEventClicked = { showEditEventDialog(it) }
+    }
+    private fun renderMonthView(container: LinearLayout) {
+        container.removeAllViews()
+        val view = CalendarMonthView(this)
+        container.addView(view)
+
+        val monthEvents = events.filter { event -> !event.hideInMonth }
+        view.setEvents(monthEvents, people, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH))
+
+        view.onDayClicked = { day ->
+            selectedDate.set(Calendar.DAY_OF_MONTH, day)
+            currentViewMode = 1
+            findViewById<TabLayout>(R.id.calendarTabLayout).getTabAt(1)?.select()
+            updateCalendarView()
+        }
+    }
+    private fun renderYearView(container: LinearLayout) {
+        container.removeAllViews()
+        val view = CalendarYearView(this)
+        container.addView(view)
+
+        val yearEvents = events.filter { event -> !event.hideInYear }
+        view.setEvents(yearEvents, people, selectedDate.get(Calendar.YEAR))
+
+        view.onDayClicked = { date ->
+            selectedDate.time = date
+            currentViewMode = 1
+            findViewById<TabLayout>(R.id.calendarTabLayout).getTabAt(1)?.select()
+            updateCalendarView()
+        }
+    }
 
     private fun getExpandedEvents(start: Long, end: Long): List<CalendarEvent> {
         return events.filter { it.endTime >= start && it.startTime <= end }.sortedBy { it.startTime }

@@ -36,7 +36,6 @@ class CalendarTimelineView @JvmOverloads constructor(
     init {
         setOnTouchListener { v, event ->
             if (event.action == android.view.MotionEvent.ACTION_UP) {
-                v.performClick()
                 handleTouch(event.x, event.y)
             }
             true

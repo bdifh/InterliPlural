@@ -28,7 +28,6 @@ class CalendarMonthView @JvmOverloads constructor(
     init {
         setOnTouchListener { v, event ->
             if (event.action == android.view.MotionEvent.ACTION_UP) {
-                v.performClick()
                 dayRects.forEachIndexed { index, rect ->
                     if (rect.contains(event.x, event.y)) {
                         val day = index - getFirstDayOffset() + 1

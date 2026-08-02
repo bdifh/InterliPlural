@@ -75,6 +75,62 @@ object DialogHelper {
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, context)
     }
+
+    fun showCustomColorPickerDialog(context: Context, currentColor: Int, onColorSelected: (Int) -> Unit) {
+        val container = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val p = (16 * context.resources.displayMetrics.density).toInt()
+            setPadding(p, p, p, p)
+        }
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(currentColor, hsv)
+        val preview = View(context).apply {
+            layoutParams = LinearLayout.LayoutParams(-1, (40 * context.resources.displayMetrics.density).toInt()).apply { bottomMargin = 8 }
+            setBackgroundColor(currentColor)
+        }
+        container.addView(preview)
+        val hexInput = EditText(context).apply {
+            setText(String.format("#%06X", (0xFFFFFF and currentColor)))
+            setSingleLine(true)
+            setTextColor(ColorHelper.getTextColor(context))
+        }
+        container.addView(hexInput)
+        AlertDialog.Builder(context).setTitle(R.string.choose_color_hex).setView(container)
+            .setPositiveButton(R.string.save) { _, _ -> onColorSelected(android.graphics.Color.HSVToColor(hsv)) }
+            .show().also { ColorHelper.styleAlertDialog(it, context) }
+    }
+
+    fun setupColorPicker(context: Context, container: LinearLayout, initialColor: Int?, includeDefault: Boolean = true, onColorSelected: (Int?) -> Unit) {
+        val colorOptions = mutableListOf<String?>()
+        if (includeDefault) colorOptions.add(null)
+        colorOptions.addAll(listOf("#FF5252", "#FF4081", "#E040FB", "#7C4DFF", "#536DFE", "#448AFF", "#40C4FF", "#18FFFF", "#64FFDA", "#69F0AE", "#B2FF59", "#EEFF41", "#FFFF00", "#FFD740", "#FFAB40", "#FF6E40"))
+
+        var selectedColor = initialColor
+        fun refresh() {
+            container.removeAllViews()
+            colorOptions.forEach { hex ->
+                val color = hex?.let { android.graphics.Color.parseColor(it) } ?: ColorHelper.getBtnColor(context)
+                val dot = View(context).apply {
+                    val size = (32 * context.resources.displayMetrics.density).toInt()
+                    layoutParams = LinearLayout.LayoutParams(size, size).apply { marginEnd = 8 }
+                    background = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.OVAL
+                        setColor(color)
+                        if ((hex == null && selectedColor == null) || (hex != null && selectedColor == color)) {
+                            setStroke(3, android.graphics.Color.WHITE)
+                        }
+                    }
+                    setOnClickListener { selectedColor = if (hex == null) null else color; onColorSelected(selectedColor); refresh() }
+                }
+                container.addView(dot)
+            }
+            val customBtn = ImageButton(context).apply {
+            }
+            container.addView(customBtn)
+        }
+        refresh()
+    }
+
     fun showEditSessionDialog(
         context: Context,
         session: FrontSession,
