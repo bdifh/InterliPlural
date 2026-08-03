@@ -7,6 +7,11 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.widget.*
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.appcompat.app.AlertDialog
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -348,8 +353,18 @@ class MoodActivity : BaseActivity() {
                     chipStrokeColor = ColorStateList.valueOf(btnColor)
                     chipStrokeWidth = 1.dpToPx().toFloat()
                     setOnCheckedChangeListener { _, checked ->
-                        if (checked) selectedActivities.add(activity) else selectedActivities.remove(activity)
-                        renderActivityGroups(query)
+                        if (checked) {
+                            selectedActivities.add(activity)
+                            etActivitySearch.setText("")
+                        } else {
+                            selectedActivities.remove(activity)
+                            renderActivityGroups(query)
+                        }
+                    }
+
+                    setOnLongClickListener {
+                        showEditActivityDialog(group, activity)
+                        true
                     }
                 }
                 gridLayout.addView(chip, GridLayout.LayoutParams().apply {
@@ -375,10 +390,194 @@ class MoodActivity : BaseActivity() {
         }
     }
 
-    private fun showAddActivityDialog() { /* Originele logica voor toevoegen... */ }
-    private fun showManageGroupsDialog() { /* Originele logica voor beheer... */ }
-    private fun showNoteSelectionDialog() { /* Originele logica voor notities... */ }
-    private fun showTodoSelectionDialog() { /* Originele logica voor todo... */ }
+    private fun showAddActivityDialog() {
+        val groups = loadActivityGroups()
+        if (groups.isEmpty()) {
+            Toast.makeText(this, R.string.create_groups_first, Toast.LENGTH_SHORT).show()
+            showManageGroupsDialog()
+            return
+        }
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24.dpToPx(), 16.dpToPx(), 24.dpToPx(), 16.dpToPx())
+        }
+
+        val etName = EditText(this).apply {
+            hint = getString(R.string.hint_activity_name)
+            setTextColor(ColorHelper.getTextColor(this@MoodActivity))
+        }
+        container.addView(etName)
+
+        val tvGroupLabel = TextView(this).apply {
+            text = "\n" + getString(R.string.label_select_group)
+            setTextColor(ColorHelper.getTextColor(this@MoodActivity))
+        }
+        container.addView(tvGroupLabel)
+
+        val groupNames = groups.map { it.name }
+        val spinner = Spinner(this).apply {
+            adapter = ArrayAdapter(this@MoodActivity, android.R.layout.simple_spinner_dropdown_item, groupNames)
+        }
+        container.addView(spinner)
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_add_activity)
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val name = etName.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    val selectedGroup = groups[spinner.selectedItemPosition]
+                    selectedGroup.activityNames.add(name)
+                    saveActivityGroups(groups)
+                    renderActivityGroups()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show().also { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun showManageGroupsDialog() {
+        val groups = loadActivityGroups()
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_member_selection, null)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.label_groups)
+            .setView(view)
+            .setPositiveButton(R.string.done) { _, _ -> renderActivityGroups() }
+            .create()
+
+        view.findViewById<Button>(R.id.btnSelectEveryone).apply {
+            text = getString(R.string.action_new_group)
+            visibility = View.VISIBLE
+            setOnClickListener {
+                showEditGroupDialog(null) {
+                    dialog.dismiss()
+                    showManageGroupsDialog()
+                }
+            }
+        }
+        view.findViewById<EditText>(R.id.etSearch).visibility = View.GONE
+
+        val rv = view.findViewById<RecyclerView>(R.id.rvMembers)
+        rv.layoutManager = LinearLayoutManager(this)
+        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val v = LayoutInflater.from(this@MoodActivity).inflate(R.layout.item_member_selection, parent, false)
+                return object : RecyclerView.ViewHolder(v) {}
+            }
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                val group = groups[position]
+                holder.itemView.findViewById<TextView>(R.id.tvName).apply {
+                    text = group.name
+                    setTextColor(ColorHelper.getTextColor(this@MoodActivity))
+                }
+                holder.itemView.findViewById<CheckBox>(R.id.checkBox).visibility = View.GONE
+                holder.itemView.setOnClickListener {
+                    showEditGroupDialog(group) {
+                        dialog.dismiss()
+                        showManageGroupsDialog()
+                    }
+                }
+            }
+            override fun getItemCount() = groups.size
+        }
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun showEditGroupDialog(group: ActivityGroup?, onUpdate: () -> Unit) {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24.dpToPx(), 16.dpToPx(), 24.dpToPx(), 16.dpToPx())
+        }
+
+        val etName = EditText(this).apply {
+            setText(group?.name ?: "")
+            hint = getString(R.string.hint_group_name)
+            setTextColor(ColorHelper.getTextColor(this@MoodActivity))
+        }
+        container.addView(etName)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(if (group == null) R.string.dialog_new_group_title else R.string.dialog_edit_group_title)
+            .setView(container)
+            .setPositiveButton(R.string.save, null)
+            .setNegativeButton(R.string.cancel, null)
+            .apply {
+                if (group != null) {
+                    setNeutralButton(R.string.delete, null)
+                }
+            }
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val name = etName.text.toString().trim()
+                if (name.isEmpty()) return@setOnClickListener
+
+                val groups = loadActivityGroups()
+                if (group == null) {
+                    groups.add(ActivityGroup(name = name))
+                } else {
+                    groups.find { it.id == group.id }?.name = name
+                }
+                saveActivityGroups(groups)
+                onUpdate()
+                dialog.dismiss()
+            }
+
+            if (group != null) {
+                var deleteClicks = 0
+                val btnDelete = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+                btnDelete.setOnClickListener {
+                    deleteClicks++
+                    if (deleteClicks >= 8) {
+                        val groups = loadActivityGroups()
+                        groups.removeAll { it.id == group.id }
+                        saveActivityGroups(groups)
+                        onUpdate()
+                        dialog.dismiss()
+                    } else {
+                        btnDelete.text = getString(R.string.delete_group_8x, 8 - deleteClicks)
+                    }
+                }
+            }
+        }
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun showNoteSelectionDialog() {
+        val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
+        val notesJson = prefs.getString("diary_notes", "[]") ?: "[]"
+        val allNotes: List<DiaryNote> = gson.fromJson(notesJson, object : TypeToken<List<DiaryNote>>() {}.type) ?: emptyList()
+        val noteTitles = allNotes.map { it.title }
+
+        DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_note), noteTitles) { selectedTitle ->
+            val note = allNotes.find { it.title == selectedTitle }
+            selectedNoteId = note?.id
+            updateLinkedItemsText()
+        }
+    }
+
+    private fun showTodoSelectionDialog() {
+        val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
+        val todoJson = prefs.getString("todo_lists", "[]") ?: "[]"
+        val allTodos: List<TodoList> = gson.fromJson(todoJson, object : TypeToken<List<TodoList>>() {}.type) ?: emptyList()
+        val todoTitles = allTodos.map { it.title }
+
+        DialogHelper.showSearchableListDialog(this, getString(R.string.action_link_todo), todoTitles) { selectedTitle ->
+            val todo = allTodos.find { it.title == selectedTitle }
+            selectedTodoId = todo?.id
+            updateLinkedItemsText()
+        }
+    }
+
+    private fun saveActivityGroups(groups: List<ActivityGroup>) {
+        getSharedPreferences("my_app", MODE_PRIVATE).edit().putString("activity_groups", gson.toJson(groups)).apply()
+    }
 
     private fun saveMood() {
         val emoji = selectedEmoji ?: run { Toast.makeText(this, "Please select a mood", Toast.LENGTH_SHORT).show(); return }
@@ -421,4 +620,67 @@ class MoodActivity : BaseActivity() {
     }
 
     private fun Int.dpToPx() = (this * resources.displayMetrics.density).toInt()
+
+    private fun showEditActivityDialog(group: ActivityGroup, activity: String) {
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(24.dpToPx(), 16.dpToPx(), 24.dpToPx(), 16.dpToPx())
+        }
+
+        val etName = EditText(this).apply {
+            setText(activity)
+            hint = getString(R.string.hint_activity_name)
+            setTextColor(ColorHelper.getTextColor(this@MoodActivity))
+        }
+        container.addView(etName)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_edit_activity)
+            .setView(container)
+            .setPositiveButton(R.string.save, null)
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.delete, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val newName = etName.text.toString().trim()
+                if (newName.isEmpty()) return@setOnClickListener
+
+                val groups = loadActivityGroups()
+                val targetGroup = groups.find { it.id == group.id }
+                if (targetGroup != null) {
+                    val index = targetGroup.activityNames.indexOf(activity)
+                    if (index != -1) {
+                        targetGroup.activityNames[index] = newName
+                        if (selectedActivities.remove(activity)) {
+                            selectedActivities.add(newName)
+                        }
+                        saveActivityGroups(groups)
+                        renderActivityGroups(etActivitySearch.text.toString())
+                    }
+                }
+                dialog.dismiss()
+            }
+
+            var deleteClicks = 0
+            val btnDelete = dialog.getButton(AlertDialog.BUTTON_NEUTRAL)
+            btnDelete.setOnClickListener {
+                deleteClicks++
+                if (deleteClicks >= 8) {
+                    val groups = loadActivityGroups()
+                    val targetGroup = groups.find { it.id == group.id }
+                    targetGroup?.activityNames?.remove(activity)
+                    selectedActivities.remove(activity)
+                    saveActivityGroups(groups)
+                    renderActivityGroups(etActivitySearch.text.toString())
+                    dialog.dismiss()
+                } else {
+                    btnDelete.text = getString(R.string.delete_activity_8x, 8 - deleteClicks)
+                }
+            }
+        }
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
 }

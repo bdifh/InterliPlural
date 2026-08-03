@@ -11,7 +11,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
-import com.interli.plural.core.ColorHelper
 import com.interli.plural.core.SilentUi
 import com.interli.plural.features.member.MemberHelper
 import com.interli.plural.FrontSession
@@ -73,7 +72,7 @@ object DialogHelper {
             }
         }
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, context)
+        ColorHelper.styleAlertDialog(dialog, context)
     }
 
     fun showCustomColorPickerDialog(context: Context, currentColor: Int, onColorSelected: (Int) -> Unit) {
@@ -84,26 +83,95 @@ object DialogHelper {
         }
         val hsv = FloatArray(3)
         android.graphics.Color.colorToHSV(currentColor, hsv)
+
         val preview = View(context).apply {
             layoutParams = LinearLayout.LayoutParams(-1, (40 * context.resources.displayMetrics.density).toInt()).apply { bottomMargin = 8 }
             setBackgroundColor(currentColor)
         }
         container.addView(preview)
+
         val hexInput = EditText(context).apply {
             setText(String.format("#%06X", (0xFFFFFF and currentColor)))
-            setSingleLine(true)
+            isSingleLine = true
             setTextColor(ColorHelper.getTextColor(context))
         }
         container.addView(hexInput)
+
+        var isUpdating = false
+        fun updateFromHsv() {
+            if (isUpdating) return
+            isUpdating = true
+            val color = android.graphics.Color.HSVToColor(hsv)
+            preview.setBackgroundColor(color)
+            hexInput.setText(String.format("#%06X", (0xFFFFFF and color)))
+            isUpdating = false
+        }
+
+        fun createSlider(labelRes: Int, maxValue: Int, initialValue: Int, onProgressChanged: (Int) -> Unit): SeekBar {
+            val tv = TextView(context).apply {
+                text = context.getString(labelRes)
+                setTextColor(ColorHelper.getTextColor(context))
+                setPadding(0, 16, 0, 0)
+            }
+            container.addView(tv)
+            val sb = SeekBar(context).apply {
+                max = maxValue
+                progress = initialValue
+                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
+                        if (p2) {
+                            onProgressChanged(p1)
+                            updateFromHsv()
+                        }
+                    }
+                    override fun onStartTrackingTouch(p0: SeekBar?) {}
+                    override fun onStopTrackingTouch(p0: SeekBar?) {}
+                })
+            }
+            container.addView(sb)
+            return sb
+        }
+
+        val sbHue = createSlider(R.string.label_hue, 360, hsv[0].toInt()) { hsv[0] = it.toFloat() }
+        val sbSat = createSlider(R.string.label_saturation, 100, (hsv[1] * 100).toInt()) { hsv[1] = it.toFloat() / 100f }
+        val sbVal = createSlider(R.string.label_brightness, 100, (hsv[2] * 100).toInt()) { hsv[2] = it.toFloat() / 100f }
+
+        hexInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {
+                if (isUpdating) return
+                try {
+                    val color = android.graphics.Color.parseColor(s.toString())
+                    preview.setBackgroundColor(color)
+                    android.graphics.Color.colorToHSV(color, hsv)
+                    isUpdating = true
+                    sbHue.progress = hsv[0].toInt()
+                    sbSat.progress = (hsv[1] * 100).toInt()
+                    sbVal.progress = (hsv[2] * 100).toInt()
+                    isUpdating = false
+                } catch (_: Exception) {}
+            }
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            override fun onTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+        })
+
         AlertDialog.Builder(context).setTitle(R.string.choose_color_hex).setView(container)
-            .setPositiveButton(R.string.save) { _, _ -> onColorSelected(android.graphics.Color.HSVToColor(hsv)) }
+            .setPositiveButton(R.string.save) { _, _ ->
+                try {
+                    val color = android.graphics.Color.parseColor(hexInput.text.toString())
+                    onColorSelected(color)
+                } catch (_: Exception) {
+                    Toast.makeText(context, R.string.invalid_color_code, Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
             .show().also { ColorHelper.styleAlertDialog(it, context) }
     }
 
     fun setupColorPicker(context: Context, container: LinearLayout, initialColor: Int?, includeDefault: Boolean = true, onColorSelected: (Int?) -> Unit) {
+        val colorPresets = listOf("#FF5252", "#FF4081", "#E040FB", "#7C4DFF", "#536DFE", "#448AFF", "#40C4FF", "#18FFFF", "#64FFDA", "#69F0AE", "#B2FF59", "#EEFF41", "#FFFF00", "#FFD740", "#FFAB40", "#FF6E40")
         val colorOptions = mutableListOf<String?>()
         if (includeDefault) colorOptions.add(null)
-        colorOptions.addAll(listOf("#FF5252", "#FF4081", "#E040FB", "#7C4DFF", "#536DFE", "#448AFF", "#40C4FF", "#18FFFF", "#64FFDA", "#69F0AE", "#B2FF59", "#EEFF41", "#FFFF00", "#FFD740", "#FFAB40", "#FF6E40"))
+        colorOptions.addAll(colorPresets)
 
         var selectedColor = initialColor
         fun refresh() {
@@ -120,11 +188,35 @@ object DialogHelper {
                             setStroke(3, android.graphics.Color.WHITE)
                         }
                     }
-                    setOnClickListener { selectedColor = if (hex == null) null else color; onColorSelected(selectedColor); refresh() }
+                    setOnClickListener {
+                        selectedColor = if (hex == null) null else color
+                        onColorSelected(selectedColor)
+                        refresh()
+                    }
                 }
                 container.addView(dot)
             }
+
             val customBtn = ImageButton(context).apply {
+                val size = (32 * context.resources.displayMetrics.density).toInt()
+                layoutParams = LinearLayout.LayoutParams(size, size)
+                setImageResource(android.R.drawable.ic_menu_edit)
+                scaleType = ImageView.ScaleType.CENTER_INSIDE
+
+                val isPreset = selectedColor == null || colorPresets.any { android.graphics.Color.parseColor(it) == selectedColor }
+
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(if (!isPreset) selectedColor!! else android.graphics.Color.LTGRAY)
+                    if (!isPreset) setStroke(4, android.graphics.Color.WHITE)
+                }
+                setOnClickListener {
+                    showCustomColorPickerDialog(context, selectedColor ?: ColorHelper.getBtnColor(context)) { color ->
+                        selectedColor = color
+                        onColorSelected(color)
+                        refresh()
+                    }
+                }
             }
             container.addView(customBtn)
         }
@@ -298,7 +390,7 @@ object DialogHelper {
             }
         }
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, context)
+        ColorHelper.styleAlertDialog(dialog, context)
     }
     private fun showDatePicker(context: Context, cal: Calendar, onSelected: (Calendar) -> Unit) {
         val dialog = DatePickerDialog(context, { _, year, month, day ->
@@ -344,7 +436,7 @@ object DialogHelper {
     }
     fun showArchivedMembersDialog(context: Context, onDataChanged: () -> Unit) {
         val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
-        val gson = com.google.gson.Gson()
+        val gson = Gson()
         val people = MemberHelper.loadAllPeople(context)
         val archived = people.filter { it.isArchived }
         if (archived.isEmpty()) {
@@ -352,11 +444,11 @@ object DialogHelper {
             return
         }
         val names = archived.map { it.name }.toTypedArray()
-        androidx.appcompat.app.AlertDialog.Builder(context)
+        AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.archived_members))
             .setItems(names) { _, which ->
                 val person = archived[which]
-                androidx.appcompat.app.AlertDialog.Builder(context)
+                AlertDialog.Builder(context)
                     .setTitle(person.name)
                     .setMessage(context.getString(R.string.unarchive_member) + "?")
                     .setPositiveButton(context.getString(R.string.yes)) { _, _ ->
@@ -369,11 +461,11 @@ object DialogHelper {
                     }
                     .setNegativeButton(context.getString(R.string.cancel), null)
                     .show()
-                    .let { ColorHelper.styleSupportAlertDialog(it, context) }
+                    .let { ColorHelper.styleAlertDialog(it, context) }
             }
             .setNegativeButton(context.getString(R.string.close), null)
             .show()
-            .let { ColorHelper.styleSupportAlertDialog(it, context) }
+            .let { ColorHelper.styleAlertDialog(it, context) }
     }
     fun showMemberSelectionDialog(
         context: Context,
@@ -425,7 +517,7 @@ object DialogHelper {
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, context)
+        ColorHelper.styleAlertDialog(dialog, context)
         val textColor = ColorHelper.getTextColor(context)
         etSearch.setTextColor(textColor)
         etSearch.setHintTextColor(textColor and 0x88FFFFFF.toInt())
@@ -509,7 +601,7 @@ object DialogHelper {
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, context)
+        ColorHelper.styleAlertDialog(dialog, context)
         val textColor = ColorHelper.getTextColor(context)
         etSearch.setTextColor(textColor)
         etSearch.setHintTextColor(textColor and 0x88FFFFFF.toInt())
@@ -566,7 +658,7 @@ object DialogHelper {
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
         dialog.show()
-        ColorHelper.styleSupportAlertDialog(dialog, context)
+        ColorHelper.styleAlertDialog(dialog, context)
         val textColor = ColorHelper.getTextColor(context)
         etSearch.setTextColor(textColor)
         etSearch.setHintTextColor(textColor and 0x88FFFFFF.toInt())

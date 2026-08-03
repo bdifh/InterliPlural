@@ -64,12 +64,15 @@ object BackupHelper {
         val exportRelations = exportAll || selections!![4]
         val exportSettings = exportAll || selections!![5]
         val exportImages = exportAll || selections!![6]
+        val exportCalendar = exportAll || (selections != null && selections.size > 7 && selections[7])
+
 
         val frontKeys = listOf("people_list", "sysmedia_people_list", "groups_list", "sessions_list", "last_fronter_name", "current_fronters")
         val moodKeys = listOf("mood_entries", "mood_color_1", "mood_color_2", "mood_color_3", "mood_color_4", "mood_color_5", "activity_groups")
         val notesKeys = listOf("diary_notes", "diary_bundles", "sysmedia_posts", "sysmedia_notifications", "sysmedia_dms", "sysmedia_chat_groups")
         val todoKeys = listOf("todo_lists", "todo_bundles")
         val relationsKeys = listOf("relations_environments", "relations_data")
+        val calendarKeys = listOf("calendar_events")
 
         dataPrefs.all.forEach { (k, v) ->
             val shouldExport = when {
@@ -78,6 +81,7 @@ object BackupHelper {
                 notesKeys.contains(k) -> exportNotes
                 todoKeys.contains(k) -> exportTodo
                 relationsKeys.contains(k) -> exportRelations
+                calendarKeys.contains(k) -> exportCalendar
                 else -> exportAll
             }
 

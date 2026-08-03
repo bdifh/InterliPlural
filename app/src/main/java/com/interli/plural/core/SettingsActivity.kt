@@ -868,9 +868,10 @@ private var pendingPdfSelections: BooleanArray? = null
             getString(R.string.export_mood_data),
             getString(R.string.export_notes_data),
             getString(R.string.export_todo_data),
-            getString(R.string.module_relations)
+            getString(R.string.module_relations),
+            getString(R.string.calendar)
         )
-        val selected = booleanArrayOf(true, true, true, true, true)
+        val selected = booleanArrayOf(true, true, true, true, true, true)
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24.dpToPx(), 16.dpToPx(), 24.dpToPx(), 8.dpToPx())
@@ -2356,9 +2357,10 @@ private var pendingPdfSelections: BooleanArray? = null
             getString(R.string.export_todo_data),
             getString(R.string.module_relations),
             getString(R.string.settings),
-            getString(R.string.export_images)
+            getString(R.string.export_images),
+            getString(R.string.export_calendar_events)
         )
-        val selected = booleanArrayOf(true, true, true, true, true, true, true)
+        val selected = booleanArrayOf(true, true, true, true, true, true, true, true)
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.action_export)

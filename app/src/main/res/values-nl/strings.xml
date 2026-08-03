@@ -505,4 +505,5 @@
     <string name="label_set_reminder">Herinnering instellen</string>
     <string name="reminder_none">Geen herinnering</string>
     <string name="reminder_at_start">Bij aanvang</string>
+    <string name="export_calendar_events">Agenda</string>
 </resources>

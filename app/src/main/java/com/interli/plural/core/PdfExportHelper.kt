@@ -118,6 +118,7 @@ object PdfExportHelper {
                 val headerPaint = TextPaint().apply { textSize = 16f; isFakeBoldText = true; color = android.graphics.Color.BLACK }
                 val textPaint = TextPaint().apply { textSize = 11f; color = android.graphics.Color.BLACK }
                 val sdf = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault())
+
                 fun startNewPage() {
                     doc.finishPage(page)
                     pageCount++
@@ -126,6 +127,7 @@ object PdfExportHelper {
                     canvas = page.canvas
                     currentY = MARGIN
                 }
+
                 fun drawText(text: String, paint: TextPaint, spacing: Float = 10f) {
                     val layout = createStaticLayout(text, paint, PAGE_WIDTH - 2 * MARGIN.toInt())
                     var currentLine = 0
@@ -142,12 +144,7 @@ object PdfExportHelper {
                             }
                         }
                         if (linesThatFit == 0) {
-                            doc.finishPage(page)
-                            pageCount++
-                            pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageCount).create()
-                            page = doc.startPage(pageInfo)
-                            canvas = page.canvas
-                            currentY = MARGIN
+                            startNewPage()
                             continue
                         }
                         val startLineTop = layout.getLineTop(currentLine)
@@ -157,139 +154,134 @@ object PdfExportHelper {
                         currentY += heightToDraw
                         currentLine += linesThatFit
                         if (currentLine < layout.lineCount) {
-                            doc.finishPage(page)
-                            pageCount++
-                            pageInfo = PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageCount).create()
-                            page = doc.startPage(pageInfo)
-                            canvas = page.canvas
-                            currentY = MARGIN
+                            startNewPage()
                         }
                     }
                     currentY += spacing
                 }
-                // Main Title
-                drawText("Interli Plural - Data Export", titlePaint, 20f)
-                drawText("Export Date: ${sdf.format(Date())}", textPaint, 30f)
+
+                // 1. Hoofdtitels en Periode
+                drawText("${context.getString(R.string.app_name)} - Data Export", titlePaint, 15f)
+                drawText("Export Date: ${sdf.format(Date())}", textPaint, 10f)
+
+                val effectiveStart = startDate ?: 0L
+                val effectiveEnd = endDate ?: Long.MAX_VALUE
+
+                if (startDate != null || endDate != null) {
+                    val startStr = startDate?.let { sdf.format(Date(it)) } ?: context.getString(R.string.period_all_time)
+                    val endStr = endDate?.let { sdf.format(Date(it)) } ?: context.getString(R.string.currently_active)
+                    drawText("${context.getString(R.string.stats_period)} $startStr ${context.getString(R.string.to_date)} $endStr", textPaint, 30f)
+                } else {
+                    drawText("${context.getString(R.string.stats_period)} ${context.getString(R.string.period_all_time)}", textPaint, 30f)
+                }
+
                 val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
                 val gson = Gson()
                 val people = MemberHelper.loadAllPeople(context)
-                val effectiveStart = startDate ?: 0L
-                val effectiveEnd = endDate ?: Long.MAX_VALUE
-                // Main Title
-                drawText("Interli Plural - Data Export", titlePaint, 20f)
-                drawText("Export Date: ${sdf.format(Date())}", textPaint, 10f)
-                if (startDate != null || endDate != null) {
-                    val startStr = startDate?.let { sdf.format(Date(it)) } ?: "Beginning"
-                    val endStr = endDate?.let { sdf.format(Date(it)) } ?: "Present"
-                    drawText("Period: $startStr to $endStr", textPaint, 30f)
-                } else {
-                    drawText("Period: All-time", textPaint, 30f)
-                }
-                // 1. Members
-                drawText("Members", headerPaint, 15f)
-                people.forEach { person ->
-                    drawText("- ${person.name} (ID: ${person.id})", textPaint, 5f)
-                }
-                currentY += 20f
-                // 2. Fronting Data
+
+                // 2. Members
                 if (selections[0]) {
-                    startNewPage()
-                    drawText("Fronting History", headerPaint, 15f)
-                    val sessionsJson = sharedPref.getString("sessions_list", "[]")
-                    val allSessions: List<FrontSession> = gson.fromJson(sessionsJson, object : TypeToken<List<FrontSession>>() {}.type) ?: emptyList()
-                    val sessions = allSessions.filter { 
-                        (it.endTime ?: System.currentTimeMillis()) >= effectiveStart && it.startTime <= effectiveEnd
-                    }
-                    // Draw Chart
-                    val chart = TimelineChartView(context, null)
-                    chart.setData(sessions, people)
-                    val chartStart = if (startDate != null) startDate else (sessions.minOfOrNull { it.startTime } ?: (System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000))
-                    val chartEnd = if (endDate != null) endDate else (sessions.maxOfOrNull { it.endTime ?: System.currentTimeMillis() } ?: System.currentTimeMillis())
-                    chart.setExportRange(chartStart, chartEnd)
-                    val chartWidth = PAGE_WIDTH - 2 * MARGIN.toInt()
-                    val chartHeight = (chart.uniqueMembersSize() * 24f + 200f).coerceIn(200f, 600f)
-                    if (currentY + chartHeight > PAGE_HEIGHT - MARGIN) {
-                        startNewPage()
-                    }
-                    val chartBitmap = android.graphics.Bitmap.createBitmap(chartWidth.toInt(), chartHeight.toInt(), android.graphics.Bitmap.Config.ARGB_8888)
-                    val chartCanvas = android.graphics.Canvas(chartBitmap)
-                    chartCanvas.drawColor(android.graphics.Color.WHITE)
-                    chart.measure(android.view.View.MeasureSpec.makeMeasureSpec(chartWidth.toInt(), android.view.View.MeasureSpec.EXACTLY), 
-                                 android.view.View.MeasureSpec.makeMeasureSpec(chartHeight.toInt(), android.view.View.MeasureSpec.EXACTLY))
-                    chart.layout(0, 0, chartWidth.toInt(), chartHeight.toInt())
-                    chart.draw(chartCanvas)
-                    canvas.drawBitmap(chartBitmap, MARGIN, currentY, null)
-                    currentY += chartHeight + 20f
-                    sessions.reversed().take(500).forEach { session ->
-                        val start = sdf.format(Date(session.startTime))
-                        val end = session.endTime?.let { sdf.format(Date(it)) } ?: "Active"
-                        drawText("${session.personName}: $start to $end", textPaint, 3f)
+                    drawText(context.getString(R.string.front_page), headerPaint, 15f)
+                    people.forEach { person ->
+                        drawText("- ${person.name} (ID: ${person.id})", textPaint, 5f)
                     }
                     currentY += 20f
                 }
-                // 3. Mood Data
-                if (selections[1]) {
-                    startNewPage()
-                    drawText("Mood Data", headerPaint, 15f)
-                    val moodJson = sharedPref.getString("mood_entries", "[]")
-                    val allMoods: List<MoodActivity.MoodEntry> = gson.fromJson(moodJson, object : TypeToken<List<MoodActivity.MoodEntry>>() {}.type) ?: emptyList()
-                    val moods = allMoods.filter { it.timestamp in effectiveStart..effectiveEnd }
-                    // Draw Chart
-                    val chart = MoodChartView(context, null)
-                    chart.setData(moods, MoodChartView.Mode.TIMELINE)
-                    val chartStart = if (startDate != null) startDate else (moods.firstOrNull()?.timestamp ?: (System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000))
-                    val chartEnd = if (endDate != null) endDate else (moods.lastOrNull()?.timestamp ?: System.currentTimeMillis())
+
+                // 3. Fronting History
+                if (selections[0]) {
+                    if (currentY > PAGE_HEIGHT - 200) startNewPage()
+                    drawText(context.getString(R.string.timeline_front_title), headerPaint, 15f)
+                    val sessionsJson = sharedPref.getString("sessions_list", "[]")
+                    val allSessions: List<FrontSession> = gson.fromJson(sessionsJson, object : TypeToken<List<FrontSession>>() {}.type) ?: emptyList()
+                    val sessions = allSessions.filter { (it.endTime ?: System.currentTimeMillis()) >= effectiveStart && it.startTime <= effectiveEnd }
+
+                    // Grafiek tekenen...
+                    val chart = TimelineChartView(context, null)
+                    chart.setData(sessions, people)
+                    val chartStart = startDate ?: (sessions.minOfOrNull { it.startTime } ?: (System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000))
+                    val chartEnd = endDate ?: (sessions.maxOfOrNull { it.endTime ?: System.currentTimeMillis() } ?: System.currentTimeMillis())
                     chart.setExportRange(chartStart, chartEnd)
                     val chartWidth = PAGE_WIDTH - 2 * MARGIN.toInt()
-                    val chartHeight = 300f
-                    if (currentY + chartHeight > PAGE_HEIGHT - MARGIN) {
-                        startNewPage()
-                    }
+                    val chartHeight = (chart.uniqueMembersSize() * 24f + 200f).coerceIn(200f, 600f)
+
+                    if (currentY + chartHeight > PAGE_HEIGHT - MARGIN) startNewPage()
                     val chartBitmap = android.graphics.Bitmap.createBitmap(chartWidth.toInt(), chartHeight.toInt(), android.graphics.Bitmap.Config.ARGB_8888)
                     val chartCanvas = android.graphics.Canvas(chartBitmap)
                     chartCanvas.drawColor(android.graphics.Color.WHITE)
-                    chart.measure(android.view.View.MeasureSpec.makeMeasureSpec(chartWidth.toInt(), android.view.View.MeasureSpec.EXACTLY), 
-                                 android.view.View.MeasureSpec.makeMeasureSpec(chartHeight.toInt(), android.view.View.MeasureSpec.EXACTLY))
+                    chart.measure(android.view.View.MeasureSpec.makeMeasureSpec(chartWidth.toInt(), android.view.View.MeasureSpec.EXACTLY),
+                        android.view.View.MeasureSpec.makeMeasureSpec(chartHeight.toInt(), android.view.View.MeasureSpec.EXACTLY))
                     chart.layout(0, 0, chartWidth.toInt(), chartHeight.toInt())
                     chart.draw(chartCanvas)
                     canvas.drawBitmap(chartBitmap, MARGIN, currentY, null)
                     currentY += chartHeight + 20f
+
+                    sessions.reversed().take(500).forEach { session ->
+                        val start = sdf.format(Date(session.startTime))
+                        val end = session.endTime?.let { sdf.format(Date(it)) } ?: context.getString(R.string.currently_active)
+                        drawText("${session.personName}: $start to $end", textPaint, 3f)
+                    }
+                }
+
+                // 4. Mood Data
+                if (selections[1]) {
+                    startNewPage()
+                    drawText(context.getString(R.string.mood_tracker), headerPaint, 15f)
+                    val moodJson = sharedPref.getString("mood_entries", "[]")
+                    val allMoods: List<MoodActivity.MoodEntry> = gson.fromJson(moodJson, object : TypeToken<List<MoodActivity.MoodEntry>>() {}.type) ?: emptyList()
+                    val moods = allMoods.filter { it.timestamp in effectiveStart..effectiveEnd }
+
+                    val chart = MoodChartView(context, null)
+                    chart.setData(moods, MoodChartView.Mode.TIMELINE)
+                    val chartStart = startDate ?: (moods.firstOrNull()?.timestamp ?: (System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000))
+                    val chartEnd = endDate ?: (moods.lastOrNull()?.timestamp ?: System.currentTimeMillis())
+                    chart.setExportRange(chartStart, chartEnd)
+                    val chartWidth = PAGE_WIDTH - 2 * MARGIN.toInt()
+                    val chartHeight = 300f
+
+                    if (currentY + chartHeight > PAGE_HEIGHT - MARGIN) startNewPage()
+                    val chartBitmap = android.graphics.Bitmap.createBitmap(chartWidth.toInt(), chartHeight.toInt(), android.graphics.Bitmap.Config.ARGB_8888)
+                    val chartCanvas = android.graphics.Canvas(chartBitmap)
+                    chartCanvas.drawColor(android.graphics.Color.WHITE)
+                    chart.measure(android.view.View.MeasureSpec.makeMeasureSpec(chartWidth.toInt(), android.view.View.MeasureSpec.EXACTLY),
+                        android.view.View.MeasureSpec.makeMeasureSpec(chartHeight.toInt(), android.view.View.MeasureSpec.EXACTLY))
+                    chart.layout(0, 0, chartWidth.toInt(), chartHeight.toInt())
+                    chart.draw(chartCanvas)
+                    canvas.drawBitmap(chartBitmap, MARGIN, currentY, null)
+                    currentY += chartHeight + 20f
+
                     moods.reversed().take(500).forEach { mood ->
                         val time = sdf.format(Date(mood.timestamp))
                         val memberNames = mood.memberIds.mapNotNull { id -> people.find { it.id == id && !it.isArchived }?.name }
                         val membersStr = if (memberNames.isNotEmpty()) " - ${memberNames.joinToString(", ")}" else ""
                         drawText("[$time] ${mood.moodEmoji} ${mood.moodLabel}$membersStr", textPaint, 2f)
-                        if (mood.note.isNotEmpty()) {
-                            drawText("  Note: ${mood.note}", textPaint, 5f)
-                        } else {
-                            currentY += 3f
-                        }
+                        if (mood.note.isNotEmpty()) drawText("  ${context.getString(R.string.note)}: ${mood.note}", textPaint, 5f)
                     }
-                    currentY += 20f
                 }
-                // 4. Notes
+
+                // 5. Notes
                 if (selections[2]) {
                     startNewPage()
-                    drawText("Diary Notes", headerPaint, 15f)
+                    drawText(context.getString(R.string.diary), headerPaint, 15f)
                     val notesJson = sharedPref.getString("diary_notes", "[]")
                     val allNotes: List<DiaryNote> = gson.fromJson(notesJson, object : TypeToken<List<DiaryNote>>() {}.type) ?: emptyList()
                     val notes = allNotes.filter { it.timestamp in effectiveStart..effectiveEnd }
                     notes.reversed().forEach { note ->
-                        drawText("Title: ${note.title}", headerPaint, 5f)
-                        drawText("Date: ${sdf.format(Date(note.timestamp))}", textPaint, 5f)
+                        drawText("${context.getString(R.string.hint_note_title)}: ${note.title}", headerPaint, 5f)
+                        drawText("${context.getString(R.string.date)}: ${sdf.format(Date(note.timestamp))}", textPaint, 5f)
                         drawText(note.content, textPaint, 15f)
                     }
-                    currentY += 20f
                 }
-                // 5. To-Do Lists
+
+                // 6. To-Do Lists
                 if (selections[3]) {
                     startNewPage()
-                    drawText("To-Do Lists", headerPaint, 15f)
+                    drawText(context.getString(R.string.todo), headerPaint, 15f)
                     val todoJson = sharedPref.getString("todo_lists", "[]")
                     val allTodoLists: List<TodoList> = gson.fromJson(todoJson, object : TypeToken<List<TodoList>>() {}.type) ?: emptyList()
                     val todoLists = allTodoLists.filter { it.timestamp in effectiveStart..effectiveEnd }
                     todoLists.forEach { list ->
-                        drawText("List: ${list.title}", headerPaint, 5f)
+                        drawText("${context.getString(R.string.hint_todo_list_title)}: ${list.title}", headerPaint, 5f)
                         list.tasks.forEach { task ->
                             val status = if (task.status == "DONE") "[X]" else "[ ]"
                             drawText("$status ${task.title}", textPaint, 3f)
@@ -297,15 +289,15 @@ object PdfExportHelper {
                         currentY += 10f
                     }
                 }
-                // 5. Relationships
+
+                // 7. Relationships
                 if (selections.size > 4 && selections[4]) {
                     startNewPage()
-                    drawText("Relationships", headerPaint, 15f)
+                    drawText(context.getString(R.string.module_relations), headerPaint, 15f)
                     val relationsJson = sharedPref.getString("relations_environments", "[]")
-                    val type = object : TypeToken<List<RelationEnvironment>>() {}.type
-                    val environments: List<RelationEnvironment> = try { gson.fromJson(relationsJson, type) } catch (_: Exception) { emptyList() }
+                    val environments: List<RelationEnvironment> = try { gson.fromJson(relationsJson, object : TypeToken<List<RelationEnvironment>>() {}.type) } catch (_: Exception) { emptyList() }
                     environments.forEach { env ->
-                        drawText("Environment: ${env.name}", headerPaint, 8f)
+                        drawText("${context.getString(R.string.label_bundle)}: ${env.name}", headerPaint, 8f)
                         env.data.nodes.forEach { node ->
                             val nodeType = if (node.type == NodeType.MEMBER) "Member" else "Orb"
                             drawText("- [$nodeType] ${node.name}", textPaint, 3f)
@@ -313,16 +305,40 @@ object PdfExportHelper {
                         currentY += 10f
                     }
                 }
+
+                // 8. Agenda Events
+                if (selections.size > 5 && selections[5]) {
+                    startNewPage()
+                    drawText(context.getString(R.string.calendar), headerPaint, 15f)
+                    val calendarJson = sharedPref.getString("calendar_events", "[]")
+                    val allEvents: List<com.interli.plural.CalendarEvent> = try {
+                        gson.fromJson(calendarJson, object : com.google.gson.reflect.TypeToken<List<com.interli.plural.CalendarEvent>>() {}.type)
+                    } catch (e: Exception) { emptyList() }
+
+                    val events = allEvents.filter {
+                        it.startTime <= effectiveEnd && (it.endTime ?: it.startTime) >= effectiveStart
+                    }.sortedBy { it.startTime }
+
+                    if (events.isEmpty()) {
+                        drawText(context.getString(R.string.no_data_period), textPaint, 10f)
+                    } else {
+                        events.forEach { event ->
+                            val startStr = sdf.format(Date(event.startTime))
+                            drawText("$startStr: ${event.title}", headerPaint, 5f)
+                            if (!event.location.isNullOrBlank()) drawText("${context.getString(R.string.event_location)}: ${event.location}", textPaint, 3f)
+                            if (!event.description.isNullOrBlank()) drawText(event.description!!, textPaint, 5f)
+                            currentY += 10f
+                            if (currentY > PAGE_HEIGHT - MARGIN) startNewPage()
+                        }
+                    }
+                }
+
                 doc.finishPage(page)
                 context.contentResolver.openOutputStream(uri)?.use { os -> doc.writeTo(os) }
-                (context as? android.app.Activity)?.runOnUiThread {
-                    Toast.makeText(context, R.string.export_success, Toast.LENGTH_SHORT).show()
-                }
+                (context as? android.app.Activity)?.runOnUiThread { Toast.makeText(context, R.string.export_success, Toast.LENGTH_SHORT).show() }
             } catch (e: Exception) {
                 e.printStackTrace()
-                (context as? android.app.Activity)?.runOnUiThread {
-                    Toast.makeText(context, context.getString(R.string.export_failed, e.message), Toast.LENGTH_LONG).show()
-                }
+                (context as? android.app.Activity)?.runOnUiThread { Toast.makeText(context, context.getString(R.string.export_failed, e.message), Toast.LENGTH_LONG).show() }
             } finally {
                 doc.close()
             }

@@ -160,32 +160,9 @@ class CalendarActivity : BaseActivity() {
         var selectedTodoListId = event?.linkedTodoListId
 
         val colorContainer = view.findViewById<LinearLayout>(R.id.layoutEventColors)
-        val colorOptions = listOf(null, "#FF5252", "#FF4081", "#E040FB", "#7C4DFF", "#536DFE", "#448AFF", "#40C4FF", "#18FFFF", "#64FFDA", "#69F0AE", "#B2FF59", "#EEFF41", "#FFFF00", "#FFD740", "#FFAB40", "#FF6E40")
         DialogHelper.setupColorPicker(this, colorContainer, selectedColor) { color ->
             selectedColor = color
         }
-
-        fun updateColorSelection() {
-            colorContainer.removeAllViews()
-            colorOptions.forEach { hex ->
-                val color = hex?.let { android.graphics.Color.parseColor(it) } ?: ColorHelper.getBtnColor(this)
-                val view = View(this).apply {
-                    val size = (32 * resources.displayMetrics.density).toInt()
-                    layoutParams = LinearLayout.LayoutParams(size, size).apply { marginEnd = (8 * resources.displayMetrics.density).toInt() }
-                    val drawable = android.graphics.drawable.GradientDrawable().apply {
-                        shape = android.graphics.drawable.GradientDrawable.OVAL
-                        setColor(color)
-                        if ((hex == null && selectedColor == null) || (hex != null && selectedColor == color)) {
-                            setStroke((3 * resources.displayMetrics.density).toInt(), android.graphics.Color.WHITE)
-                        }
-                    }
-                    background = drawable
-                    setOnClickListener { selectedColor = if (hex == null) null else color; updateColorSelection() }
-                }
-                colorContainer.addView(view)
-            }
-        }
-        updateColorSelection()
 
         val tvMembers = view.findViewById<TextView>(R.id.tvLinkedMemberName)
         val tvNote = view.findViewById<TextView>(R.id.tvLinkedNoteTitle)
@@ -258,19 +235,25 @@ class CalendarActivity : BaseActivity() {
             .setPositiveButton(R.string.save) { _, _ ->
                 val title = etTitle.text.toString().trim()
                 if (title.isNotEmpty()) {
-                    val e = event ?: events.find { it.id == event?.id } ?: CalendarEvent(title = title, startTime = startTime, endTime = endTime).also { events.add(it) }
+                    val e = event ?: CalendarEvent(title = title, startTime = startTime, endTime = endTime).also { events.add(it) }
                     e.title = title
                     e.description = etDesc.text.toString()
                     e.location = etLocation.text.toString()
                     e.startTime = startTime
                     e.endTime = endTime
                     e.reminderTime = selectedReminderTime
+                    e.color = selectedColor
+                    e.linkedMemberIds = selectedMemberIds.toMutableList()
+                    e.linkedNoteId = selectedNoteId
+                    e.linkedTodoListId = selectedTodoListId
+
                     e.isAllDay = view.findViewById<CheckBox>(R.id.cbAllDay).isChecked
                     e.hideInOverview = view.findViewById<CheckBox>(R.id.cbHideAgenda).isChecked
                     e.hideInDay = view.findViewById<CheckBox>(R.id.cbHideDay).isChecked
                     e.hideInWeek = view.findViewById<CheckBox>(R.id.cbHideWeek).isChecked
                     e.hideInMonth = view.findViewById<CheckBox>(R.id.cbHideMonth).isChecked
                     e.hideInYear = view.findViewById<CheckBox>(R.id.cbHideYear).isChecked
+
                     saveData()
                     scheduleCalendarAlarm(e)
                     updateCalendarView()
