@@ -1968,17 +1968,49 @@ private var pendingPdfSelections: BooleanArray? = null
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val groupsJson = sharedPref.getString("groups_list", "[]") ?: "[]"
         val groups: List<Group> = Gson().fromJson(groupsJson, object : TypeToken<List<Group>>() {}.type)
-        if (groups.isEmpty()) {
-            Toast.makeText(this, getString(R.string.create_groups_first), Toast.LENGTH_SHORT).show()
-            return
-        }
-        val names = groups.map { it.name }.toTypedArray()
+
+        val options = mutableListOf<String>()
+        options.addAll(groups.map { it.name })
+        options.add(getString(R.string.archived_members))
+
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.label_select_group))
-            .setItems(names) { _, which -> showMemberSelectionForBulkMove(groups[which]) }
+            .setItems(options.toTypedArray()) { _, which ->
+                if (which < groups.size) {
+                    showMemberSelectionForBulkMove(groups[which])
+                } else {
+                    showMemberSelectionForBulkArchive()
+                }
+            }
             .setNegativeButton(R.string.cancel, null)
             .show()
             .let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun showMemberSelectionForBulkArchive() {
+        val people = loadPeopleList()
+        val groups = loadGroupsList()
+        val initiallySelectedIds = people.filter { it.isArchived }.map { it.id }
+        val filteredPeople = people.filter { !it.isSysmediaOnly }
+
+        DialogHelper.showMemberSelectionDialog(
+            this,
+            getString(R.string.archived_members),
+            filteredPeople,
+            groups,
+            initiallySelectedIds,
+            includeArchived = true
+        ) { newList ->
+            people.forEach { person ->
+                if (newList.contains(person.id)) {
+                    person.isArchived = true
+                } else if (initiallySelectedIds.contains(person.id)) {
+                    person.isArchived = false
+                }
+            }
+            MemberHelper.savePeople(this, people)
+            Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun showMemberSelectionForBulkMove(targetGroup: Group) {

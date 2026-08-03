@@ -406,7 +406,7 @@ class SysmediaProfileActivity : BaseActivity() {
 
         val bitmap = android.graphics.Bitmap.createBitmap(view.width, view.height, android.graphics.Bitmap.Config.ARGB_8888)
         val canvas = android.graphics.Canvas(bitmap)
-        view.background?.draw(canvas) ?: canvas.drawColor(android.graphics.Color.WHITE)
+        canvas.drawColor(ColorHelper.getBgColor(this))
         view.draw(canvas)
 
         btns.forEach { view.findViewById<View>(it)?.visibility = View.VISIBLE }

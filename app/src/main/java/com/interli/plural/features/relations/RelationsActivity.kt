@@ -327,13 +327,15 @@ class RelationsActivity : BaseActivity() {
                             y = 300f + (relationsData.nodes.size / 4 * 100f)
                         )
                         relationsData.nodes.add(newNode)
+                        mapView.setData(relationsData)
+                        mapView.centerOn(newNode.x, newNode.y)
                     } else {
                         existingNode?.name = name
                         existingNode?.note = note
                         existingNode?.color = selectedColor
                         existingNode?.imageUri = selectedImageUri
+                        mapView.setData(relationsData)
                     }
-                    mapView.setData(relationsData)
                     saveData(silent = true)
                 }
             }
@@ -391,6 +393,10 @@ class RelationsActivity : BaseActivity() {
                             }
                         }
                         mapView.setData(relationsData)
+                        if (selectedIds.isNotEmpty()) {
+                            val lastNode = relationsData.nodes.last()
+                            mapView.centerOn(lastNode.x, lastNode.y)
+                        }
                         saveData(silent = true)
                     }
                     .show().also { ColorHelper.styleAlertDialog(it, this); activeDialog = it }
@@ -746,17 +752,13 @@ class RelationsActivity : BaseActivity() {
                 group.color = selectedColor
                 group.nodeIds = checkedIds.toMutableList()
                 group.snapEnabled = cbSnap.isChecked
-                if (isNew) relationsData.groups.add(group)
-                if (group.snapEnabled && group.nodeIds.isNotEmpty()) {
-                    val memberNodes = relationsData.nodes.filter { group.nodeIds.contains(it.id) }
-                    val avgX = memberNodes.map { it.x }.average().toFloat()
-                    val avgY = memberNodes.map { it.y }.average().toFloat()
-                    memberNodes.forEach {
-                        it.x = (it.x + avgX) / 2
-                        it.y = (it.y + avgY) / 2
-                    }
+                if (isNew) {
+                    relationsData.groups.add(group)
+                    mapView.setData(relationsData)
+                    mapView.centerOnGroup(group)
+                } else {
+                    mapView.setData(relationsData)
                 }
-                mapView.setData(relationsData)
                 saveData(silent = true)
             }
             .setNegativeButton(if (isNew) R.string.cancel else R.string.delete) { _, _ ->

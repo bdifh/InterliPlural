@@ -590,6 +590,23 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         }
     }
 
+    fun centerOn(worldX: Float, worldY: Float) {
+        post {
+            if (width > 0 && height > 0) {
+                offsetX = width / 2f - (worldX * scaleFactor)
+                offsetY = height / 2f - (worldY * scaleFactor)
+                invalidate()
+            }
+        }
+    }
+
+    fun centerOnGroup(group: RelationGroup) {
+        getGroupCenter(group)?.let { center ->
+            centerOn(center.x, center.y)
+        }
+    }
+
+
     private fun drawArrowHead(canvas: Canvas, x1: Float, y1: Float, x2: Float, y2: Float) {
         val angle = Math.atan2((y2 - y1).toDouble(), (x2 - x1).toDouble())
         val arrowSize = 25f
