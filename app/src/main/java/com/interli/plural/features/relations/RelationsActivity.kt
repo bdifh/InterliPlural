@@ -272,21 +272,21 @@ class RelationsActivity : BaseActivity() {
                 topMargin = 16.dpToPx()
             }
             scaleType = ImageView.ScaleType.CENTER_CROP
-            if (selectedImageUri != null) {
-                imageLoader.enqueue(coil.request.ImageRequest.Builder(this@RelationsActivity)
-                    .data(selectedImageUri)
-                    .target(this)
-                    .build())
-            } else {
-                setImageResource(android.R.drawable.ic_menu_gallery)
+            fun refresh() {
+                if (selectedImageUri != null) {
+                    imageLoader.enqueue(coil.request.ImageRequest.Builder(this@RelationsActivity)
+                        .data(selectedImageUri)
+                        .target(this@apply)
+                        .build())
+                } else {
+                    setImageResource(android.R.drawable.ic_menu_gallery)
+                }
             }
+            refresh()
             setOnClickListener {
                 imagePickerCallback = { uri ->
                     selectedImageUri = uri.toString()
-                    imageLoader.enqueue(coil.request.ImageRequest.Builder(this@RelationsActivity)
-                        .data(uri)
-                        .target(this)
-                        .build())
+                    refresh()
                 }
                 val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
                     addCategory(android.content.Intent.CATEGORY_OPENABLE)
@@ -296,6 +296,17 @@ class RelationsActivity : BaseActivity() {
             }
         }
         layout.addView(imgPreview)
+
+        val btnDeleteImg = Button(this).apply {
+            text = getString(R.string.delete_photo)
+            visibility = if (selectedImageUri != null) View.VISIBLE else View.GONE
+            setOnClickListener {
+                selectedImageUri = null
+                imgPreview.setImageResource(android.R.drawable.ic_menu_gallery)
+                visibility = View.GONE
+            }
+        }
+        layout.addView(btnDeleteImg)
 
         activeDialog = AlertDialog.Builder(this)
             .setTitle(if (isNew) R.string.add_relationship_orb else R.string.action_edit)
@@ -845,7 +856,7 @@ class RelationsActivity : BaseActivity() {
                     imagePickerCallback = { uri ->
                         node.imageUri = uri.toString()
                         refreshImage()
-                        mapView.invalidate()
+                        mapView.setData(relationsData)
                         saveData(silent = true)
                     }
                     val intent = android.content.Intent(android.content.Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -856,6 +867,19 @@ class RelationsActivity : BaseActivity() {
                 }
             }
             container.addView(imgPreview)
+
+            val btnDeleteImg = Button(this@RelationsActivity).apply {
+                text = getString(R.string.delete_photo)
+                visibility = if (node.imageUri != null) View.VISIBLE else View.GONE
+                setOnClickListener {
+                    node.imageUri = null
+                    imgPreview.setImageResource(android.R.drawable.ic_menu_gallery)
+                    visibility = View.GONE
+                    mapView.setData(relationsData)
+                    saveData(silent = true)
+                }
+            }
+            container.addView(btnDeleteImg)
         }
 
         val titleGroups = TextView(this).apply {

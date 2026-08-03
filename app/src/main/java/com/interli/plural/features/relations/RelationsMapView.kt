@@ -267,7 +267,6 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
         canvas.translate(offsetX, offsetY)
         canvas.scale(scaleFactor, scaleFactor)
 
-        // 1. Draw Group bubbles
         data.groups.forEach { group ->
             val memberNodes = data.nodes.filter { group.nodeIds.contains(it.id) }
             groupPaint.color = group.color
@@ -290,7 +289,6 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
         }
 
-        // 2. Draw Relationship Edges (Lines)
         data.edges.forEach { edge ->
             val points = mutableListOf<PointF>()
             edge.getSafeNodeIds().forEach { id ->
@@ -303,13 +301,12 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
 
             if (points.size >= 2) {
-                // Apply line style and thickness
                 edgePaint.color = edge.color ?: Color.GRAY
                 edgePaint.strokeWidth = edge.width
                 edgePaint.pathEffect = when(edge.lineType) {
                     1 -> DashPathEffect(floatArrayOf(20f, 10f), 0f) // Dashed
                     2 -> DashPathEffect(floatArrayOf(5f, 10f), 0f)  // Dotted
-                    else -> null // Solid or Wavy
+                    else -> null
                 }
 
                 for (i in 0 until points.size - 1) {
@@ -320,60 +317,52 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                     var endX = p2.x
                     var endY = p2.y
 
-                    // Boundary calculation for groups
-                    val group1 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p1.x) < 5f && Math.abs(it.y - p1.y) < 5f } ?: false }
-                    if (group1 != null) {
-                        val boundary = getGroupBoundaryPoint(p1, p2, group1)
-                        startX = boundary.x
-                        startY = boundary.y
+                    val node1 = data.nodes.find { Math.abs(it.x - p1.x) < 1f && Math.abs(it.y - p1.y) < 1f }
+                    if (node1 != null) {
+                        val angle = Math.atan2((p2.y - p1.y).toDouble(), (p2.x - p1.x).toDouble())
+                        startX += (nodeRadius * Math.cos(angle)).toFloat()
+                        startY += (nodeRadius * Math.sin(angle)).toFloat()
                     } else {
-                        // Boundary calculation for nodes
-                        val node1 = data.nodes.find { Math.abs(it.x - p1.x) < 5f && Math.abs(it.y - p1.y) < 5f }
-                        if (node1 != null) {
-                            val angle = Math.atan2((p2.y - p1.y).toDouble(), (p2.x - p1.x).toDouble())
-                            startX += (nodeRadius * Math.cos(angle)).toFloat()
-                            startY += (nodeRadius * Math.sin(angle)).toFloat()
+                        val group1 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p1.x) < 5f && Math.abs(it.y - p1.y) < 5f } ?: false }
+                        if (group1 != null) {
+                            val boundary = getGroupBoundaryPoint(p1, p2, group1)
+                            startX = boundary.x
+                            startY = boundary.y
+                        }
+                    }
+                    val node2 = data.nodes.find { Math.abs(it.x - p2.x) < 1f && Math.abs(it.y - p2.y) < 1f }
+                    if (node2 != null) {
+                        val angle = Math.atan2((p1.y - p2.y).toDouble(), (p1.x - p2.x).toDouble())
+                        endX += (nodeRadius * Math.cos(angle)).toFloat()
+                        endY += (nodeRadius * Math.sin(angle)).toFloat()
+                    } else {
+                        val group2 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p2.x) < 5f && Math.abs(it.y - p2.y) < 5f } ?: false }
+                        if (group2 != null) {
+                            val boundary = getGroupBoundaryPoint(p2, p1, group2)
+                            endX = boundary.x
+                            endY = boundary.y
                         }
                     }
 
-                    val group2 = data.groups.find { g -> getGroupCenter(g)?.let { Math.abs(it.x - p2.x) < 5f && Math.abs(it.y - p2.y) < 5f } ?: false }
-                    if (group2 != null) {
-                        val boundary = getGroupBoundaryPoint(p2, p1, group2)
-                        endX = boundary.x
-                        endY = boundary.y
-                    } else {
-                        val node2 = data.nodes.find { Math.abs(it.x - p2.x) < 5f && Math.abs(it.y - p2.y) < 5f }
-                        if (node2 != null) {
-                            val angle = Math.atan2((p1.y - p2.y).toDouble(), (p1.x - p2.x).toDouble())
-                            endX += (nodeRadius * Math.cos(angle)).toFloat()
-                            endY += (nodeRadius * Math.sin(angle)).toFloat()
-                        }
-                    }
-
-                    // Draw the line based on type
                     if (edge.lineType == 3) {
                         drawWavyLine(canvas, startX, startY, endX, endY, edgePaint)
                     } else {
                         canvas.drawLine(startX, startY, endX, endY, edgePaint)
                     }
 
-                    // Draw Arrows
                     if (edge.arrowType == 1 || edge.arrowType == 3) drawArrowHead(canvas, startX, startY, endX, endY)
                     if (edge.arrowType == 2 || edge.arrowType == 3) drawArrowHead(canvas, endX, endY, startX, startY)
                 }
 
-                // Draw edge tag
+                val midX = points.map { it.x }.average().toFloat()
+                val midY = points.map { it.y }.average().toFloat()
+
                 edge.tag?.let { tag ->
-                    val midX = points.map { it.x }.average().toFloat()
-                    val midY = points.map { it.y }.average().toFloat()
                     tagPaint.color = ColorHelper.getTextColor(context)
                     canvas.drawText(tag, midX, midY - 10f, tagPaint)
                 }
 
-                // Draw edge note icon
                 if (!edge.note.isNullOrBlank()) {
-                    val midX = points.map { it.x }.average().toFloat()
-                    val midY = points.map { it.y }.average().toFloat()
                     val size = 15f
                     canvas.drawRect(midX - size, midY + 10f, midX + size, midY + 40f, noteIconPaint)
                     canvas.drawRect(midX - size, midY + 10f, midX + size, midY + 40f, noteStrokePaint)
@@ -383,7 +372,6 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
         }
 
-        // 3. Draw dashed lines for member instances (multi-board sync)
         val memberGroups = data.nodes.filter { it.memberId != null }.groupBy { it.memberId }
         memberGroups.forEach { (_, nodes) ->
             if (nodes.size > 1) {
@@ -395,7 +383,6 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
             }
         }
 
-        // 4. Draw Nodes (Members and Orbs)
         data.nodes.forEach { node ->
             val bitmap = node.imageUri?.let { bitmaps[it] }
             if (bitmap != null) {
@@ -422,7 +409,6 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                 canvas.drawCircle(node.x, node.y, nodeRadius, nodePaint)
             }
 
-            // Draw Note Icon if orb/node has a note
             if (!node.note.isNullOrBlank()) {
                 val size = 15f
                 val iconX = node.x + nodeRadius - 10f
