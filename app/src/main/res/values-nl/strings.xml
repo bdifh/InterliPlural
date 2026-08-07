@@ -506,4 +506,9 @@
     <string name="reminder_none">Geen herinnering</string>
     <string name="reminder_at_start">Bij aanvang</string>
     <string name="export_calendar_events">Agenda</string>
+    <string name="recurrence_edit_title">Herhalende afspraak aanpassen</string>
+    <string name="recurrence_edit_only_this">Alleen dit exemplaar</string>
+    <string name="recurrence_edit_this_and_future">Deze en alle volgende</string>
+    <string name="recurrence_edit_all">Alle exemplaren</string>
+    <string name="recurrence_delete_title">Herhalende afspraak verwijderen</string>
 </resources>

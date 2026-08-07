@@ -638,4 +638,9 @@
     <string name="reminder_none">No reminder</string>
     <string name="reminder_at_start">At start of event</string>
     <string name="export_calendar_events">Calendar Events</string>
+    <string name="recurrence_edit_title">Edit recurring event</string>
+    <string name="recurrence_edit_only_this">Only this instance</string>
+    <string name="recurrence_edit_this_and_future">This and following instances</string>
+    <string name="recurrence_edit_all">All instances</string>
+    <string name="recurrence_delete_title">Delete recurring event</string>
 </resources>
