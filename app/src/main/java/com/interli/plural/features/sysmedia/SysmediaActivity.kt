@@ -888,6 +888,26 @@ class SysmediaActivity : BaseActivity() {
             val textColor = ColorHelper.getTextColor(this@SysmediaActivity)
             if (post != null) {
                 holder.layoutReblog.visibility = View.VISIBLE
+
+                val headerIcon = holder.itemView.findViewById<ImageView>(R.id.ivHeaderIcon)
+                when (notif.type) {
+                    "LIKE" -> {
+                        headerIcon.setImageResource(android.R.drawable.btn_star_big_on)
+                        headerIcon.clearColorFilter()
+                    }
+                    "REPLY" -> {
+                        headerIcon.setImageResource(android.R.drawable.ic_menu_edit)
+                        headerIcon.setColorFilter(textColor and 0x88FFFFFF.toInt())
+                    }
+                    "REBLOG" -> {
+                        headerIcon.setImageResource(R.drawable.ic_reblog)
+                        headerIcon.setColorFilter(textColor and 0x88FFFFFF.toInt())
+                    }
+                    else -> {
+                        headerIcon.setImageResource(android.R.drawable.ic_dialog_info)
+                        headerIcon.setColorFilter(textColor and 0x88FFFFFF.toInt())
+                    }
+                }
                 val actionText = when (notif.type) {
                     "TAG" -> getString(R.string.notif_tagged_you)
                     "EVERYONE" -> getString(R.string.notif_tagged_everyone)

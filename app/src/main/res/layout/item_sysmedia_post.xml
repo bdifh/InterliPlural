@@ -68,10 +68,11 @@
         android:layout_marginBottom="4dp"
         android:visibility="gone">
         <ImageView
-            android:layout_width="14dp"
-            android:layout_height="14dp"
-            android:src="@drawable/ic_reblog"
-            app:tint="#536471" />
+        android:id="@+id/ivHeaderIcon"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:src="@drawable/ic_reblog"
+        app:tint="#536471" />
         <TextView
             android:id="@+id/tvRebloggedBy"
             android:layout_width="wrap_content"
