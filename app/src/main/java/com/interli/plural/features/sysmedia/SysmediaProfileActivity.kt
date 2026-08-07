@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.tabs.TabLayout
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.interli.plural.core.BaseActivity
@@ -46,6 +47,7 @@ class SysmediaProfileActivity : BaseActivity() {
     private var ivDialogProfilePreview: ImageView? = null
     private val gson = Gson()
     private val sdf = SimpleDateFormat("dd MMM yy", Locale.getDefault())
+    private var currentProfileTab = 0
     private val pickImage = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
         uri?.let {
             val internalUri = saveSourceImage(it)
@@ -161,6 +163,40 @@ class SysmediaProfileActivity : BaseActivity() {
         ColorHelper.applySettings(this)
         btnEdit.setTextColor(ColorHelper.getBtnTextColor(this))
         btnEdit.strokeColor = android.content.res.ColorStateList.valueOf(ColorHelper.getBtnColor(this))
+
+        val tabLayout = findViewById<com.google.android.material.tabs.TabLayout>(R.id.profileTabLayout)
+        tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                currentProfileTab = tab?.position ?: 0
+                updateRecyclerView()
+            }
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+            override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                updateRecyclerView()
+            }
+        })
+
+        updateRecyclerView()
+    }
+
+    private fun updateRecyclerView() {
+        val rv = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvProfilePosts)
+        val displayPosts = if (currentProfileTab == 0) {
+            posts.filter { it.senderId == profileUserId }
+        } else {
+            posts.filter { (it.likedByMemberIds[profileUserId] ?: 0) > 0 }
+        }
+
+        val sorted = displayPosts.sortedWith(compareByDescending<com.interli.plural.SysmediaPost> {
+            it.id == profileUser.sysmediaProfile?.pinnedPostId
+        }.thenByDescending { it.timestamp })
+
+        (rv.adapter as? ProfilePostAdapter)?.let {
+            it.items = sorted
+            it.notifyDataSetChanged()
+        } ?: run {
+            rv.adapter = ProfilePostAdapter(sorted)
+        }
     }
     private fun updateFollowButton() {
         val btnFollow = findViewById<MaterialButton>(R.id.btnFollow)
@@ -366,7 +402,7 @@ class SysmediaProfileActivity : BaseActivity() {
         }
 
         findViewById<TextView>(R.id.tvProfileBio).apply {
-            markwon.setMarkdown(this, profile?.bio ?: "No bio")
+            markwon.setMarkdown(this, (profile?.bio ?: "No bio").replace("\n", "  \n"))
             setTextColor(textColor)
         }
 
@@ -550,11 +586,14 @@ class SysmediaProfileActivity : BaseActivity() {
         }
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val post = items[position]
-            val profile = profileUser.sysmediaProfile
+            val sender = people.find { it.id == post.senderId }
+            val profile = sender?.sysmediaProfile
             val textColor = ColorHelper.getTextColor(this@SysmediaProfileActivity)
+
             holder.layoutReblog.visibility = View.GONE
             holder.cardOriginal.visibility = View.GONE
             holder.layoutThreadParent.visibility = View.GONE
+
             if (post.replyToId != null) {
                 val parentPost = posts.find { it.id == post.replyToId }
                 if (parentPost != null) {
@@ -563,20 +602,15 @@ class SysmediaProfileActivity : BaseActivity() {
                     val parentProfile = parentSender?.sysmediaProfile
                     holder.tvParentName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
                     holder.tvParentContent.text = parentPost.content
-
                     val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
                     val pColor = parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)
-                    if (parentAvatar != null) {
-                        holder.ivParentAvatar.load(parentAvatar) {
-                            error(android.graphics.drawable.ColorDrawable(pColor))
-                        }
-                    } else {
-                        holder.ivParentAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(pColor))
-                    }
+                    if (parentAvatar != null) holder.ivParentAvatar.load(parentAvatar) { error(android.graphics.drawable.ColorDrawable(pColor)) }
+                    else holder.ivParentAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(pColor))
                     holder.tvParentName.setTextColor(textColor and 0xCCFFFFFF.toInt())
                     holder.tvParentContent.setTextColor(textColor and 0xCCFFFFFF.toInt())
                 }
             }
+
             if (post.reblogOfId != null) {
                 holder.layoutReblog.visibility = View.VISIBLE
                 holder.tvRebloggedBy.text = getString(R.string.reblogged_by, profileUser.name)
@@ -590,55 +624,48 @@ class SysmediaProfileActivity : BaseActivity() {
                     holder.tvOriginalName.text = origProfile?.displayName ?: originalSender?.name ?: "Unknown"
                     val origHandle = origProfile?.handle ?: originalSender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: "unknown"
                     holder.tvOriginalHandle.text = "@$origHandle"
-                    markwon.setMarkdown(holder.tvOriginalContent, originalPost.content)
+                    markwon.setMarkdown(holder.tvOriginalContent, originalPost.content.replace("\n", "  \n"))
                     val origAvatar = origProfile?.profilePictureUri ?: originalSender?.profilePictureUri
-                    if (origAvatar != null) {
-                        holder.ivOriginalAvatar.load(origAvatar) {
-                            placeholder(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)))
-                            error(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)))
-                        }
-                    } else {
-                        holder.ivOriginalAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)))
-                    }
-                    if (originalPost.imageUri != null) {
-                        holder.ivOriginalPostImage.visibility = View.VISIBLE
-                        holder.ivOriginalPostImage.load(originalPost.imageUri)
-                    } else {
-                        holder.ivOriginalPostImage.visibility = View.GONE
-                    }
-                    holder.tvOriginalName.setTextColor(textColor)
-                    holder.tvOriginalContent.setTextColor(textColor)
-                    holder.tvOriginalHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
+                    if (origAvatar != null) holder.ivOriginalAvatar.load(origAvatar) { placeholder(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity))) }
+                    else holder.ivOriginalAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)))
+                    if (originalPost.imageUri != null) { holder.ivOriginalPostImage.visibility = View.VISIBLE; holder.ivOriginalPostImage.load(originalPost.imageUri) }
+                    else holder.ivOriginalPostImage.visibility = View.GONE
+                    holder.tvOriginalName.setTextColor(textColor); holder.tvOriginalContent.setTextColor(textColor); holder.tvOriginalHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
                 }
             }
+
             holder.tvName.apply {
-                text = profile?.displayName ?: profileUser.name
+                text = profile?.displayName ?: sender?.name ?: "Unknown"
                 setTextColor(textColor)
             }
-            val handle = profile?.handle ?: profileUser.name.replace(" ", "_").lowercase().replace(Regex("[^a-z0-9_]"), "")
+            val handle = profile?.handle ?: sender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: "unknown"
             holder.tvHandle.apply {
                 text = "@$handle"
                 setTextColor(textColor and 0x88FFFFFF.toInt())
             }
+
             holder.tvContent.apply {
-                markwon.setMarkdown(this, post.content)
+                markwon.setMarkdown(this, post.content.replace("\n", "  \n"))
                 setTextColor(textColor)
+                setOnClickListener { holder.itemView.performClick() }
             }
+
             holder.tvTime.apply {
                 text = sdf.format(Date(post.timestamp))
                 setTextColor(textColor and 0x88FFFFFF.toInt())
             }
-            val avatarUri = profile?.profilePictureUri ?: profileUser.profilePictureUri
+
+            val avatarUri = profile?.profilePictureUri ?: sender?.profilePictureUri
+            val userColor = if ((sender?.profileColor ?: -6934396) == -6934396) ColorHelper.getBtnColor(this@SysmediaProfileActivity) else sender?.profileColor ?: -6934396
             if (avatarUri != null) {
                 holder.ivAvatar.load(avatarUri) {
-                    val color = if (profileUser.profileColor == -6934396) ColorHelper.getBtnColor(this@SysmediaProfileActivity) else profileUser.profileColor
-                    placeholder(android.graphics.drawable.ColorDrawable(color))
-                    error(android.graphics.drawable.ColorDrawable(color))
+                    placeholder(android.graphics.drawable.ColorDrawable(userColor))
+                    error(android.graphics.drawable.ColorDrawable(userColor))
                 }
             } else {
-                val color = if (profileUser.profileColor == -6934396) ColorHelper.getBtnColor(this@SysmediaProfileActivity) else profileUser.profileColor
-                holder.ivAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(color))
+                holder.ivAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(userColor))
             }
+
             holder.tvLikes.text = post.likes.toString()
             holder.tvRetweets.text = post.retweets.toString()
             holder.tvReplies.text = post.replies.toString()
@@ -648,32 +675,31 @@ class SysmediaProfileActivity : BaseActivity() {
             holder.itemView.findViewById<ImageView>(R.id.ivLikeIcon)?.setColorFilter(likeColor)
             holder.btnLike.setOnClickListener {
                 val currentLikes = post.likedByMemberIds[activeMemberId] ?: 0
-                if (currentLikes < 3) {
-                    post.likedByMemberIds[activeMemberId] = currentLikes + 1
-                    post.likes++
-                } else {
-                    post.likedByMemberIds[activeMemberId] = 0
-                    post.likes -= 3
-                }
-                saveData()
-                notifyItemChanged(position)
+                if (currentLikes < 3) { post.likedByMemberIds[activeMemberId] = currentLikes + 1; post.likes++ }
+                else { post.likedByMemberIds[activeMemberId] = 0; post.likes -= 3 }
+                saveData(); notifyItemChanged(position)
             }
-            if (post.imageUri != null) {
-                holder.ivContentImage?.visibility = View.VISIBLE
-                holder.ivContentImage?.load(post.imageUri)
-            } else {
-                holder.ivContentImage?.visibility = View.GONE
-            }
+            if (post.imageUri != null) { holder.ivContentImage?.visibility = View.VISIBLE; holder.ivContentImage?.load(post.imageUri) }
+            else holder.ivContentImage?.visibility = View.GONE
+
             MediaEmbedHelper.addEmbedsToContainer(holder.mediaEmbedContainer, post.content)
             renderPoll(holder, post)
+
             holder.itemView.setOnLongClickListener {
                 if (post.senderId == activeMemberId) {
-                    val options = arrayOf(getString(R.string.action_edit_post), getString(R.string.delete))
+                    val isPinned = profileUser.sysmediaProfile?.pinnedPostId == post.id
+                    val options = mutableListOf(getString(R.string.action_edit_post), getString(R.string.delete))
+
+                    if (profileUserId == activeMemberId) {
+                        options.add(if (isPinned) getString(R.string.unpin_from_profile) else getString(R.string.pin_to_profile))
+                    }
+
                     AlertDialog.Builder(this@SysmediaProfileActivity)
-                        .setItems(options) { _, which ->
-                            when (options[which]) {
+                        .setItems(options.toTypedArray()) { _, which ->
+                            val selected = options[which]
+                            when (selected) {
                                 getString(R.string.action_edit_post) -> {
-                                    val intent = android.content.Intent(this@SysmediaProfileActivity, CreatePostActivity::class.java)
+                                    val intent = Intent(this@SysmediaProfileActivity, CreatePostActivity::class.java)
                                     intent.putExtra("current_user_id", activeMemberId)
                                     intent.putExtra("edit_post_id", post.id)
                                     startActivity(intent)
@@ -683,34 +709,26 @@ class SysmediaProfileActivity : BaseActivity() {
                                     mutablePosts.remove(post)
                                     posts = mutablePosts
                                     saveData()
-                                    (findViewById<RecyclerView>(R.id.rvProfilePosts).adapter as? ProfilePostAdapter)?.let {
-                                        it.items = posts
-                                        it.notifyDataSetChanged()
-                                    }
+                                    updateRecyclerView()
+                                }
+                                getString(R.string.pin_to_profile), getString(R.string.unpin_from_profile) -> {
+                                    if (profileUser.sysmediaProfile == null) profileUser.sysmediaProfile = SysmediaProfile()
+                                    profileUser.sysmediaProfile?.pinnedPostId = if (isPinned) null else post.id
+                                    saveData()
+                                    updateRecyclerView()
+                                    Toast.makeText(this@SysmediaProfileActivity, if (isPinned) getString(R.string.post_unpinned) else getString(R.string.post_pinned), Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }.show()
                 }
                 true
             }
-            holder.btnReblog.setOnClickListener {
-                val intent = android.content.Intent(this@SysmediaProfileActivity, CreatePostActivity::class.java)
-                intent.putExtra("current_user_id", activeMemberId)
-                intent.putExtra("reblog_of_id", post.id)
-                startActivity(intent)
-            }
-            holder.btnReply.setOnClickListener {
-                val intent = android.content.Intent(this@SysmediaProfileActivity, CreatePostActivity::class.java)
-                intent.putExtra("current_user_id", activeMemberId)
-                intent.putExtra("reply_to_id", post.id)
-                startActivity(intent)
-            }
 
-            holder.btnShare.setOnClickListener {
-                downloadPostAsImage(holder.itemView, post)
-            }
+            holder.btnReblog.setOnClickListener { val intent = Intent(this@SysmediaProfileActivity, CreatePostActivity::class.java); intent.putExtra("current_user_id", activeMemberId); intent.putExtra("reblog_of_id", post.id); startActivity(intent) }
+            holder.btnReply.setOnClickListener { val intent = Intent(this@SysmediaProfileActivity, CreatePostActivity::class.java); intent.putExtra("current_user_id", activeMemberId); intent.putExtra("reply_to_id", post.id); startActivity(intent) }
+            holder.btnShare.setOnClickListener { downloadPostAsImage(holder.itemView, post) }
             holder.itemView.setOnClickListener {
-                val intent = android.content.Intent(this@SysmediaProfileActivity, SysmediaPostDetailActivity::class.java)
+                val intent = Intent(this@SysmediaProfileActivity, SysmediaPostDetailActivity::class.java)
                 intent.putExtra("post_id", post.id)
                 intent.putExtra("active_member_id", activeMemberId)
                 startActivity(intent)

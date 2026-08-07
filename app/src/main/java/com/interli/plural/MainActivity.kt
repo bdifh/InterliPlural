@@ -223,7 +223,8 @@ data class SysmediaProfile(
     var displayName: String? = null,
     var profilePictureUri: String? = null,
     var followingIds: MutableList<String> = mutableListOf(),
-    var sourcePictureUri: String? = null
+    var sourcePictureUri: String? = null,
+    var pinnedPostId: String? = null
 )
 data class SysmediaNotification(
     val id: String = java.util.UUID.randomUUID().toString(),

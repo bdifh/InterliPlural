@@ -158,6 +158,15 @@
             </LinearLayout>
         </RelativeLayout>
 
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/profileTabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:tabIndicatorHeight="3dp">
+            <com.google.android.material.tabs.TabItem android:text="Posts" />
+            <com.google.android.material.tabs.TabItem android:text="Liked" />
+        </com.google.android.material.tabs.TabLayout>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
