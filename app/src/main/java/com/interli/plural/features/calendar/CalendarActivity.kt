@@ -48,6 +48,12 @@ class CalendarActivity : BaseActivity() {
         setupUI()
     }
 
+    override fun onResume() {
+        super.onResume()
+        loadData()
+        updateCalendarView()
+    }
+
     private fun loadData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = sharedPref.getString("calendar_events", "[]") ?: "[]"

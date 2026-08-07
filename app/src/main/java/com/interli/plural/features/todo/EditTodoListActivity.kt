@@ -158,6 +158,13 @@ class EditTodoListActivity : BaseActivity() {
         val states = android.content.res.ColorStateList.valueOf(hintColor)
         findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.layoutTodoTitle).defaultHintTextColor = states
     }
+    override fun onResume() {
+        super.onResume()
+        loadData()
+        updateLinkedMembersText()
+        if (::tasksAdapter.isInitialized) tasksAdapter.notifyDataSetChanged()
+    }
+
     private fun showBundleSelectionDialog() {
         val options = mutableListOf<String>()
         options.add(getString(R.string.group_none_main))
