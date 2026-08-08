@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <TextView
+        android:id="@+id/tvWidgetMonthTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Maand Jaar"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingBottom="4dp">
+        <TextView android:id="@+id/tvHeader1" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"  android:gravity="center" android:textSize="10sp" android:textStyle="bold" />
+        <TextView android:id="@+id/tvHeader2" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"  android:gravity="center" android:textSize="10sp" android:textStyle="bold" />
+        <TextView android:id="@+id/tvHeader3" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"  android:gravity="center" android:textSize="10sp" android:textStyle="bold" />
+        <TextView android:id="@+id/tvHeader4" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"  android:gravity="center" android:textSize="10sp" android:textStyle="bold" />
+        <TextView android:id="@+id/tvHeader5" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"  android:gravity="center" android:textSize="10sp" android:textStyle="bold" />
+        <TextView android:id="@+id/tvHeader6" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"  android:gravity="center" android:textSize="10sp" android:textStyle="bold" />
+        <TextView android:id="@+id/tvHeader7" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"  android:gravity="center" android:textSize="10sp" android:textStyle="bold" />
+    </LinearLayout>
+
+    <GridView
+        android:id="@+id/gvWidgetCalendar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:numColumns="7"
+        android:stretchMode="columnWidth"
+        android:gravity="center"
+        android:verticalSpacing="2dp"
+        android:horizontalSpacing="2dp" />
+</LinearLayout>
