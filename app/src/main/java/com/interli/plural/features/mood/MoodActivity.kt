@@ -617,6 +617,7 @@ class MoodActivity : BaseActivity() {
 
     private fun persistEntries(list: List<MoodEntry>) {
         getSharedPreferences("my_app", MODE_PRIVATE).edit().putString("mood_entries", gson.toJson(list)).apply()
+        com.interli.plural.widgets.MoodAverageWidget.sendRefreshBroadcast(this)
     }
 
     private fun Int.dpToPx() = (this * resources.displayMetrics.density).toInt()

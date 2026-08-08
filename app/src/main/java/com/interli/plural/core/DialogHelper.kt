@@ -433,6 +433,7 @@ object DialogHelper {
             commit()
         }
         MemberHelper.savePeople(context, people)
+        com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(context)
     }
     fun showArchivedMembersDialog(context: Context, onDataChanged: () -> Unit) {
         val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)

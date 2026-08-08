@@ -647,4 +647,7 @@
     <string name="unpin_from_profile">Unpin from profile</string>
     <string name="post_pinned">Post pinned</string>
     <string name="post_unpinned">Post unpinned</string>
+    <string name="widget_name_fronter">Current Fronter</string>
+    <string name="widget_name_mood">Today\'s Mood Average</string>
+
 </resources>

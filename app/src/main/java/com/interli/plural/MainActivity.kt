@@ -790,7 +790,6 @@ class MainActivity : BaseActivity() {
             if (pendingMsg != null) {
                 person.frontMessage = pendingMsg
                 person.messageRead = false
-                // Link the person to the note in diary
                 if (pendingNoteId != null) {
                     val notesJson = sharedPref.getString("diary_notes", "[]") ?: "[]"
                     val type = object : TypeToken<MutableList<DiaryNote>>() {}.type
@@ -812,6 +811,7 @@ class MainActivity : BaseActivity() {
             }
             sessions.add(FrontSession(person.name, System.currentTimeMillis(), personId = person.id))
             savePeople()
+            com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(this)
             updateUI()
             if (!person.frontMessage.isNullOrBlank() && !person.messageRead) {
                 showFrontMessageNotification(person)
@@ -821,6 +821,7 @@ class MainActivity : BaseActivity() {
             sessions.filter { (it.personId == person.id || (it.personId == null && it.personName == person.name)) && it.endTime == null }
                 .forEach { it.endTime = System.currentTimeMillis() }
             savePeople()
+            com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(this)
             updateUI()
         }
     }

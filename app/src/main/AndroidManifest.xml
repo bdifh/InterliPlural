@@ -270,6 +270,28 @@
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
+        <receiver android:name=".widgets.CurrentFronterWidget"
+            android:label="@string/widget_name_fronter"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/fronter_widget_info" />
+        </receiver>
+
+        <receiver android:name=".widgets.MoodAverageWidget"
+            android:label="@string/widget_name_mood"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/mood_average_widget_info" />
+        </receiver>
+        
         <receiver
             android:name=".core.NotificationReceiver"
             android:enabled="true"
