@@ -325,6 +325,12 @@ class MoodActivity : BaseActivity() {
                 setCardBackgroundColor(cardBgColor)
                 strokeWidth = 2
                 strokeColor = (textColor and 0x33FFFFFF) or 0x33000000
+                setOnLongClickListener {
+                    showEditGroupDialog(group) {
+                        renderActivityGroups(etActivitySearch.text.toString())
+                    }
+                    true
+                }
             }
 
             val groupLayout = LinearLayout(this).apply {
