@@ -649,5 +649,10 @@
     <string name="post_unpinned">Post unpinned</string>
     <string name="widget_name_fronter">Current Fronter</string>
     <string name="widget_name_mood">Today\'s Mood Average</string>
-
+    <string name="widget_name_mood_log">Quick Mood Log</string>
+    <string name="widget_name_todo">To Do List</string>
+    <string name="no_tasks">No tasks!</string>
+    <string name="widget_name_calendar_day">Calendar (Today)</string>
+    <string name="widget_name_calendar_week">Calendar (Week)</string>
+    <string name="widget_name_calendar_month">Calendar (Month)</string>
 </resources>

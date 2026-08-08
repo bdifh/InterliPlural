@@ -517,4 +517,10 @@
     <string name="post_unpinned">Post losgemaakt</string>
     <string name="widget_name_fronter">Huidige Fronter</string>
     <string name="widget_name_mood">Mood Gemiddelde</string>
+    <string name="widget_name_mood_log">Snelle Mood Log</string>
+    <string name="widget_name_todo">To Do Lijst</string>
+    <string name="no_tasks">Geen taken!</string>
+    <string name="widget_name_calendar_day">Agenda (Vandaag)</string>
+    <string name="widget_name_calendar_week">Agenda (Week)</string>
+    <string name="widget_name_calendar_month">Agenda (Maand)</string>
 </resources>

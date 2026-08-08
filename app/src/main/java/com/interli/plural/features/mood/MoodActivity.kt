@@ -131,6 +131,22 @@ class MoodActivity : BaseActivity() {
         setupMoodButtons()
         renderActivityGroups()
         updateLinkedItemsText()
+
+        val quickMood = intent.getStringExtra("quick_log_mood")
+        if (quickMood != null) {
+            selectedEmoji = "👍"
+            selectedMoodLabel = quickMood
+            selectedMoodColor = ColorHelper.getMoodColor(this, quickMood)
+            selectedRotation = when(quickMood) {
+                "mood_rad" -> 0f
+                "mood_good" -> 45f
+                "mood_meh" -> 90f
+                "mood_bad" -> 135f
+                "mood_awful" -> 180f
+                else -> 0f
+            }
+            setupMoodButtons()
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {

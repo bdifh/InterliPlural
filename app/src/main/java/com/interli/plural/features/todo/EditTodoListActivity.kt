@@ -298,7 +298,9 @@ class EditTodoListActivity : BaseActivity() {
     }
     private fun saveList() {
         val title = editTitle.text.toString().trim()
-        if (title.isEmpty() && tasks.isEmpty()) { finish(); return }
+        if (title.isEmpty() && tasks.isEmpty()) {
+            finish(); return
+        }
         val existing = todoLists.find { it.id == listId }
         val newList = TodoList(
             id = listId ?: UUID.randomUUID().toString(),
@@ -324,6 +326,7 @@ class EditTodoListActivity : BaseActivity() {
         } else {
             cancelReminder(newList)
         }
+        com.interli.plural.widgets.TodoWidgetProvider.sendRefreshBroadcast(this)
         finish()
     }
     private fun scheduleReminder(list: TodoList) {
@@ -372,6 +375,7 @@ class EditTodoListActivity : BaseActivity() {
             todoLists.removeAll { it.id == listId }
             val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
             sharedPref.edit().putString("todo_lists", gson.toJson(todoLists)).apply()
+            com.interli.plural.widgets.TodoWidgetProvider.sendRefreshBroadcast(this)
             finish()
         } else {
             val remaining = 8 - deleteClickCount

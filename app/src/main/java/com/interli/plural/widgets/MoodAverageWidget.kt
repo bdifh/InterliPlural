@@ -12,6 +12,7 @@ import com.google.gson.reflect.TypeToken
 import com.interli.plural.MainActivity
 import com.interli.plural.R
 import com.interli.plural.core.ColorHelper
+import com.interli.plural.features.mood.MoodStatsActivity
 import java.util.*
 
 class MoodAverageWidget : AppWidgetProvider() {
@@ -20,7 +21,7 @@ class MoodAverageWidget : AppWidgetProvider() {
         for (appWidgetId in appWidgetIds) {
             val views = RemoteViews(context.packageName, R.layout.widget_mood_average)
 
-            val intent = Intent(context, MainActivity::class.java)
+            val intent = Intent(context, MoodStatsActivity::class.java)
             val pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.widget_root, pendingIntent)
 
@@ -35,6 +36,10 @@ class MoodAverageWidget : AppWidgetProvider() {
             }
             val startOfToday = cal.timeInMillis
             val todayEntries = entries.filter { it.timestamp >= startOfToday }
+
+            val bgColor = ColorHelper.getBgColor(context)
+            val textColor = ColorHelper.getTextColor(context)
+            val btnColor = ColorHelper.getBtnColor(context)
 
             if (todayEntries.isEmpty()) {
                 views.setTextViewText(R.id.tvWidgetMoodAverage, "--")
@@ -54,17 +59,16 @@ class MoodAverageWidget : AppWidgetProvider() {
                 }.average()
 
                 views.setTextViewText(R.id.tvWidgetMoodAverage, String.format("%.1f", avg))
-
-                val rotation = (5.0 - avg) * 45.0
-                views.setFloat(R.id.tvWidgetMoodThumb, "setRotation", rotation.toFloat())
-
-                val moodColor = ColorHelper.getMoodColorByScore(context, avg.toFloat())
-                views.setInt(R.id.layoutWidgetMoodCircle, "setBackgroundColor", moodColor)
+                val rotation = when {
+                    avg >= 4.5 -> 0f
+                    avg >= 3.5 -> 45f
+                    avg >= 2.5 -> 90f
+                    avg >= 1.5 -> 135f
+                    else -> 180f
+                }
+                views.setFloat(R.id.tvWidgetMoodThumb, "setRotation", rotation)
+                views.setInt(R.id.layoutWidgetMoodCircle, "setBackgroundColor", bgColor)
             }
-
-            val bgColor = ColorHelper.getBgColor(context)
-            val textColor = ColorHelper.getTextColor(context)
-            val btnColor = ColorHelper.getBtnColor(context)
 
             views.setTextColor(R.id.tvWidgetMoodAverage, textColor)
             views.setTextColor(R.id.tvWidgetHeader, btnColor)

@@ -66,6 +66,8 @@ class CalendarActivity : BaseActivity() {
     private fun saveData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         sharedPref.edit().putString("calendar_events", Gson().toJson(events)).apply()
+        com.interli.plural.widgets.CalendarDayWidgetProvider.sendRefreshBroadcast(this)
+        com.interli.plural.widgets.CalendarMonthWidgetProvider.sendRefreshBroadcast(this)
     }
 
     private fun scheduleCalendarAlarm(event: CalendarEvent) {
