@@ -76,6 +76,14 @@ object MemberHelper {
             }
         }
         editor.commit()
+
+        com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.MoodAverageWidget.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.MoodLogWidget.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.TodoWidgetProvider.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.CalendarDayWidgetProvider.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.CalendarWeekWidgetProvider.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.CalendarMonthWidgetProvider.sendRefreshBroadcast(context)
     }
     fun getSortedPeople(people: List<Person>, groups: List<Group>, includeArchived: Boolean = false): List<Person> {
         val sortedList = mutableListOf<Person>()

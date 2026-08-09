@@ -262,13 +262,15 @@ class MainActivity : BaseActivity() {
     private var groups = java.util.concurrent.CopyOnWriteArrayList<Group>()
     private var sessions = java.util.concurrent.CopyOnWriteArrayList<FrontSession>()
     private var currentLanguage: String? = null
-    private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
+    private val requestPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         currentLanguage = LocaleHelper.getLocale(this)
         super.onCreate(savedInstanceState)
         val settingsPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val rawStartPage = settingsPref.getString("start_page", "members") ?: "members"
-        val startPage = when(rawStartPage.uppercase()) {
+        val startPage = when (rawStartPage.uppercase()) {
             "FRONT" -> "members"
             "STATS" -> "stats"
             "DIARY" -> "diary"
@@ -276,27 +278,55 @@ class MainActivity : BaseActivity() {
             "MOOD" -> "mood"
             else -> rawStartPage.lowercase()
         }
-        val ignoreRedirect = intent.getBooleanExtra("ignore_redirect", false) || intent.hasExtra("SHOW_DIALOG")
+        val ignoreRedirect =
+            intent.getBooleanExtra("ignore_redirect", false) || intent.hasExtra("SHOW_DIALOG")
         if (savedInstanceState == null && !ignoreRedirect) {
             val redirectIntent: android.content.Intent? = when (startPage) {
                 "mood" -> {
                     val master = settingsPref.getBoolean("module_mood_enabled", true)
                     val sub = settingsPref.getBoolean("sub_mood_log_enabled", true)
-                    if (master && sub) android.content.Intent(this, MoodActivity::class.java) else null
+                    if (master && sub) android.content.Intent(
+                        this,
+                        MoodActivity::class.java
+                    ) else null
                 }
-                "diary" -> if (settingsPref.getBoolean("module_notes_enabled", true)) android.content.Intent(this, DiaryActivity::class.java) else null
-                "calendar" -> if (settingsPref.getBoolean("module_calendar_enabled", true)) android.content.Intent(this, CalendarActivity::class.java) else null
+
+                "diary" -> if (settingsPref.getBoolean(
+                        "module_notes_enabled",
+                        true
+                    )
+                ) android.content.Intent(this, DiaryActivity::class.java) else null
+
+                "calendar" -> if (settingsPref.getBoolean(
+                        "module_calendar_enabled",
+                        true
+                    )
+                ) android.content.Intent(this, CalendarActivity::class.java) else null
+
                 "sysmedia" -> {
                     val master = settingsPref.getBoolean("module_fronting_enabled", true)
                     val sub = settingsPref.getBoolean("module_sysmedia_enabled", true)
-                    if (master && sub) android.content.Intent(this, SysmediaActivity::class.java) else null
+                    if (master && sub) android.content.Intent(
+                        this,
+                        SysmediaActivity::class.java
+                    ) else null
                 }
-                "todo" -> if (settingsPref.getBoolean("module_todo_enabled", true)) android.content.Intent(this, TodoActivity::class.java) else null
+
+                "todo" -> if (settingsPref.getBoolean(
+                        "module_todo_enabled",
+                        true
+                    )
+                ) android.content.Intent(this, TodoActivity::class.java) else null
+
                 "stats" -> {
                     val master = settingsPref.getBoolean("module_fronting_enabled", true)
                     val sub = settingsPref.getBoolean("sub_fronting_enabled", true)
-                    if (master && sub) android.content.Intent(this, StatisticsActivity::class.java) else null
+                    if (master && sub) android.content.Intent(
+                        this,
+                        StatisticsActivity::class.java
+                    ) else null
                 }
+
                 else -> null
             }
             redirectIntent?.let {
@@ -330,7 +360,8 @@ class MainActivity : BaseActivity() {
             settingsPref.edit().putBoolean("fix_sysmedia_members_v2", true).apply()
         }
         val text = findViewById<TextView>(R.id.myText)
-        val cardInfo = findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardInfo)
+        val cardInfo =
+            findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardInfo)
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
         val adapter = PersonAdapter(
             this,
@@ -356,12 +387,14 @@ class MainActivity : BaseActivity() {
         )
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
-        val etSearchMain = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSearchMain)
+        val etSearchMain =
+            findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSearchMain)
         etSearchMain.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 adapter.filter(s.toString())
             }
+
             override fun afterTextChanged(s: android.text.Editable?) {}
         })
         ColorHelper.applySettings(this)
@@ -398,6 +431,7 @@ class MainActivity : BaseActivity() {
         BackupHelper.updateAutoBackupSchedule(this)
         migrateProfilePictures()
     }
+
     private fun healDataIntegrity() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         var healingNeeded = false
@@ -416,7 +450,8 @@ class MainActivity : BaseActivity() {
         }
         val moodJson = sharedPref.getString("mood_entries", "[]")
         val moodType = object : TypeToken<MutableList<MoodActivity.MoodEntry>>() {}.type
-        val moodEntries: MutableList<MoodActivity.MoodEntry> = Gson().fromJson(moodJson, moodType) ?: mutableListOf()
+        val moodEntries: MutableList<MoodActivity.MoodEntry> =
+            Gson().fromJson(moodJson, moodType) ?: mutableListOf()
         val updatedMoodEntries = moodEntries.map { entry ->
             var entryChanged = false
             val newMemberIds = entry.memberIds.map { mId ->
@@ -440,6 +475,7 @@ class MainActivity : BaseActivity() {
             sharedPref.edit().putString("mood_entries", Gson().toJson(updatedMoodEntries)).apply()
         }
     }
+
     private fun migrateProfilePictures() {
         lifecycleScope.launch {
             val peopleToProcess = ArrayList(people)
@@ -447,7 +483,8 @@ class MainActivity : BaseActivity() {
             peopleToProcess.forEach { person ->
                 val uri = person.profilePictureUri
                 if (!uri.isNullOrBlank() && (uri.startsWith("http://") || uri.startsWith("https://"))) {
-                    val localUri = ImageHelper.downloadAndSaveProfilePicture(this@MainActivity, uri, person.id)
+                    val localUri =
+                        ImageHelper.downloadAndSaveProfilePicture(this@MainActivity, uri, person.id)
                     if (localUri != null) {
                         person.profilePictureUri = localUri
                         people.find { it.id == person.id }?.profilePictureUri = localUri
@@ -461,29 +498,40 @@ class MainActivity : BaseActivity() {
             }
         }
     }
+
     private fun setupNotificationChannel() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             val name = getString(R.string.notification_channel_name)
             val descriptionText = getString(R.string.notification_channel_description)
             val importance = android.app.NotificationManager.IMPORTANCE_LOW
-            val channel = android.app.NotificationChannel("FRONT_CHANNEL_V2", name, importance).apply {
-                description = descriptionText
-                setShowBadge(false)
-            }
+            val channel =
+                android.app.NotificationChannel("FRONT_CHANNEL_V2", name, importance).apply {
+                    description = descriptionText
+                    setShowBadge(false)
+                }
             val notificationManager = getSystemService(android.app.NotificationManager::class.java)
             notificationManager.deleteNotificationChannel("FRONT_CHANNEL")
             notificationManager.createNotificationChannel(channel)
             val todoName = getString(R.string.todo)
-            val todoChannel = android.app.NotificationChannel("TODO_CHANNEL", todoName, android.app.NotificationManager.IMPORTANCE_HIGH)
+            val todoChannel = android.app.NotificationChannel(
+                "TODO_CHANNEL",
+                todoName,
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            )
             notificationManager.createNotificationChannel(todoChannel)
             val sysmediaName = getString(R.string.notification_channel_sysmedia_name)
             val sysmediaDesc = getString(R.string.notification_channel_sysmedia_description)
-            val sysmediaChannel = android.app.NotificationChannel("SYSMEDIA_CHANNEL", sysmediaName, android.app.NotificationManager.IMPORTANCE_HIGH).apply {
+            val sysmediaChannel = android.app.NotificationChannel(
+                "SYSMEDIA_CHANNEL",
+                sysmediaName,
+                android.app.NotificationManager.IMPORTANCE_HIGH
+            ).apply {
                 description = sysmediaDesc
             }
             notificationManager.createNotificationChannel(sysmediaChannel)
         }
     }
+
     private fun updateFrontNotification() {
         val sharedPrefSettings = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val enabled = sharedPrefSettings.getBoolean("front_notif_enabled", true)
@@ -495,7 +543,8 @@ class MainActivity : BaseActivity() {
         val statusText = if (frontPeople.isEmpty()) getString(R.string.nobody_fronting_notification)
         else frontPeople.joinToString { it.name }
         val intent = android.content.Intent(this, MainActivity::class.java).apply {
-            flags = android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+            flags =
+                android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = android.app.PendingIntent.getActivity(
             this, 0, intent,
@@ -511,8 +560,10 @@ class MainActivity : BaseActivity() {
             .setSilent(true)
         try {
             NotificationManagerCompat.from(this).notify(1, builder.build())
-        } catch (_: SecurityException) { }
+        } catch (_: SecurityException) {
+        }
     }
+
     private fun updateMenuVisibility() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val navigationView = findViewById<NavigationView>(R.id.navigationView)
@@ -540,12 +591,17 @@ class MainActivity : BaseActivity() {
         menu.findItem(R.id.action_todo)?.isVisible = todoEnabled
         menu.findItem(R.id.action_calendar)?.isVisible = calendarEnabled
         val header = navigationView.getHeaderView(0)
-        header?.findViewById<View>(R.id.btnNavAddMember)?.visibility = if (frontSub) View.VISIBLE else View.GONE
-        header?.findViewById<View>(R.id.btnNavAddGroup)?.visibility = if (frontSub) View.VISIBLE else View.GONE
+        header?.findViewById<View>(R.id.btnNavAddMember)?.visibility =
+            if (frontSub) View.VISIBLE else View.GONE
+        header?.findViewById<View>(R.id.btnNavAddGroup)?.visibility =
+            if (frontSub) View.VISIBLE else View.GONE
         findViewById<View>(R.id.cardInfo)?.visibility = if (frontSub) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.recyclerView)?.visibility = if (frontSub) View.VISIBLE else View.GONE
-        findViewById<TextView>(R.id.tvModuleDisabled)?.visibility = if (frontSub) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.recyclerView)?.visibility =
+            if (frontSub) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.tvModuleDisabled)?.visibility =
+            if (frontSub) View.GONE else View.VISIBLE
     }
+
     override fun onResume() {
         super.onResume()
         val savedLang = LocaleHelper.getLocale(this)
@@ -553,15 +609,18 @@ class MainActivity : BaseActivity() {
             recreate()
             return
         }
-        val etSearchMain = findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSearchMain)
+        val etSearchMain =
+            findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSearchMain)
         etSearchMain?.setText("")
         etSearchMain?.clearFocus()
-        val imm = getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+        val imm =
+            getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
         imm.hideSoftInputFromWindow(etSearchMain?.windowToken, 0)
         loadData()
         updateMenuVisibility()
         updateUI()
     }
+
     private fun loadData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val loadedPeople = MemberHelper.loadAllPeople(this)
@@ -579,16 +638,20 @@ class MainActivity : BaseActivity() {
         groups.clear(); groups.addAll(loadedGroups)
         sessions.clear(); sessions.addAll(loadedSessions)
     }
+
     private fun updateUI() {
         ColorHelper.applySettings(this)
         findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardInfo)
             ?.setCardBackgroundColor(ColorHelper.getFrontColor(this))
         val textColor = ColorHelper.getTextColor(this)
-        val searchLayout = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.searchLayout)
+        val searchLayout =
+            findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.searchLayout)
         searchLayout?.setStartIconTintList(android.content.res.ColorStateList.valueOf(textColor))
         searchLayout?.hintTextColor = android.content.res.ColorStateList.valueOf(textColor)
         searchLayout?.defaultHintTextColor = android.content.res.ColorStateList.valueOf(textColor)
-        findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSearchMain)?.setTextColor(textColor)
+        findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSearchMain)?.setTextColor(
+            textColor
+        )
         val text = findViewById<TextView>(R.id.myText)
         val frontPeople = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
         text?.text = if (frontPeople.isEmpty()) {
@@ -600,11 +663,13 @@ class MainActivity : BaseActivity() {
         adapter?.updateItems()
         updateFrontNotification()
     }
+
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleIntentDialogs(intent)
     }
+
     private fun handleIntentDialogs(intent: android.content.Intent?) {
         if (intent == null) return
         if (intent.getBooleanExtra("OPEN_SYSMEDIA", false)) {
@@ -621,7 +686,8 @@ class MainActivity : BaseActivity() {
         if (showDialog != 0) {
             intent.removeExtra("SHOW_DIALOG")
             findViewById<RecyclerView>(R.id.recyclerView)?.post {
-                val adapter = findViewById<RecyclerView>(R.id.recyclerView).adapter as? PersonAdapter
+                val adapter =
+                    findViewById<RecyclerView>(R.id.recyclerView).adapter as? PersonAdapter
                 if (adapter != null) {
                     when (showDialog) {
                         R.id.action_add_person -> showAddPersonDialog(adapter)
@@ -631,13 +697,18 @@ class MainActivity : BaseActivity() {
             }
         }
     }
+
     private fun showAddPersonDialog(adapter: PersonAdapter) {
         val input = EditText(this)
         input.hint = getString(R.string.hint_enter_name)
-        input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+        input.inputType =
+            android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
         val container = LinearLayout(this)
         container.orientation = LinearLayout.VERTICAL
-        val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        val lp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
         val margin = (24 * resources.displayMetrics.density).toInt()
         lp.setMargins(margin, 20, margin, 0)
         input.layoutParams = lp
@@ -665,6 +736,7 @@ class MainActivity : BaseActivity() {
         input.setTextColor(ColorHelper.getTextColor(this))
         input.setHintTextColor(ColorHelper.getTextColor(this) and 0x88FFFFFF.toInt())
     }
+
     private fun showAddGroupDialog(adapter: PersonAdapter) {
         val container = LinearLayout(this)
         container.orientation = LinearLayout.VERTICAL
@@ -678,7 +750,9 @@ class MainActivity : BaseActivity() {
         container.addView(parentLabel)
         val parentSpinner = Spinner(this)
         val groupNames = mutableListOf(getString(R.string.group_none_main))
-        groupNames.addAll(groups.asSequence().sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name }).map { it.name })
+        groupNames.addAll(
+            groups.asSequence().sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+                .map { it.name })
         val spinnerAdapter = ColorHelper.createThemedAdapter(this, groupNames)
         parentSpinner.adapter = spinnerAdapter
         container.addView(parentSpinner)
@@ -689,7 +763,8 @@ class MainActivity : BaseActivity() {
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty()) {
                     val parentIdx = parentSpinner.selectedItemPosition
-                    val sortedGroups = groups.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
+                    val sortedGroups =
+                        groups.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
                     val parentId = if (parentIdx == 0) null else sortedGroups[parentIdx - 1].id
                     groups.add(Group(name = name, parentGroupId = parentId))
                     savePeople()
@@ -703,6 +778,7 @@ class MainActivity : BaseActivity() {
         input.setTextColor(ColorHelper.getTextColor(this))
         parentLabel.setTextColor(ColorHelper.getTextColor(this))
     }
+
     private fun showEditGroupDialog(group: Group) {
         val container = LinearLayout(this)
         container.orientation = LinearLayout.VERTICAL
@@ -748,7 +824,8 @@ class MainActivity : BaseActivity() {
                 if (newName.isNotEmpty()) {
                     group.name = newName
                     val parentIdx = parentSpinner.selectedItemPosition
-                    group.parentGroupId = if (parentIdx == 0) null else availableParents[parentIdx - 1].id
+                    group.parentGroupId =
+                        if (parentIdx == 0) null else availableParents[parentIdx - 1].id
                     savePeople()
                     (findViewById<RecyclerView>(R.id.recyclerView).adapter as? PersonAdapter)?.updateItems()
                 }
@@ -763,6 +840,7 @@ class MainActivity : BaseActivity() {
         input.setTextColor(ColorHelper.getTextColor(this))
         parentLabel.setTextColor(ColorHelper.getTextColor(this))
     }
+
     private fun showDeleteGroupDialog(group: Group) {
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(getString(R.string.dialog_delete_group_title))
@@ -779,6 +857,7 @@ class MainActivity : BaseActivity() {
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }
+
     private var quickUnfrontDialog: androidx.appcompat.app.AlertDialog? = null
     private fun toggleFront(person: Person) {
         if (person.isArchived) return
@@ -793,31 +872,34 @@ class MainActivity : BaseActivity() {
                 if (pendingNoteId != null) {
                     val notesJson = sharedPref.getString("diary_notes", "[]") ?: "[]"
                     val type = object : TypeToken<MutableList<DiaryNote>>() {}.type
-                    val allNotes: MutableList<DiaryNote> = try { 
-                        Gson().fromJson(notesJson, type) 
-                    } catch (_: Exception) { mutableListOf() }
+                    val allNotes: MutableList<DiaryNote> = try {
+                        Gson().fromJson(notesJson, type)
+                    } catch (_: Exception) {
+                        mutableListOf()
+                    }
                     val note = allNotes.find { it.id == pendingNoteId }
                     if (note != null) {
                         note.nextFronterRecipient = person.name
                         if (note.linkedMemberIds == null) note.linkedMemberIds = mutableListOf()
                         if (note.linkedMemberIds?.contains(person.id) == false) {
                             note.linkedMemberIds?.add(person.id)
-                            sharedPref.edit().putString("diary_notes", Gson().toJson(allNotes)).apply()
+                            sharedPref.edit().putString("diary_notes", Gson().toJson(allNotes))
+                                .apply()
                         }
                     }
                 }
-                sharedPref.edit().remove("pending_next_fronter_message").remove("pending_next_fronter_note_id").apply()
+                sharedPref.edit().remove("pending_next_fronter_message")
+                    .remove("pending_next_fronter_note_id").apply()
                 showFrontMessageNotification(person)
             }
-            sessions.add(FrontSession(person.name, System.currentTimeMillis(), personId = person.id))
+            sessions.add(
+                FrontSession(
+                    person.name,
+                    System.currentTimeMillis(),
+                    personId = person.id
+                )
+            )
             savePeople()
-            CurrentFronterWidget.sendRefreshBroadcast(this)
-            MoodAverageWidget.sendRefreshBroadcast(this)
-            MoodLogWidget.sendRefreshBroadcast(this)
-            TodoWidgetProvider.sendRefreshBroadcast(this)
-            CalendarDayWidgetProvider.sendRefreshBroadcast(this)
-            CalendarWeekWidgetProvider.sendRefreshBroadcast(this)
-            CalendarMonthWidgetProvider.sendRefreshBroadcast(this)
             updateUI()
             if (!person.frontMessage.isNullOrBlank() && !person.messageRead) {
                 showFrontMessageNotification(person)
@@ -827,16 +909,10 @@ class MainActivity : BaseActivity() {
             sessions.filter { (it.personId == person.id || (it.personId == null && it.personName == person.name)) && it.endTime == null }
                 .forEach { it.endTime = System.currentTimeMillis() }
             savePeople()
-            CurrentFronterWidget.sendRefreshBroadcast(this)
-            MoodAverageWidget.sendRefreshBroadcast(this)
-            MoodLogWidget.sendRefreshBroadcast(this)
-            TodoWidgetProvider.sendRefreshBroadcast(this)
-            CalendarDayWidgetProvider.sendRefreshBroadcast(this)
-            CalendarWeekWidgetProvider.sendRefreshBroadcast(this)
-            CalendarMonthWidgetProvider.sendRefreshBroadcast(this)
             updateUI()
         }
     }
+
     private fun showQuickUnfrontDialog() {
         val frontPeople = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
             .distinctBy { it.id }
@@ -852,7 +928,8 @@ class MainActivity : BaseActivity() {
         val bgColor = ColorHelper.getBgColor(this)
         val btnColor = ColorHelper.getBtnColor(this)
         val btnTextColor = ColorHelper.getBtnTextColor(this)
-        val adapter = object : ArrayAdapter<String>(this, R.layout.item_unfront_dialog, R.id.textName, filteredNames) {
+        val adapter = object :
+            ArrayAdapter<String>(this, R.layout.item_unfront_dialog, R.id.textName, filteredNames) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val v = super.getView(position, convertView, parent)
                 val nameTxt = v.findViewById<TextView>(R.id.textName)
@@ -862,7 +939,8 @@ class MainActivity : BaseActivity() {
                 val ivNote = v.findViewById<ImageView>(R.id.ivNote)
                 val currentName = filteredNames[position]
                 val person = frontPeople.find { it.name == currentName }
-                val session = sessions.find { (it.personId == person?.id || (it.personId == null && it.personName == currentName)) && it.endTime == null }
+                val session =
+                    sessions.find { (it.personId == person?.id || (it.personId == null && it.personName == currentName)) && it.endTime == null }
                 nameTxt.setTextColor(textColor)
                 noteTxt.setTextColor(textColor)
                 arrowTxt.setTextColor(btnTextColor)
@@ -919,7 +997,14 @@ class MainActivity : BaseActivity() {
             setTextColor(textColor)
             setHintTextColor(textColor and 0x88FFFFFF.toInt())
             addTextChangedListener(object : android.text.TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun beforeTextChanged(
+                    s: CharSequence?,
+                    start: Int,
+                    count: Int,
+                    after: Int
+                ) {
+                }
+
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                     filteredNames.clear()
                     if (s.isNullOrBlank()) {
@@ -929,6 +1014,7 @@ class MainActivity : BaseActivity() {
                     }
                     adapter.notifyDataSetChanged()
                 }
+
                 override fun afterTextChanged(s: android.text.Editable?) {}
             })
         }
@@ -947,6 +1033,7 @@ class MainActivity : BaseActivity() {
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }
+
     private fun savePeople() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val gson = com.google.gson.GsonBuilder().disableHtmlEscaping().create()
@@ -958,5 +1045,12 @@ class MainActivity : BaseActivity() {
             putString("sessions_list", gson.toJson(sessions))
             putString("groups_list", gson.toJson(groups))
         }
+        com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(this)
+        com.interli.plural.widgets.MoodAverageWidget.sendRefreshBroadcast(this)
+        com.interli.plural.widgets.MoodLogWidget.sendRefreshBroadcast(this)
+        com.interli.plural.widgets.TodoWidgetProvider.sendRefreshBroadcast(this)
+        com.interli.plural.widgets.CalendarDayWidgetProvider.sendRefreshBroadcast(this)
+        com.interli.plural.widgets.CalendarWeekWidgetProvider.sendRefreshBroadcast(this)
+        com.interli.plural.widgets.CalendarMonthWidgetProvider.sendRefreshBroadcast(this)
     }
 }
