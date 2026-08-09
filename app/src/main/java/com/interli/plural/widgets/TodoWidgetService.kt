@@ -2,6 +2,7 @@ package com.interli.plural.widgets
 
 import android.content.Context
 import android.content.Intent
+import android.view.View
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import com.google.gson.Gson
@@ -17,7 +18,15 @@ class TodoWidgetService : RemoteViewsService() {
 }
 
 class TodoRemoteViewsFactory(private val context: Context) : RemoteViewsService.RemoteViewsFactory {
-    private var taskList = mutableListOf<Triple<String, String, String>>()
+    private var taskList = mutableListOf<TodoItemInfo>()
+
+    data class TodoItemInfo(
+        val title: String,
+        val status: String,
+        val listId: String,
+        val listTitle: String,
+        val isFirstInList: Boolean
+    )
 
     override fun onCreate() {}
     override fun onDestroy() {}
@@ -37,9 +46,10 @@ class TodoRemoteViewsFactory(private val context: Context) : RemoteViewsService.
 
         taskList.clear()
         lists.forEach { list ->
-            list.tasks.filter { it.status != "CHECKED" }.forEach { task ->
+            val activeTasks = list.tasks.filter { it.status != "CHECKED" }
+
+            activeTasks.forEachIndexed { index, task ->
                 val statusChar = when(task.status) {
-                    "CHECKED" -> "✓"
                     "FORWARD" -> "→"
                     "BACKWARD" -> "←"
                     "WAITING" -> "⏳"
@@ -47,7 +57,14 @@ class TodoRemoteViewsFactory(private val context: Context) : RemoteViewsService.
                     "QUESTION" -> "?"
                     else -> "☐"
                 }
-                taskList.add(Triple(task.title, statusChar, list.id))
+
+                taskList.add(TodoItemInfo(
+                    title = task.title,
+                    status = statusChar,
+                    listId = list.id,
+                    listTitle = list.title,
+                    isFirstInList = (index == 0)
+                ))
             }
         }
     }
@@ -56,24 +73,34 @@ class TodoRemoteViewsFactory(private val context: Context) : RemoteViewsService.
         if (position >= taskList.size) return RemoteViews(context.packageName, R.layout.widget_todo_item)
 
         val views = RemoteViews(context.packageName, R.layout.widget_todo_item)
-        val (title, status, listId) = taskList[position]
+        val item = taskList[position]
 
-        views.setTextViewText(R.id.tvWidgetTaskTitle, title)
-        views.setTextViewText(R.id.tvWidgetTaskStatus, status)
+        views.setTextViewText(R.id.tvWidgetTaskTitle, item.title)
+        views.setTextViewText(R.id.tvWidgetTaskStatus, item.status)
 
         val textColor = ColorHelper.getTextColor(context)
+        val btnColor = ColorHelper.getBtnColor(context)
+
+        if (item.isFirstInList) {
+            views.setViewVisibility(R.id.tvWidgetListName, View.VISIBLE)
+            views.setTextViewText(R.id.tvWidgetListName, item.listTitle)
+            views.setTextColor(R.id.tvWidgetListName, btnColor)
+        } else {
+            views.setViewVisibility(R.id.tvWidgetListName, View.GONE)
+        }
+
         views.setTextColor(R.id.tvWidgetTaskTitle, textColor)
         views.setTextColor(R.id.tvWidgetTaskStatus, textColor)
 
         val checkIntent = Intent().apply {
             action = TodoWidgetProvider.ACTION_CHECK_TASK
-            putExtra("task_title", title)
-            putExtra("list_id", listId)
+            putExtra("task_title", item.title)
+            putExtra("list_id", item.listId)
         }
         views.setOnClickFillInIntent(R.id.tvWidgetTaskStatus, checkIntent)
 
         val openIntent = Intent().apply {
-            putExtra("list_id", listId)
+            putExtra("list_id", item.listId)
         }
         views.setOnClickFillInIntent(R.id.tvWidgetTaskTitle, openIntent)
 

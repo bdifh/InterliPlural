@@ -312,7 +312,7 @@ class TodoActivity : BaseActivity() {
                     setOnClickListener { showEditBundleDialog(bundle) }
                 }
                 content.addView(btnEdit)
-                card.addView(content)
+                card.addView(content, android.widget.FrameLayout.LayoutParams(-1, -2))
                 card.setOnClickListener {
                     bundle.isExpanded = !bundle.isExpanded
                     saveData()
@@ -484,7 +484,7 @@ class TodoActivity : BaseActivity() {
                     }
                     content.addView(taskRow)
                 }
-                card.addView(content)
+                card.addView(content, android.widget.FrameLayout.LayoutParams(-1, -2))
                 card.setOnClickListener {
                     val intent = android.content.Intent(this@TodoActivity, EditTodoListActivity::class.java)
                     intent.putExtra("list_id", list.id)

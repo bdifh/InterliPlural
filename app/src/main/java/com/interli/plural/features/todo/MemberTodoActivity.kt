@@ -228,7 +228,10 @@ class MemberTodoActivity : BaseActivity() {
                 }
                 content.addView(taskRow)
             }
-            card.addView(content)
+            card.addView(content, android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            ))
             listContainer.addView(card)
         }
     }
