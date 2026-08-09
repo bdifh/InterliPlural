@@ -52,7 +52,9 @@ class CurrentFronterWidget : AppWidgetProvider() {
     }
     companion object {
         fun sendRefreshBroadcast(context: Context) {
-            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+            val intent = Intent(context, CurrentFronterWidget::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            }
             val ids = AppWidgetManager.getInstance(context)
                 .getAppWidgetIds(android.content.ComponentName(context, CurrentFronterWidget::class.java))
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)

@@ -32,6 +32,7 @@ import com.interli.plural.features.mood.MoodActivity
 import com.interli.plural.features.sysmedia.SysmediaActivity
 import com.interli.plural.features.sysmedia.SysmediaNotificationHelper
 import com.interli.plural.features.todo.TodoActivity
+import com.interli.plural.widgets.*
 import kotlinx.coroutines.launch
 
 data class IdentityGroup(
@@ -449,7 +450,6 @@ class MainActivity : BaseActivity() {
                     val localUri = ImageHelper.downloadAndSaveProfilePicture(this@MainActivity, uri, person.id)
                     if (localUri != null) {
                         person.profilePictureUri = localUri
-                        // Also update in the live list if it was reloaded
                         people.find { it.id == person.id }?.profilePictureUri = localUri
                         anyChanged = true
                     }
@@ -811,7 +811,13 @@ class MainActivity : BaseActivity() {
             }
             sessions.add(FrontSession(person.name, System.currentTimeMillis(), personId = person.id))
             savePeople()
-            com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(this)
+            CurrentFronterWidget.sendRefreshBroadcast(this)
+            MoodAverageWidget.sendRefreshBroadcast(this)
+            MoodLogWidget.sendRefreshBroadcast(this)
+            TodoWidgetProvider.sendRefreshBroadcast(this)
+            CalendarDayWidgetProvider.sendRefreshBroadcast(this)
+            CalendarWeekWidgetProvider.sendRefreshBroadcast(this)
+            CalendarMonthWidgetProvider.sendRefreshBroadcast(this)
             updateUI()
             if (!person.frontMessage.isNullOrBlank() && !person.messageRead) {
                 showFrontMessageNotification(person)
@@ -821,7 +827,13 @@ class MainActivity : BaseActivity() {
             sessions.filter { (it.personId == person.id || (it.personId == null && it.personName == person.name)) && it.endTime == null }
                 .forEach { it.endTime = System.currentTimeMillis() }
             savePeople()
-            com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(this)
+            CurrentFronterWidget.sendRefreshBroadcast(this)
+            MoodAverageWidget.sendRefreshBroadcast(this)
+            MoodLogWidget.sendRefreshBroadcast(this)
+            TodoWidgetProvider.sendRefreshBroadcast(this)
+            CalendarDayWidgetProvider.sendRefreshBroadcast(this)
+            CalendarWeekWidgetProvider.sendRefreshBroadcast(this)
+            CalendarMonthWidgetProvider.sendRefreshBroadcast(this)
             updateUI()
         }
     }

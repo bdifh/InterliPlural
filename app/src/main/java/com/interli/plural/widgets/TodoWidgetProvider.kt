@@ -24,6 +24,11 @@ class TodoWidgetProvider : AppWidgetProvider() {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, TodoWidgetProvider::class.java)
             val ids = appWidgetManager.getAppWidgetIds(component)
+            val updateIntent = Intent(context, TodoWidgetProvider::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids)
+            }
+            context.sendBroadcast(updateIntent)
             appWidgetManager.notifyAppWidgetViewDataChanged(ids, R.id.lvWidgetTodo)
         }
     }

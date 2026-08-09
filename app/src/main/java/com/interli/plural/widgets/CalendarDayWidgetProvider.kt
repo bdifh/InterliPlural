@@ -20,6 +20,11 @@ class CalendarDayWidgetProvider : AppWidgetProvider() {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, CalendarDayWidgetProvider::class.java)
             val ids = appWidgetManager.getAppWidgetIds(component)
+            val updateIntent = Intent(context, CalendarDayWidgetProvider::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS,ids)
+            }
+            context.sendBroadcast(updateIntent)
             appWidgetManager.notifyAppWidgetViewDataChanged(ids, R.id.lvWidgetCalendar)
         }
     }

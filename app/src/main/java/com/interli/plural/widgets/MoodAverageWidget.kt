@@ -82,7 +82,9 @@ class MoodAverageWidget : AppWidgetProvider() {
 
     companion object {
         fun sendRefreshBroadcast(context: Context) {
-            val intent = Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+            val intent = Intent(context, MoodAverageWidget::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            }
             val ids = AppWidgetManager.getInstance(context)
                 .getAppWidgetIds(android.content.ComponentName(context, MoodAverageWidget::class.java))
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)

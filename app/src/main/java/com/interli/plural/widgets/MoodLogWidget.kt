@@ -40,6 +40,21 @@ class MoodLogWidget : AppWidgetProvider() {
         }
     }
 
+    companion object {
+        fun sendRefreshBroadcast(context: Context) {
+            val appWidgetManager = AppWidgetManager.getInstance(context)
+            val component = android.content.ComponentName(context, MoodLogWidget::class.java)
+            val ids = appWidgetManager.getAppWidgetIds(component)
+
+            val intent = Intent(context, MoodLogWidget::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+            }
+            context.sendBroadcast(intent)
+        }
+    }
+
+
     private fun setupMoodClick(context: Context, views: RemoteViews, viewId: Int, moodKey: String) {
         val intent = Intent(context, MoodActivity::class.java).apply {
             putExtra("quick_log_mood", moodKey)
