@@ -11,11 +11,13 @@ import com.interli.plural.core.ColorHelper
 import com.interli.plural.DiaryNote
 import com.interli.plural.R
 import com.interli.plural.TodoList
+import com.interli.plural.Person
 import java.text.SimpleDateFormat
 import java.util.*
 
 class CalendarAgendaAdapter(
     private var items: List<AgendaItem>,
+    private val people: List<Person>,
     private val allNotes: List<DiaryNote>,
     private val allTodoLists: List<TodoList>,
     private val onEventClick: (CalendarEvent) -> Unit,
@@ -73,10 +75,11 @@ class CalendarAgendaAdapter(
             val context = itemView.context
             val textColor = ColorHelper.getTextColor(context)
             val btnColor = ColorHelper.getBtnColor(context)
+            val eventColor = event.color ?: people.find { it.id in event.linkedMemberIds }?.profileColor
             card?.apply {
                 setCardBackgroundColor(ColorHelper.getBgColor(context))
-                strokeColor = event.color ?: (textColor and 0x33FFFFFF)
-                strokeWidth = if (event.color != null) (2 * resources.displayMetrics.density).toInt() else 0
+                strokeColor = eventColor ?: (textColor and 0x33FFFFFF)
+                strokeWidth = if (eventColor != null) (2 * resources.displayMetrics.density).toInt() else 0
             }
             title.text = event.title
             title.setTextColor(textColor)

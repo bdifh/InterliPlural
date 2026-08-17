@@ -283,16 +283,16 @@ class MemberTodoActivity : BaseActivity() {
         if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
     }
     private fun getStatusChar(status: String): String = when (status) {
-        "CHECKED" -> "✓"
         "FORWARD" -> "→"
         "BACKWARD" -> "←"
         "WAITING" -> "⏳"
         "CANCELED" -> "✕"
         "QUESTION" -> "?"
+        "CHECKED" -> "✓"
         else -> "☐"
     }
     private fun getNextStatus(current: String): String {
-        val statuses = listOf("EMPTY", "CHECKED", "FORWARD", "BACKWARD", "WAITING", "CANCELED", "QUESTION")
+        val statuses = listOf("EMPTY", "FORWARD", "BACKWARD", "WAITING", "CANCELED", "QUESTION", "CHECKED")
         val idx = statuses.indexOf(current)
         return statuses[(idx + 1) % statuses.size]
     }

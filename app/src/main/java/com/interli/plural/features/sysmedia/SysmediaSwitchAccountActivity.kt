@@ -43,11 +43,17 @@ class SysmediaSwitchAccountActivity : BaseActivity() {
                 val fromPos = viewHolder.bindingAdapterPosition
                 val toPos = target.bindingAdapterPosition
                 if (fromPos == RecyclerView.NO_POSITION || toPos == RecyclerView.NO_POSITION) return false
-
                 val etSearch = findViewById<EditText>(R.id.etSearch)
                 if (etSearch.text.isNotEmpty()) return false
-
-                Collections.swap(filteredPeople, fromPos, toPos)
+                if (fromPos < toPos) {
+                    for (i in fromPos until toPos) {
+                        Collections.swap(filteredPeople, i, i + 1)
+                    }
+                } else {
+                    for (i in fromPos downTo toPos + 1) {
+                        Collections.swap(filteredPeople, i, i - 1)
+                    }
+                }
                 adapter.notifyItemMoved(fromPos, toPos)
                 return true
             }

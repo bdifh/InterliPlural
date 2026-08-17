@@ -68,6 +68,7 @@ object MemberHelper {
         editor.putString("people_list", gson.toJson(newNormal))
         if (newSysmedia.isNotEmpty()) {
             editor.putString("sysmedia_people_list", gson.toJson(newSysmedia))
+            editor.commit()
         } else {
             if (people.isEmpty()) {
                 editor.putString("sysmedia_people_list", "[]")

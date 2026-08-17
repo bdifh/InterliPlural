@@ -428,7 +428,7 @@ class CalendarActivity : BaseActivity() {
         }
         if (rv?.adapter == null) {
             rv?.layoutManager = LinearLayoutManager(this)
-            rv?.adapter = CalendarAgendaAdapter(agendaItems, allNotes, allTodoLists, { showEditEventDialog(it) }, {}, {})
+            rv?.adapter = CalendarAgendaAdapter(agendaItems, people, allNotes, allTodoLists, { showEditEventDialog(it) }, {}, {})
         } else (rv.adapter as? CalendarAgendaAdapter)?.updateData(agendaItems)
     }
 

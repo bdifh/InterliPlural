@@ -261,7 +261,9 @@ class StatisticsActivity : BaseActivity() {
     private fun renderMostSwitchingMembers() {
         val container = findViewById<LinearLayout>(R.id.containerMostSwitching)
         container.removeAllViews()
-        val counts = filteredSessions.groupingBy { it.personId ?: it.personName }.eachCount()
+        val counts = filteredSessions
+            .filter { it.startTime in currentPeriodStart..currentPeriodEnd }
+            .groupingBy { it.personId ?: it.personName }.eachCount()
         val sorted = counts.toList().sortedByDescending { it.second }.take(10)
 
         if (sorted.isEmpty()) {
@@ -313,8 +315,8 @@ class StatisticsActivity : BaseActivity() {
         container.removeAllViews()
         val durations = mutableMapOf<String, Long>()
         filteredSessions.forEach { s ->
-            val start = s.startTime
-            val end = s.endTime ?: System.currentTimeMillis()
+            val start = s.startTime.coerceAtLeast(currentPeriodStart)
+            val end = (s.endTime ?: System.currentTimeMillis()).coerceAtMost(currentPeriodEnd)
             val duration = (end - start).coerceAtLeast(0)
             val key = s.personId ?: s.personName
             durations[key] = (durations[key] ?: 0L) + duration
@@ -423,6 +425,8 @@ class StatisticsActivity : BaseActivity() {
     private fun renderMemberSwitchChart() {
         val chart = findViewById<MemberSwitchChartView>(R.id.memberSwitchChart)
         chart.setData(filteredSessions, people)
+        val periodSwitches = filteredSessions.filter { it.startTime in currentPeriodStart..currentPeriodEnd }
+        chart.setData(periodSwitches, people)
     }
 
     private fun renderFrontDensityChart() {

@@ -199,6 +199,7 @@ class TodoActivity : BaseActivity() {
             .putString("todo_lists", gson.toJson(todoLists))
             .putString("todo_bundles", gson.toJson(todoBundles))
             .apply()
+        com.interli.plural.widgets.TodoWidgetProvider.sendRefreshBroadcast(this)
     }
     private fun renderLists() {
         val items = mutableListOf<TodoItem>()

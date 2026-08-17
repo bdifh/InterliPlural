@@ -363,6 +363,14 @@ class ProfileActivity : BaseActivity() {
     }
     override fun onResume() {
         super.onResume()
+        try {
+            val personId = intent.getStringExtra("person_id") ?: return
+            val updatedPeople = MemberHelper.loadAllPeople(this)
+            val updatedPerson = updatedPeople.find { it.id == personId }
+            if (updatedPerson != null) {
+                people[personIndex].preferences = updatedPerson.preferences
+            }
+        } catch (_: Exception) {}
     }
     private fun updateUiMode(nameEdit: EditText) {
         val textColor = ColorHelper.getTextColor(this)

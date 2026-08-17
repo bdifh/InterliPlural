@@ -151,7 +151,7 @@ class CalendarMonthView @JvmOverloads constructor(
         var currentY = rect.top + 26 * density
 
         dayEvents.forEach { event ->
-            val color = event.color ?: defaultColor
+            val color = getEventColor(event, defaultColor)
             eventPaint.color = color
             eventPaint.style = Paint.Style.FILL
 
@@ -165,7 +165,14 @@ class CalendarMonthView @JvmOverloads constructor(
             currentY += 18 * density
         }
     }
-
+    private fun getEventColor(event: CalendarEvent, defaultColor: Int): Int {
+        if (event.color != null) return event.color!!
+        if (event.linkedMemberIds.isNotEmpty()) {
+            val person = people.find { it.id == event.linkedMemberIds[0] }
+            if (person != null) return person.profileColor
+        }
+        return defaultColor
+    }
     private fun getContrastColor(color: Int): Int {
         val r = Color.red(color); val g = Color.green(color); val b = Color.blue(color)
         val yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000

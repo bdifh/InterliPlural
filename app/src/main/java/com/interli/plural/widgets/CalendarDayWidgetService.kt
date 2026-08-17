@@ -33,21 +33,66 @@ class CalendarRemoteViewsFactory(private val context: Context) : RemoteViewsServ
         val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val json = sharedPref.getString("calendar_events", "[]") ?: "[]"
         val type = object : TypeToken<List<CalendarEvent>>() {}.type
-        val events: List<CalendarEvent> = try { Gson().fromJson(json, type) } catch(e: Exception) { emptyList() }
-
+        val rawEvents: List<CalendarEvent> = try {
+            Gson().fromJson(json, type) ?: emptyList()
+        } catch(e: Exception) {
+            emptyList()
+        }
         val now = Calendar.getInstance()
         val startOfDay = now.clone() as Calendar
-        startOfDay.set(Calendar.HOUR_OF_DAY, 0); startOfDay.set(Calendar.MINUTE, 0); startOfDay.set(Calendar.SECOND, 0)
+        startOfDay.set(Calendar.HOUR_OF_DAY, 0); startOfDay.set(Calendar.MINUTE, 0); startOfDay.set(Calendar.SECOND, 0); startOfDay.set(Calendar.MILLISECOND, 0)
         val endOfDay = startOfDay.timeInMillis + 24 * 3600 * 1000
-
+        val allEvents = expandEvents(rawEvents, startOfDay.timeInMillis, endOfDay)
         val timeSdf = SimpleDateFormat("HH:mm", Locale.getDefault())
-
         eventList.clear()
-        events.filter { it.startTime in startOfDay.timeInMillis..endOfDay }
+        allEvents.filter { !it.hideInDay && it.startTime in startOfDay.timeInMillis..endOfDay }
             .sortedBy { it.startTime }
             .forEach { event ->
                 eventList.add(Pair(timeSdf.format(Date(event.startTime)), event.title))
             }
+    }
+    private fun expandEvents(events: List<CalendarEvent>, start: Long, end: Long): List<CalendarEvent> {
+        val expanded = mutableListOf<CalendarEvent>()
+        events.forEach { event ->
+            if (event.recurrence == null) {
+                if (event.endTime >= start && event.startTime <= end) expanded.add(event)
+            } else {
+                val cal = Calendar.getInstance().apply { timeInMillis = event.startTime }
+                val duration = event.endTime - event.startTime
+                val limit = end
+
+                while (cal.timeInMillis <= limit) {
+                    val currentStart = cal.timeInMillis
+                    val currentEnd = currentStart + duration
+
+                    val matches = when (event.recurrence) {
+                        "DAILY" -> true
+                        "WEEKLY" -> true
+                        "MONTHLY" -> true
+                        "YEARLY" -> true
+                        "CUSTOM" -> event.recurrenceDays?.contains(cal.get(Calendar.DAY_OF_WEEK).let { if (it == Calendar.SUNDAY) 7 else it - 1 }) == true
+                        else -> false
+                    }
+
+                    val isExcluded = event.excludedDates?.any { it == currentStart } == true
+                    val isPastEnd = event.recurrenceUntil?.let { currentStart > it } ?: false
+
+                    if (matches && !isExcluded && !isPastEnd && currentEnd >= start && currentStart <= end) {
+                        expanded.add(event.copy(startTime = currentStart, endTime = currentEnd))
+                    }
+
+                    when (event.recurrence) {
+                        "DAILY", "CUSTOM" -> cal.add(Calendar.DAY_OF_YEAR, 1)
+                        "WEEKLY" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+                        "MONTHLY" -> cal.add(Calendar.MONTH, 1)
+                        "YEARLY" -> cal.add(Calendar.YEAR, 1)
+                        else -> break
+                    }
+                    if (cal.timeInMillis > end) break
+                }
+            }
+        }
+        return expanded
     }
 
     override fun getViewAt(position: Int): RemoteViews {
