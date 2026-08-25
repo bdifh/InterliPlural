@@ -1,5 +1,5 @@
 # App
-This is a rebuild version of interli Plural suited for multiple platforms aside from Android.
+This is a rebuild version of interli Plural suited for multiple platforms besides from Android.
 
 # What is kotlin Multiplatform;
 
