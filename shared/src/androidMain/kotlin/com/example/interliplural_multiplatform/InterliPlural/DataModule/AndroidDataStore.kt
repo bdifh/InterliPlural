@@ -3,14 +3,14 @@ package com.example.interliplural_multiplatform.InterliPlural.DataModule
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.PreferencesSerializer
 import androidx.datastore.core.FileStorage
+import androidx.datastore.preferences.core.PreferencesFileSerializer
 import java.io.File
 
 fun createAndroidDataStore(context: Context): DataStore<Preferences> {
     return createDataStore(
         storage = FileStorage(
-            serializer = PreferencesSerializer,
+            serializer = PreferencesFileSerializer,
             produceFile = {
                 File(
                     context.filesDir,
@@ -28,5 +28,15 @@ fun initializeDataStore(context: Context) {
 }
 
 actual fun getDataStores(): DataStore<Preferences> {
-    return createDataStore(appContext)
+    return createDataStore(
+        FileStorage(
+            serializer = PreferencesFileSerializer,
+            produceFile = {
+                File(
+                    appContext.filesDir,
+                    dataStoreFileName
+                )
+            }
+        )
+    )
 }

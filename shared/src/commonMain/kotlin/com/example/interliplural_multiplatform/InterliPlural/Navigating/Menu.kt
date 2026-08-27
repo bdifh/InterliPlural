@@ -48,7 +48,12 @@ fun SideMenu() {
     var savedName by remember { mutableStateOf("") }
     val member = remember { mutableStateListOf<Member>() }
 
-    Row() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .safeContentPadding()
+    ) {
         Column(modifier = Modifier.absolutePadding(left = 10.dp, top = 22.dp, right = 5.dp, bottom = 1.dp)) {
             Row() {
                 Box(modifier = Modifier.clickable(onClick = { addNewMemberPopup = true })) {
