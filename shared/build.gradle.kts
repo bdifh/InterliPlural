@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.androidMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -57,6 +58,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("androidx.datastore:datastore-core:1.2.1")
             implementation("androidx.datastore:datastore-preferences-core:1.2.1")
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -6,13 +6,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.interliplural_multiplatform.InterliPlural.DataModule.createAndroidDataStore
+import com.example.interliplural_multiplatform.InterliPlural.DataModule.createDataStore
 import com.example.interliplural_multiplatform.InterliPlural.Navigating.SideMenu
 import com.example.interliplural_multiplatform.InterliPlural.PluralModule.InterliFrontpage
+import com.example.interliplural_multiplatform.InterliPlural.DataModule.initializeDataStore
 
 class MainActivity : ComponentActivity() {
+
+   // private val dataStore by lazy {
+      //  createAndroidDataStore(applicationContext)
+   // }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        initializeDataStore(this)
 
         setContent {
             // InterliFrontpage()
