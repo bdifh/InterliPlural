@@ -27,16 +27,18 @@ fun initializeDataStore(context: Context) {
     appContext = context.applicationContext
 }
 
+private var dataStore: DataStore<Preferences>? = null
+
 actual fun getDataStores(): DataStore<Preferences> {
-    return createDataStore(
-        FileStorage(
-            serializer = PreferencesFileSerializer,
-            produceFile = {
-                File(
-                    appContext.filesDir,
-                    dataStoreFileName
-                )
-            }
+    if (dataStore == null) {
+        dataStore = createDataStore(
+            storage = FileStorage(
+                serializer = PreferencesFileSerializer,
+                produceFile = {
+                    File(appContext.filesDir, dataStoreFileName)
+                }
+            )
         )
-    )
+    }
+    return dataStore!!
 }

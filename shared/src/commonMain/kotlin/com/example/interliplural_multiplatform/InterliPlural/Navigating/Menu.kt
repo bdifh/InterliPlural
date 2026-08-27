@@ -39,6 +39,12 @@ import com.example.interliplural_multiplatform.InterliPlural.Helpers.ch_ButtonBa
 import com.example.interliplural_multiplatform.InterliPlural.Helpers.ch_ButtonTextColor
 import com.example.interliplural_multiplatform.InterliPlural.Helpers.ch_TextColor
 import com.example.interliplural_multiplatform.InterliPlural.PluralModule.InterliFrontpage
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import com.example.interliplural_multiplatform.InterliPlural.DataModule.getDataStores
+import com.example.interliplural_multiplatform.InterliPlural.DataModule.loadMembers
+import com.example.interliplural_multiplatform.InterliPlural.DataModule.saveMembers
+import kotlinx.coroutines.launch
 
 
 
@@ -47,6 +53,15 @@ fun SideMenu() {
     var addNewMemberPopup by remember { mutableStateOf(false) }
     var savedName by remember { mutableStateOf("") }
     val member = remember { mutableStateListOf<Member>() }
+    // val dataStore = remember { getDataStores() }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        loadMembers(dataStore).collect { savedMembers ->
+            member.clear()
+            member.addAll(savedMembers)
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -72,9 +87,16 @@ fun SideMenu() {
                                     name = it,
                                     color = " "
                                 )
-                    ) },
-                        onClose = { addNewMemberPopup = false }
-                    )
+                            )
+                            scope.launch {
+                                println("SAVE MEMBERS: ${member.toList()}")
+                                saveMembers(dataStore, member.toList())
+                                println("SAVE MEMBERS: ready")
+                            }
+                        },
+                    onClose = {
+                        addNewMemberPopup = false
+                    })
                 }
             }
 

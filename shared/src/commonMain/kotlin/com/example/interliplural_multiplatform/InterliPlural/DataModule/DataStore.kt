@@ -13,6 +13,7 @@ import kotlinx.serialization.json.Json
 internal const val dataStoreFileName = "interli.preferences_pb"
 
 private val membersKey = stringPreferencesKey("members")
+private val frontingMembersKey = stringPreferencesKey("frontingMembers")
 
 fun createDataStore(storage: Storage<Preferences>): DataStore<Preferences> {
     return DataStoreFactory.create(
@@ -37,6 +38,26 @@ suspend fun saveMembers(
 ) {
     dataStore.edit { preferences ->
         preferences[membersKey] = Json.encodeToString(members)
+    }
+}
+
+fun loadFrontingMembers(dataStore: DataStore<Preferences>): Flow<List<String>> {
+    return dataStore.data.map { preferences ->
+        val json = preferences[frontingMembersKey]
+        if (json == null) {
+            emptyList()
+        } else {
+            Json.decodeFromString<List<String>>(json)
+        }
+    }
+}
+
+suspend fun saveFrontingMembers(
+    dataStore: DataStore<Preferences>,
+    frontingMembers: List<String>
+) {
+    dataStore.edit { preferences ->
+        preferences[frontingMembersKey] = Json.encodeToString(frontingMembers)
     }
 }
 
