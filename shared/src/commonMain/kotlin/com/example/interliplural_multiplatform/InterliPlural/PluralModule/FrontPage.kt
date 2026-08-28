@@ -11,39 +11,23 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import com.example.interliplural_multiplatform.InterliPlural.DataModule.Member
-import com.example.interliplural_multiplatform.InterliPlural.DataModule.getDataStores
-import com.example.interliplural_multiplatform.InterliPlural.DataModule.loadFrontingMembers
-import com.example.interliplural_multiplatform.InterliPlural.DataModule.saveFrontingMembers
 import com.example.interliplural_multiplatform.InterliPlural.Helpers.ch_BackgroundFrontIndicator
 import com.example.interliplural_multiplatform.InterliPlural.Helpers.ch_ButtonBackgroundColor
 import com.example.interliplural_multiplatform.InterliPlural.Helpers.ch_ButtonTextColor
 import com.example.interliplural_multiplatform.InterliPlural.Helpers.ch_TextColor
-import kotlinx.coroutines.launch
 
 
 @Composable
 fun InterliFrontpage(member: List<Member> ) {
     val frontingMembers = remember { mutableStateListOf<String>() }
-    val dataStore = remember { getDataStores() }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) {
-        loadFrontingMembers(dataStore).collect { savedFrontingMembers ->
-            frontingMembers.clear()
-            frontingMembers.addAll(savedFrontingMembers)
-        }
-    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -106,9 +90,6 @@ fun InterliFrontpage(member: List<Member> ) {
                                     frontingMembers.remove(name.name)
                                 } else {
                                     frontingMembers.add(name.name)
-                                }
-                                scope.launch {
-                                    saveFrontingMembers(dataStore, frontingMembers.toList())
                                 }
                             },
                             colors = ButtonDefaults.buttonColors( containerColor =
