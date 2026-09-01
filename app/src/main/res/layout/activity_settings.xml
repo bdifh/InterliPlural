@@ -432,6 +432,16 @@
                         android:text="@string/custom_fields_title"
                         app:icon="@android:drawable/ic_menu_edit"
                         app:iconGravity="textStart" />
+
+                    <Button
+                        android:id="@+id/btnMemberRegistrationHistory"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/member_registration_history"
+                        app:icon="@android:drawable/ic_menu_recent_history"
+                        app:iconGravity="textStart" />
                 </LinearLayout>
 
                 <TextView

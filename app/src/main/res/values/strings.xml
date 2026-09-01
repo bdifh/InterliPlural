@@ -655,4 +655,10 @@
     <string name="widget_name_calendar_day">Calendar (Today)</string>
     <string name="widget_name_calendar_week">Calendar (Week)</string>
     <string name="widget_name_calendar_month">Calendar (Month)</string>
+    <string name="member_registration_history">Member registration history</string>
+    <string name="registration_history_title">Member Registration History</string>
+    <string name="history_added">Added: %1$s</string>
+    <string name="history_archived">Archived: %1$s</string>
+    <string name="history_deleted">Deleted: %1$s</string>
+    <string name="history_unknown">Unknown</string>
 </resources>

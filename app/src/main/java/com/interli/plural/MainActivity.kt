@@ -66,7 +66,9 @@ data class Person(
     var linkedThemeId: String? = null,
     var linkedMoodThemeId: String? = null,
     var preferences: MutableList<MemberPreference>? = mutableListOf(),
-    var sourcePictureUri: String? = null
+    var sourcePictureUri: String? = null,
+    var addedTimestamp: Long? = null,
+    var archivedTimestamp: Long? = null
 ) {
     val safeGroupIds: MutableList<String> get() = groupIds ?: mutableListOf()
     val safeCustomFields: MutableMap<String, String> get() = customFields ?: mutableMapOf()
@@ -724,7 +726,9 @@ class MainActivity : BaseActivity() {
                     val type = object : TypeToken<List<CustomField>>() {}.type
                     val customFieldsList: List<CustomField> = Gson().fromJson(fieldsJson, type)
                     val hiddenFields = customFieldsList.asSequence().map { it.name }.toMutableList()
-                    people.add(Person(name = name, hiddenFields = hiddenFields))
+                    val newPerson = Person(name = name, hiddenFields = hiddenFields)
+                    newPerson.addedTimestamp = System.currentTimeMillis() // Zet de huidige datum
+                    people.add(newPerson)
                     savePeople()
                     adapter.updateItems()
                 }

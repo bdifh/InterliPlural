@@ -613,7 +613,8 @@ class SysmediaProfileActivity : BaseActivity() {
 
             if (post.reblogOfId != null) {
                 holder.layoutReblog.visibility = View.VISIBLE
-                holder.tvRebloggedBy.text = getString(R.string.reblogged_by, profileUser.name)
+                val displayName = profileUser.sysmediaProfile?.displayName ?: profileUser.name
+                holder.tvRebloggedBy.text = getString(R.string.reblogged_by, displayName)
                 holder.tvRebloggedBy.setTextColor(textColor and 0x88FFFFFF.toInt())
                 val originalPost = posts.find { it.id == post.reblogOfId }
                 if (originalPost != null) {

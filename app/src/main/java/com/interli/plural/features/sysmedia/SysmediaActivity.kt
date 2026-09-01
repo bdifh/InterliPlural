@@ -545,7 +545,8 @@ class SysmediaActivity : BaseActivity() {
             } else if (post.reblogOfId != null) {
                 val originalPost = posts.find { it.id == post.reblogOfId }
                 holder.layoutReblog.visibility = View.VISIBLE
-                holder.tvRebloggedBy.text = getString(R.string.reblogged_by, sender?.name ?: "Unknown")
+                val displayName = sender?.sysmediaProfile?.displayName ?: sender?.name ?: "Unknown"
+                holder.tvRebloggedBy.text = getString(R.string.reblogged_by, displayName)
                 holder.tvRebloggedBy.setTextColor(textColor and 0x88FFFFFF.toInt())
                 if (originalPost != null) {
                     holder.cardOriginal.visibility = View.VISIBLE
@@ -918,7 +919,8 @@ class SysmediaActivity : BaseActivity() {
                     else -> getString(R.string.notif_interacted)
                 }
                 val timeStr = java.text.SimpleDateFormat("dd/MM HH:mm", java.util.Locale.getDefault()).format(java.util.Date(notif.timestamp))
-                holder.tvRebloggedBy.text = "${sender?.name ?: "Unknown"} $actionText ($timeStr)"
+                val displayName = sender?.sysmediaProfile?.displayName ?: sender?.name ?: "Unknown"
+                holder.tvRebloggedBy.text = "$displayName $actionText ($timeStr)"
                 holder.tvRebloggedBy.setTextColor(textColor)
                 holder.tvRebloggedBy.textStyle = android.graphics.Typeface.BOLD
                 val sysmediaHolder = adapter.ViewHolder(holder.itemView)

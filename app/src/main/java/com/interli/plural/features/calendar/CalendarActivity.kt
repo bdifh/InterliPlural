@@ -289,6 +289,7 @@ class CalendarActivity : BaseActivity() {
             .setPositiveButton(R.string.save) { _, _ ->
                 val title = etTitle.text.toString().trim()
                 if (title.isNotEmpty()) {
+                    if (endTime <= startTime) endTime = startTime + 3600000
                     val applyChanges = { target: com.interli.plural.CalendarEvent ->
                         target.title = title
                         target.description = etDesc.text.toString()
@@ -469,7 +470,13 @@ class CalendarActivity : BaseActivity() {
 
 
         val startOfMonth = (selectedDate.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0) }
-        val endOfMonth = (selectedDate.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH)); set(Calendar.HOUR_OF_DAY, 23) }
+        val endOfMonth = (selectedDate.clone() as Calendar).apply {
+            set(Calendar.DAY_OF_MONTH, getActualMaximum(Calendar.DAY_OF_MONTH))
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }
         val monthEvents = getExpandedEvents(startOfMonth.timeInMillis, endOfMonth.timeInMillis).filter { !it.hideInMonth }
 
         view.setEvents(monthEvents, people, selectedDate.get(Calendar.YEAR), selectedDate.get(Calendar.MONTH))

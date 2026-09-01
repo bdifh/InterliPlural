@@ -199,7 +199,7 @@ class CalendarTimelineView @JvmOverloads constructor(
                 val stickyY = stickyStart + index * allDayHeight
                 drawEventBox(canvas, event, x, colWidth, stickyY + 1 * density, stickyY + allDayHeight - 1 * density, density)
             }
-            val dayRegularEvents = visibleEvents.filter { !it.isAllDay && it.startTime < dayEndMillis && it.endTime > dayStartMillis }
+            val dayRegularEvents = visibleEvents.filter { !it.isAllDay && it.startTime < dayEndMillis && it.endTime >= dayStartMillis }
             dayRegularEvents.forEach { event ->
                 val eventStartCal = Calendar.getInstance().apply { timeInMillis = event.startTime }
                 val eventEndCal = Calendar.getInstance().apply { timeInMillis = event.endTime }

@@ -523,4 +523,10 @@
     <string name="widget_name_calendar_day">Agenda (Vandaag)</string>
     <string name="widget_name_calendar_week">Agenda (Week)</string>
     <string name="widget_name_calendar_month">Agenda (Maand)</string>
+    <string name="member_registration_history">Lidmaatschapsregistratie geschiedenis</string>
+    <string name="registration_history_title">Lidmaatschapsregistratie geschiedenis</string>
+    <string name="history_added">Toegevoegd: %1$s</string>
+    <string name="history_archived">Gearchiveerd: %1$s</string>
+    <string name="history_deleted">Verwijderd: %1$s</string>
+    <string name="history_unknown">Onbekend</string>
 </resources>

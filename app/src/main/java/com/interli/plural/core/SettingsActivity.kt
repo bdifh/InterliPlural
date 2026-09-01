@@ -350,6 +350,46 @@ class SettingsActivity : BaseActivity() {
             setOnClickListener(discordListener)
             setTextColor(btnColor)
         }
+        findViewById<Button>(R.id.btnMemberRegistrationHistory).setOnClickListener {
+            showMemberRegistrationHistoryDialog()
+        }
+    }
+    private fun showMemberRegistrationHistoryDialog() {
+        val people = MemberHelper.loadAllPeople(this)
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val deletedLog = sharedPref.getString("deleted_members_log", "") ?: ""
+        val sdf = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+
+        val historyItems = mutableListOf<String>()
+
+        people.forEach { person ->
+            val addedDate = person.addedTimestamp?.let { sdf.format(java.util.Date(it)) } ?: getString(R.string.history_unknown)
+            historyItems.add("${person.name} -> " + getString(R.string.history_added, addedDate))
+
+            if (person.isArchived && person.archivedTimestamp != null) {
+                val archivedDate = sdf.format(java.util.Date(person.archivedTimestamp!!))
+                historyItems.add("${person.name} -> " + getString(R.string.history_archived, archivedDate))
+            }
+        }
+
+        if (deletedLog.isNotEmpty()) {
+            deletedLog.split("\n").filter { it.isNotBlank() }.forEach {
+                historyItems.add(it)
+            }
+        }
+
+        val content = if (historyItems.isEmpty()) {
+            getString(R.string.no_activities_found)
+        } else {
+            historyItems.sorted().joinToString("\n")
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.registration_history_title)
+            .setMessage(content)
+            .setPositiveButton(R.string.close, null)
+            .show()
+            .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
     override fun onBackPressed() {

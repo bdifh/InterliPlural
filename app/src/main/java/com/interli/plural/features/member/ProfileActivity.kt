@@ -237,6 +237,11 @@ class ProfileActivity : BaseActivity() {
         deleteBtn.setOnClickListener {
             deleteClicks++
             if (deleteClicks >= 8) {
+                val sdf = java.text.SimpleDateFormat("dd MMM yyyy", java.util.Locale.getDefault())
+                val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+                val deletedLog = sharedPref.getString("deleted_members_log", "") ?: ""
+                val entry = "${person.name} -> " + getString(R.string.history_deleted, sdf.format(java.util.Date()))
+                sharedPref.edit().putString("deleted_members_log", "$deletedLog$entry\n").apply()
                 people.removeAt(personIndex)
                 saveData()
                 Toast.makeText(this, getString(R.string.member_deleted), Toast.LENGTH_SHORT).show()
@@ -263,6 +268,7 @@ class ProfileActivity : BaseActivity() {
                 archiveClicks++
                 if (archiveClicks >= 5) {
                     currentPerson.isArchived = true
+                    currentPerson.archivedTimestamp = System.currentTimeMillis()
                     if (currentPerson.isFront) {
                         currentPerson.isFront = false
                         sessions.forEach {

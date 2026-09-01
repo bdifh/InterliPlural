@@ -45,7 +45,7 @@ class CalendarRemoteViewsFactory(private val context: Context) : RemoteViewsServ
         val allEvents = expandEvents(rawEvents, startOfDay.timeInMillis, endOfDay)
         val timeSdf = SimpleDateFormat("HH:mm", Locale.getDefault())
         eventList.clear()
-        allEvents.filter { !it.hideInDay && it.startTime in startOfDay.timeInMillis..endOfDay }
+        allEvents.filter { !it.hideInDay && it.endTime >= startOfDay.timeInMillis && it.startTime <= endOfDay }
             .sortedBy { it.startTime }
             .forEach { event ->
                 eventList.add(Pair(timeSdf.format(Date(event.startTime)), event.title))
