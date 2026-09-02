@@ -34,7 +34,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val isTablet = config.smallestScreenWidthDp >= 600
         val targetWidthDp = if (isTablet) 600f else 446f
         val shorterSidePx = kotlin.math.min(dm.widthPixels, dm.heightPixels).toFloat()
-        val targetDensity = dm.widthPixels / targetWidthDp
+        val targetDensity = shorterSidePx / targetWidthDp
         val targetDensityDpi = (160 * targetDensity).toInt()
         val sharedPref = context.getSharedPreferences("settings_prefs", android.content.Context.MODE_PRIVATE)
         val fontMultiplier = sharedPref.getFloat("font_size_multiplier", 1.0f)
