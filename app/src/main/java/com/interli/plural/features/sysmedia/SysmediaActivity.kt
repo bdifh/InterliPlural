@@ -778,15 +778,26 @@ class SysmediaActivity : BaseActivity() {
         }
     }
     private fun showNewChatDialog() {
-        val otherPeople = people.filter { it.id != activeMemberId && !it.isArchived }
-        val names = otherPeople.map { it.name }.toTypedArray()
-        AlertDialog.Builder(this).setTitle("New Chat").setItems(names) { _, which ->
-            val target = otherPeople[which]
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val groupsJson = sharedPref.getString("groups_list", "[]") ?: "[]"
+        val groupsList: List<Group> = try {
+            Gson().fromJson(groupsJson, object : TypeToken<List<Group>>() {}.type) ?: emptyList()
+        } catch (_: Exception) { emptyList() }
+
+        DialogHelper.showMemberSelectionDialog(
+            this,
+            "New Chat",
+            people.filter { it.id != activeMemberId },
+            groupsList,
+            emptyList(),
+            isMultiSelect = false
+        ) { selectedIds ->
+            val targetId = selectedIds.firstOrNull() ?: return@showMemberSelectionDialog
             val intent = android.content.Intent(this, ChatActivity::class.java)
             intent.putExtra("current_id", activeMemberId)
-            intent.putExtra("other_id", target.id)
+            intent.putExtra("other_id", targetId)
             startActivity(intent)
-        }.show()
+        }
     }
     private fun showCreateGroupDialog() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)

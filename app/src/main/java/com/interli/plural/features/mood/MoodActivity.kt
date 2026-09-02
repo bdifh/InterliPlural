@@ -318,6 +318,7 @@ class MoodActivity : BaseActivity() {
                 selectedMoodLabel = moodKey
                 selectedMoodColor = color
                 setupMoodButtons()
+                clearSearchFocus()
             }
             moodEmojiContainer.addView(moodView)
         }
@@ -378,9 +379,11 @@ class MoodActivity : BaseActivity() {
                         if (checked) {
                             selectedActivities.add(activity)
                             etActivitySearch.setText("")
+                            clearSearchFocus()
                         } else {
                             selectedActivities.remove(activity)
                             renderActivityGroups(query)
+                            clearSearchFocus()
                         }
                     }
 
@@ -640,6 +643,14 @@ class MoodActivity : BaseActivity() {
     private fun persistEntries(list: List<MoodEntry>) {
         getSharedPreferences("my_app", MODE_PRIVATE).edit().putString("mood_entries", gson.toJson(list)).apply()
         com.interli.plural.widgets.MoodAverageWidget.sendRefreshBroadcast(this)
+    }
+
+    private fun clearSearchFocus() {
+        if (::etActivitySearch.isInitialized && etActivitySearch.hasFocus()) {
+            etActivitySearch.clearFocus()
+            val imm = getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.hideSoftInputFromWindow(etActivitySearch.windowToken, 0)
+        }
     }
 
     private fun Int.dpToPx() = (this * resources.displayMetrics.density).toInt()

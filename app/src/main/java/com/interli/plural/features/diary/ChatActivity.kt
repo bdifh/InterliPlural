@@ -25,6 +25,7 @@ import com.interli.plural.Group
 import com.interli.plural.Person
 import com.interli.plural.R
 import com.interli.plural.SysmediaProfile
+import com.interli.plural.core.DialogHelper
 import io.noties.markwon.Markwon
 import java.text.SimpleDateFormat
 import java.util.*
@@ -248,21 +249,33 @@ class ChatActivity : BaseActivity() {
     }
 
     private fun showAddMemberDialog(group: ChatGroup) {
-        val nonParticipants = people.filter { !group.participantIds.contains(it.id) && !it.isArchived }
-        if (nonParticipants.isEmpty()) {
-            Toast.makeText(this, "No more members to add", Toast.LENGTH_SHORT).show()
-            return
-        }
-        val names = nonParticipants.map { it.name }.toTypedArray()
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Add Member")
-            .setItems(names) { _, which ->
-                group.participantIds.add(nonParticipants[which].id)
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val groupsJson = sharedPref.getString("groups_list", "[]") ?: "[]"
+        val groupsList: List<Group> = try {
+            Gson().fromJson(groupsJson, object : TypeToken<List<Group>>() {}.type) ?: emptyList()
+        } catch (_: Exception) { emptyList() }
+
+        DialogHelper.showMemberSelectionDialog(
+            this,
+            getString(R.string.select_member),
+            people,
+            groupsList,
+            emptyList(),
+            isMultiSelect = true,
+            includeArchived = false
+        ) { selectedIds ->
+            if (selectedIds.isNotEmpty()) {
+                selectedIds.forEach { id ->
+                    if (!group.participantIds.contains(id)) {
+                        group.participantIds.add(id)
+                    }
+                }
                 saveGroups()
                 showManageGroupDialog()
             }
-            .show()
+        }
     }
+
 
     private fun saveGroups() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
