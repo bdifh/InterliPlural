@@ -484,11 +484,15 @@ class EditTodoListActivity : BaseActivity() {
             holder.btnDate.setOnLongClickListener { task.deadline = null; updateTaskDeadlineUI(); true }
             holder.btnRepeat.setOnClickListener {
                 val options = arrayOf(
-                    getString(R.string.recurrence_none), getString(R.string.recurrence_daily),
-                    getString(R.string.recurrence_weekly), getString(R.string.recurrence_monthly),
-                    getString(R.string.recurrence_yearly), getString(R.string.recurrence_custom)
+                    getString(R.string.recurrence_none),
+                    getString(R.string.recurrence_daily),
+                    getString(R.string.recurrence_weekly),
+                    getString(R.string.recurrence_monthly),
+                    getString(R.string.recurrence_yearly),
+                    getString(R.string.recurrence_custom),
+                    getString(R.string.recurrence_manual)
                 )
-                val values = arrayOf(null, "DAILY", "WEEKLY", "MONTHLY", "YEARLY", "CUSTOM")
+                val values = arrayOf(null, "DAILY", "WEEKLY", "MONTHLY", "YEARLY", "CUSTOM", "MANUAL")
                 val dialog = androidx.appcompat.app.AlertDialog.Builder(context)
                     .setTitle(R.string.action_repeat)
                     .setItems(options) { _, which ->
