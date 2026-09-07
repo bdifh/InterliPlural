@@ -55,10 +55,6 @@ class TodoWidgetProvider : AppWidgetProvider() {
                 context, 0, clickIntent,
                 PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
-            val m = ColorHelper.getFontSizeMultiplier(context)
-            views.setTextViewTextSize(R.id.tvWidgetHeader, android.util.TypedValue.COMPLEX_UNIT_SP, 11f * m)
-            views.setTextViewTextSize(R.id.tvWidgetEmpty, android.util.TypedValue.COMPLEX_UNIT_SP, 14f * m)
-
             views.setPendingIntentTemplate(R.id.lvWidgetTodo, pendingIntent)
 
             appWidgetManager.updateAppWidget(appWidgetId, views)

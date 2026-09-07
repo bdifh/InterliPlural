@@ -89,11 +89,6 @@ class TodoRemoteViewsFactory(private val context: Context) : RemoteViewsService.
             views.setViewVisibility(R.id.tvWidgetListName, View.GONE)
         }
 
-        val m = ColorHelper.getFontSizeMultiplier(context)
-        views.setTextViewTextSize(R.id.tvWidgetTaskStatus, android.util.TypedValue.COMPLEX_UNIT_SP, 16f * m)
-        views.setTextViewTextSize(R.id.tvWidgetTaskTitle, android.util.TypedValue.COMPLEX_UNIT_SP, 14f * m)
-        views.setTextViewTextSize(R.id.tvWidgetListName, android.util.TypedValue.COMPLEX_UNIT_SP, 14f * m)
-
         views.setTextColor(R.id.tvWidgetTaskTitle, textColor)
         views.setTextColor(R.id.tvWidgetTaskStatus, textColor)
 
