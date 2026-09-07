@@ -193,12 +193,17 @@ class TodoActivity : BaseActivity() {
             emptyList()
         }
     }
+
+    override fun onPause() {
+        super.onPause()
+        saveData()
+    }
     private fun saveData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         sharedPref.edit()
             .putString("todo_lists", gson.toJson(todoLists))
             .putString("todo_bundles", gson.toJson(todoBundles))
-            .apply()
+            .commit()
         com.interli.plural.widgets.TodoWidgetProvider.sendRefreshBroadcast(this)
     }
     private fun renderLists() {
@@ -245,6 +250,11 @@ class TodoActivity : BaseActivity() {
             is TodoItem.ListCard -> 2
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+            val card = com.google.android.material.card.MaterialCardView(parent.context)
+            card.layoutParams = RecyclerView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
             return when (viewType) {
                 1 -> BundleViewHolder(com.google.android.material.card.MaterialCardView(this@TodoActivity))
                 else -> ListViewHolder(com.google.android.material.card.MaterialCardView(this@TodoActivity))
@@ -266,6 +276,14 @@ class TodoActivity : BaseActivity() {
         inner class BundleViewHolder(val card: com.google.android.material.card.MaterialCardView) : RecyclerView.ViewHolder(card) {
             @android.annotation.SuppressLint("ClickableViewAccessibility")
             fun bind(bundle: TodoBundle) {
+                val p = card.layoutParams as? ViewGroup.MarginLayoutParams ?: RecyclerView.LayoutParams(-1, -2)
+                p.width = ViewGroup.LayoutParams.MATCH_PARENT
+                p.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                val m = 8.dpToPx()
+                p.setMargins(m, m, m, 0)
+                p.marginStart = m
+                p.marginEnd = m
+                card.layoutParams = p
                 card.layoutParams = (card.layoutParams as? ViewGroup.MarginLayoutParams ?: LinearLayout.LayoutParams(-1, -2)).apply {
                     setMargins(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 0)
                 }
@@ -326,6 +344,14 @@ class TodoActivity : BaseActivity() {
             @android.annotation.SuppressLint("ClickableViewAccessibility")
             fun bind(list: TodoList, textColor: Int, bgColor: Int) {
                 val isNested = list.bundleId != null
+                val p = card.layoutParams as? ViewGroup.MarginLayoutParams ?: RecyclerView.LayoutParams(-1, -2)
+                p.width = ViewGroup.LayoutParams.MATCH_PARENT
+                p.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                val leftMargin = if (isNested) 32.dpToPx() else 0
+                p.setMargins(leftMargin, 0, 0, 16.dpToPx())
+                p.marginStart = leftMargin
+                p.marginEnd = 0
+                card.layoutParams = p
                 val sp = card.context.getSharedPreferences("settings_prefs", MODE_PRIVATE)
                 val frontEnabled = sp.getBoolean("module_fronting_enabled", true) && sp.getBoolean("sub_fronting_enabled", true)
                 card.layoutParams = LinearLayout.LayoutParams(-1, -2).apply { 
@@ -344,6 +370,7 @@ class TodoActivity : BaseActivity() {
                 val titleRow = LinearLayout(this@TodoActivity).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
                 }
                 val ivDrag = ImageView(this@TodoActivity).apply {
                     setImageResource(android.R.drawable.ic_menu_sort_by_size)
@@ -525,6 +552,11 @@ class TodoActivity : BaseActivity() {
             cal.set(Calendar.MINUTE, task.resetMinute)
             cal.set(Calendar.SECOND, 0); cal.set(Calendar.MILLISECOND, 0)
         }
+        if (task.recurrence == "MANUAL") {
+            task.status = "EMPTY"
+            if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
+            return
+        }
         task.deadline = cal.timeInMillis
         task.status = "EMPTY"
         if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
@@ -559,7 +591,7 @@ class TodoActivity : BaseActivity() {
         var changed = false
         todoLists.forEach { list ->
             list.tasks.forEach { task ->
-                if (task.recurrence != null && task.status == "CHECKED") {
+                if (task.recurrence != null && task.recurrence != "MANUAL" && task.status == "CHECKED") {
                     if (task.deadline == null) {
                         val today = Calendar.getInstance().apply {
                             set(Calendar.HOUR_OF_DAY, if (task.resetType == "NEXT_DAY") task.resetHour else 0)
