@@ -37,7 +37,9 @@ abstract class BaseActivity : AppCompatActivity() {
         val targetDensity = shorterSidePx / targetWidthDp
         val targetDensityDpi = (160 * targetDensity).toInt()
         val sharedPref = context.getSharedPreferences("settings_prefs", android.content.Context.MODE_PRIVATE)
-        val fontMultiplier = sharedPref.getFloat("font_size_multiplier", 1.0f)
+        val fontMultiplier = try { sharedPref.getFloat("font_size_multiplier", 1.0f) } catch (e: Exception) {
+            (sharedPref.all["font_size_multiplier"] as? Number)?.toFloat() ?: 1.0f
+        }
         config.densityDpi = targetDensityDpi
         config.fontScale = fontMultiplier
         dm.density = targetDensity

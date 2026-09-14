@@ -363,9 +363,9 @@
     <string name="yesterday">Yesterday</string>
     <string name="export_pdf_title">Export to PDF</string>
     <string name="export_data_types">Select data to export:</string>
-    <string name="export_front_data">Fronting Data</string>
+    <string name="export_front_data">Fronting Data + Sysmedia Accounts</string>
     <string name="export_mood_data">Mood Data</string>
-    <string name="export_notes_data">Notes</string>
+    <string name="export_notes_data">Notes + Sysmail + Sysmedia Posts</string>
     <string name="export_todo_data">To-Do Lists</string>
     <string name="export_success">PDF Exported successfully!</string>
     <string name="importing_backup">Importing backup...</string>

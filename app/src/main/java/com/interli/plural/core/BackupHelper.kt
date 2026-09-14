@@ -122,32 +122,14 @@ object BackupHelper {
             writer.endObject()
         }
 
-        if (exportImages) {
-            writer.name("images")
-            writer.beginObject()
-            val people = MemberHelper.loadAllPeople(context)
-            people.forEach { person ->
-                val avatarUri = person.sysmediaProfile?.profilePictureUri ?: person.profilePictureUri
-                avatarUri?.let { uriStr ->
-                    try {
-                        val uri = android.net.Uri.parse(uriStr)
-                        val inputStream = if (uriStr.startsWith("content://")) {
-                            context.contentResolver.openInputStream(uri)
-                        } else {
-                            val file = if (uriStr.startsWith("file://")) java.io.File(uri.path!!) else java.io.File(uriStr)
-                            if (file.exists()) java.io.FileInputStream(file) else null
-                        }
-                        inputStream?.use { input ->
-                            val bytes = input.readBytes()
-                            val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
-                            writer.name(person.id)
-                            writer.value(base64)
-                        }
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
-            }
-            writer.endObject()
-        }
+        /* 
+         * Afbeeldingen worden niet meer als Base64 in de JSON gezet om OOM crashes te voorkomen.
+         * Ze worden al als losse bestanden in de ZIP opgeslagen via createBackupZip.
+         */
+        writer.name("images")
+        writer.beginObject()
+        writer.endObject()
+
         writer.endObject()
         writer.close()
         return stringWriter.toString()
@@ -232,88 +214,88 @@ object BackupHelper {
     private fun restoreFromJson(context: Context, inputStream: InputStream) {
         val reader = JsonReader(InputStreamReader(inputStream))
         val gson = Gson()
-        var dataMap: Map<String, Any>? = null
-        var settingsMap: Map<String, Any>? = null
-        var imagesMap: Map<String, String>? = null
+        val dataPrefs = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
+        val settingsPrefs = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
+
         reader.beginObject()
         while (reader.hasNext()) {
             when (reader.nextName()) {
-                "data" -> dataMap = gson.fromJson(reader, object : TypeToken<Map<String, Any>>() {}.type)
-                "settings" -> settingsMap = gson.fromJson(reader, object : TypeToken<Map<String, Any>>() {}.type)
-                "images" -> imagesMap = gson.fromJson(reader, object : TypeToken<Map<String, String>>() {}.type)
+                "data" -> {
+                    reader.beginObject()
+                    val editor = dataPrefs.edit()
+                    editor.clear()
+                    while (reader.hasNext()) {
+                        val key = reader.nextName()
+                        try {
+                            val value = gson.fromJson<Any>(reader, object : TypeToken<Any>() {}.type)
+                            when (value) {
+                                is String -> editor.putString(key, value)
+                                is Boolean -> editor.putBoolean(key, value)
+                                is Double -> {
+                                    val l = value.toLong()
+                                    if (value == l.toDouble()) {
+                                        if (key == "font_size_multiplier") {
+                                            editor.putFloat(key, value.toFloat())
+                                        } else if (key.startsWith("last_viewed_") || key.endsWith("_timestamp")) {
+                                            editor.putLong(key, l)
+                                        } else if (l in Int.MIN_VALUE..Int.MAX_VALUE) {
+                                            editor.putInt(key, l.toInt())
+                                        } else {
+                                            editor.putLong(key, l)
+                                        }
+                                    } else {
+                                        editor.putFloat(key, value.toFloat())
+                                    }
+                                }
+                                is List<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+                            }
+                        } catch (e: Exception) {
+                            reader.skipValue()
+                        }
+                    }
+                    editor.commit()
+                    reader.endObject()
+                }
+                "settings" -> {
+                    reader.beginObject()
+                    val editor = settingsPrefs.edit()
+                    editor.clear()
+                    while (reader.hasNext()) {
+                        val key = reader.nextName()
+                        try {
+                            val value = gson.fromJson<Any>(reader, object : TypeToken<Any>() {}.type)
+                            when (value) {
+                                is String -> editor.putString(key, value)
+                                is Boolean -> editor.putBoolean(key, value)
+                                is Double -> {
+                                    val l = value.toLong()
+                                    if (value == l.toDouble()) {
+                                        if (key == "font_size_multiplier") {
+                                            editor.putFloat(key, value.toFloat())
+                                        } else if (key.startsWith("last_viewed_") || key.endsWith("_timestamp")) {
+                                            editor.putLong(key, l)
+                                        } else if (l in Int.MIN_VALUE..Int.MAX_VALUE) {
+                                            editor.putInt(key, l.toInt())
+                                        } else {
+                                            editor.putLong(key, l)
+                                        }
+                                    } else {
+                                        editor.putFloat(key, value.toFloat())
+                                    }
+                                }
+                                is List<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+                            }
+                        } catch (e: Exception) {
+                            reader.skipValue()
+                        }
+                    }
+                    editor.commit()
+                    reader.endObject()
+                }
                 else -> reader.skipValue()
             }
         }
         reader.endObject()
         reader.close()
-        val dataPrefs = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
-        val settingsPrefs = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
-        dataMap?.let { map ->
-            val editor = dataPrefs.edit()
-            editor.clear()
-            map.forEach { (k, v) ->
-                when (v) {
-                    is String -> editor.putString(k, v)
-                    is Boolean -> editor.putBoolean(k, v)
-                    is Double -> {
-                        if (v == v.toLong().toDouble()) {
-                            val l = v.toLong()
-                            if (l in Int.MIN_VALUE..Int.MAX_VALUE) editor.putInt(k, l.toInt())
-                            else editor.putLong(k, l)
-                        } else editor.putFloat(k, v.toFloat())
-                    }
-                    is List<*> -> {
-                        editor.putStringSet(k, v.filterIsInstance<String>().toSet())
-                    }
-                }
-            }
-            editor.commit()
-        }
-        settingsMap?.let { map ->
-            val editor = settingsPrefs.edit()
-            editor.clear()
-            map.forEach { (k, v) ->
-                when (v) {
-                    is String -> editor.putString(k, v)
-                    is Boolean -> editor.putBoolean(k, v)
-                    is Double -> {
-                        if (v == v.toLong().toDouble()) {
-                            val l = v.toLong()
-                            if (l in Int.MIN_VALUE..Int.MAX_VALUE) editor.putInt(k, l.toInt())
-                            else editor.putLong(k, l)
-                        } else editor.putFloat(k, v.toFloat())
-                    }
-                    is List<*> -> {
-                        editor.putStringSet(k, v.filterIsInstance<String>().toSet())
-                    }
-                }
-            }
-            editor.commit()
-        }
-        if (imagesMap != null && imagesMap.isNotEmpty()) {
-            val people = MemberHelper.loadAllPeople(context)
-            var peopleChanged = false
-            imagesMap.forEach { (personId, base64) ->
-                try {
-                    val bytes = Base64.decode(base64, Base64.DEFAULT)
-                    val file = File(context.filesDir, "profile_${personId}_${System.currentTimeMillis()}.jpg")
-                    context.filesDir.listFiles { f -> f.name.startsWith("profile_${personId}_") }?.forEach { it.delete() }
-                    FileOutputStream(file).use { it.write(bytes) }
-                    people.find { it.id == personId }?.let { person ->
-                        val newUri = Uri.fromFile(file).toString()
-                        if (person.isSysmediaOnly || person.sysmediaProfile?.handle != null) {
-                            if (person.sysmediaProfile == null) person.sysmediaProfile = SysmediaProfile()
-                            person.sysmediaProfile?.profilePictureUri = newUri
-                        } else {
-                            person.profilePictureUri = newUri
-                        }
-                        peopleChanged = true
-                    }
-                } catch (e: Exception) { e.printStackTrace() }
-            }
-            if (peopleChanged) {
-                MemberHelper.savePeople(context, people)
-            }
-        }
     }
 }

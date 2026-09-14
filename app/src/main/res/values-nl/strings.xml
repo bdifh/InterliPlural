@@ -352,9 +352,9 @@
     <string name="yesterday">Gisteren</string>
     <string name="export_pdf_title">Exporteren naar PDF</string>
     <string name="export_data_types">Selecteer gegevens:</string>
-    <string name="export_front_data">Front Gegevens</string>
+    <string name="export_front_data">Front Gegevens + Sysmedia accounts</string>
     <string name="export_mood_data">Mood Gegevens</string>
-    <string name="export_notes_data">Notities</string>
+    <string name="export_notes_data">Notities + Sysmail + Sysmedia posts</string>
     <string name="export_todo_data">To-Do Lijsten</string>
     <string name="export_success">PDF succesvol geëxporteerd!</string>
     <string name="importing_backup">Backup importeren...</string>
