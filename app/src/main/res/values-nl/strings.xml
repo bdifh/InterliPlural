@@ -538,5 +538,7 @@
     <string name="stats_front_density_perc">Front-activiteit per uur (%)</string>
     <string name="help_front_density_title">Hulp: Front-activiteit</string>
     <string name="help_front_density_message">Deze grafiek toont het gemiddelde percentage van de tijd dat een lid aan het front was per uur gedurende de geselecteerde periode.\n\n<b>Voorbeelden:</b>\n\n• <b>1 persoon:</b> Als Lid A elke dag van 10:00 tot 11:00 front, zie je bij dat uur een piek naar 100%.\n\n• <b>2 personen afzonderlijk:</b> Als Lid A op maandag van 10:00 tot 11:00 front en Lid B op dinsdag van 10:00 tot 11:00, zie je voor beide leden een lijn op 50% bij dat uur (omdat ze elk de helft van de tijd in die periode frontten).\n\n• <b>Co-fronting:</b> Als Lid A en Lid B áltijd samen fronten van 10:00 tot 11:00, zie je twee lijnen die beide op 100% staan.</string>
+    <string name="todo_widget_config_title">To-Do Widget Instellingen</string>
+    <string name="todo_widget_select_lists">Selecteer lijsten (leeg laten voor alles):</string>
 
 </resources>

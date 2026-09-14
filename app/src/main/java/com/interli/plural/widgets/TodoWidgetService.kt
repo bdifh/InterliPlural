@@ -1,5 +1,6 @@
 package com.interli.plural.widgets
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.view.View
@@ -13,12 +14,13 @@ import com.interli.plural.core.ColorHelper
 
 class TodoWidgetService : RemoteViewsService() {
     override fun onGetViewFactory(intent: Intent): RemoteViewsFactory {
-        return TodoRemoteViewsFactory(this.applicationContext)
+        return TodoRemoteViewsFactory(this.applicationContext, intent)
     }
 }
 
-class TodoRemoteViewsFactory(private val context: Context) : RemoteViewsService.RemoteViewsFactory {
+class TodoRemoteViewsFactory(private val context: Context, intent: Intent) : RemoteViewsService.RemoteViewsFactory {
     private var taskList = mutableListOf<TodoItemInfo>()
+    private val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
 
     data class TodoItemInfo(
         val title: String,
@@ -43,28 +45,34 @@ class TodoRemoteViewsFactory(private val context: Context) : RemoteViewsService.
         val lists: List<TodoList> = try {
             Gson().fromJson(json, type) ?: emptyList()
         } catch(e: Exception) { emptyList() }
+        val widgetPrefs = context.getSharedPreferences("widget_prefs", Context.MODE_PRIVATE)
+        val config = widgetPrefs.getString("todo_widget_$appWidgetId", "") ?: ""
+        val selectedIds = config.split(",").filter { it.isNotEmpty() }
 
         taskList.clear()
         lists.forEach { list ->
-            val activeTasks = list.tasks.filter { it.status != "CHECKED" }
+            if (selectedIds.isEmpty() || selectedIds.contains(list.id)) {
 
-            activeTasks.forEachIndexed { index, task ->
-                val statusChar = when(task.status) {
-                    "FORWARD" -> "→"
-                    "BACKWARD" -> "←"
-                    "WAITING" -> "⏳"
-                    "CANCELED" -> "✕"
-                    "QUESTION" -> "?"
-                    else -> "☐"
+                val activeTasks = list.tasks.filter { it.status != "CHECKED" }
+
+                activeTasks.forEachIndexed { index, task ->
+                    val statusChar = when(task.status) {
+                        "FORWARD" -> "→"
+                        "BACKWARD" -> "←"
+                        "WAITING" -> "⏳"
+                        "CANCELED" -> "✕"
+                        "QUESTION" -> "?"
+                        else -> "☐"
+                    }
+
+                    taskList.add(TodoItemInfo(
+                        title = task.title,
+                        status = statusChar,
+                        listId = list.id,
+                        listTitle = list.title,
+                        isFirstInList = (index == 0)
+                    ))
                 }
-
-                taskList.add(TodoItemInfo(
-                    title = task.title,
-                    status = statusChar,
-                    listId = list.id,
-                    listTitle = list.title,
-                    isFirstInList = (index == 0)
-                ))
             }
         }
     }

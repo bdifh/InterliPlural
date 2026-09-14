@@ -19,6 +19,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PluralApp001"
         android:usesCleartextTraffic="true">
+        <activity android:name=".widgets.TodoWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.DayNight.Dialog">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
         <activity
             android:name=".MainActivity"
             android:exported="true"
