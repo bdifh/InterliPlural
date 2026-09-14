@@ -65,14 +65,7 @@ class FrontDensityChartView(context: Context, attrs: AttributeSet?) : View(conte
             }
             MemberData(person.id, person.name, person.profileColor, avgMinutes)
         }.filter { data -> data.hourlyMinutes.any { it > 0.01f } }
-        maxMinutes = when {
-            globalMax <= 5f -> 5f
-            globalMax <= 10f -> 10f
-            globalMax <= 15f -> 15f
-            globalMax <= 30f -> 30f
-            globalMax <= 45f -> 45f
-            else -> 60f
-        }
+        maxMinutes = 60f
         invalidate()
     }
     fun setHighlight(memberId: String?) {
@@ -102,8 +95,8 @@ class FrontDensityChartView(context: Context, attrs: AttributeSet?) : View(conte
             textPaint.color = textColor
             textPaint.textSize = 10f * density
             textPaint.textAlign = Paint.Align.RIGHT
-            val labelValue = (ratio * maxMinutes).toInt()
-            canvas.drawText("${labelValue}m", paddingLeft - 5f * density, y + 4f * density, textPaint)
+            val labelValue = (ratio * maxMinutes / 60f * 100f).toInt()
+            canvas.drawText("${labelValue}%", paddingLeft - 5f * density, y + 4f * density, textPaint)
         }
         for (h in 0..24 step 6) {
             val x = paddingLeft + (h / 24f) * chartWidth

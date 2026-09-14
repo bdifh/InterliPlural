@@ -50,6 +50,16 @@ class StatisticsActivity : BaseActivity() {
         }
 
         loadData()
+
+        findViewById<ImageButton>(R.id.btnHelpDensity).setOnClickListener {
+            val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(R.string.help_front_density_title)
+                .setMessage(R.string.help_front_density_message)
+                .setPositiveButton(R.string.close, null)
+                .create()
+            dialog.show()
+            ColorHelper.styleAlertDialog(dialog, this)
+        }
     }
 
     private fun setupMiniTimelineLast24h() {
@@ -195,6 +205,8 @@ class StatisticsActivity : BaseActivity() {
         ColorHelper.applySettings(this)
         val textColor = ColorHelper.getTextColor(this)
         findViewById<TextView>(R.id.labelStatsPeriod).setTextColor(textColor)
+        findViewById<TextView>(R.id.statsAvgTitle).setTextColor(textColor)
+        findViewById<ImageButton>(R.id.btnHelpDensity)?.imageTintList = android.content.res.ColorStateList.valueOf(textColor)
         findViewById<TextView>(R.id.statsMiniTimelineTitle).setTextColor(textColor)
         findViewById<TextView>(R.id.statsMostSwitchTitle).setTextColor(textColor)
         findViewById<TextView>(R.id.statsTotalTitle).setTextColor(textColor)
@@ -252,6 +264,7 @@ class StatisticsActivity : BaseActivity() {
         renderMostSwitchingMembers()
         renderFrontDensityChart()
         renderMemberSwitchChart()
+        renderAverageDuration()
     }
 
     private fun renderMiniTimelineSection() {
@@ -473,6 +486,65 @@ class StatisticsActivity : BaseActivity() {
             legendContainer.addView(legendItem)
         }
     }
+    private fun renderAverageDuration() {
+        val container = findViewById<LinearLayout>(R.id.containerAverageDuration) ?: return
+        container.removeAllViews()
+        val sessionCounts = mutableMapOf<String, Int>()
+        val totalDurations = mutableMapOf<String, Long>()
+        filteredSessions.forEach { s ->
+            val start = s.startTime.coerceAtLeast(currentPeriodStart)
+            val end = (s.endTime ?: System.currentTimeMillis()).coerceAtMost(currentPeriodEnd)
+            val duration = (end - start).coerceAtLeast(0)
+            val key = s.personId ?: s.personName
 
+            totalDurations[key] = (totalDurations[key] ?: 0L) + duration
+            sessionCounts[key] = (sessionCounts[key] ?: 0) + 1
+        }
+        val averages = totalDurations.map { (key, total) ->
+            val count = sessionCounts[key] ?: 1
+            key to (total / count)
+        }.sortedByDescending { it.second }
+        if (averages.isEmpty()) {
+            val tv = TextView(this).apply {
+                text = getString(R.string.no_activities_found)
+                setTextColor(ColorHelper.getTextColor(this@StatisticsActivity))
+            }
+            container.addView(tv)
+            return
+        }
+        val firstVal = averages.first().second.toFloat()
+        val maxVal = if (firstVal <= 0f) 1f else firstVal
+        averages.forEach { (idOrName, avgMs) ->
+            val person = people.find { it.id == idOrName || it.name == idOrName }
+            val name = person?.name ?: idOrName
+            val hours = (avgMs / (1000 * 60 * 60)).toInt()
+            val minutes = ((avgMs / (1000 * 60)) % 60).toInt()
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, 0, 0, 16.dpToPx())
+            }
+            val label = TextView(this).apply {
+                text = getString(R.string.stats_person_duration, name, hours, minutes)
+                setTextColor(ColorHelper.getTextColor(this@StatisticsActivity))
+                textSize = 14f
+            }
+            row.addView(label)
+            val barContainer = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                val weight = (avgMs.toFloat() / maxVal).coerceIn(0f, 1f)
+                addView(View(this@StatisticsActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, 8.dpToPx(), weight).apply {
+                        topMargin = 4.dpToPx()
+                    }
+                    setBackgroundColor(person?.profileColor ?: Color.GRAY)
+                })
+                addView(View(this@StatisticsActivity).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, 1, 1f - weight)
+                })
+            }
+            row.addView(barContainer)
+            container.addView(row)
+        }
+    }
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 }

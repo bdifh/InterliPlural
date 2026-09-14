@@ -27,6 +27,7 @@ class MemberMoodCorrelationActivity : BaseActivity() {
     private var customEndDate: Calendar? = null
     private var currentPeriodStart: Long = 0L
     private var currentPeriodEnd: Long = Long.MAX_VALUE
+    private var currentSortMode = 0 // 0: default, 1: most fronts, 2: most activities, 3: custom order
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     private val moodKeys = listOf("mood_awful", "mood_bad", "mood_meh", "mood_good", "mood_rad")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,11 +38,11 @@ class MemberMoodCorrelationActivity : BaseActivity() {
         setupPeriodSpinner()
         setupDatePickers()
         setupSelectionButtons()
+        setupSortSpinner()
         setupNavigationDrawer()
         findViewById<TextView>(R.id.labelMatrixTitle)?.setTextColor(ColorHelper.getTextColor(this))
         val spinner = findViewById<Spinner>(R.id.spinnerStatsPeriod)
         spinner.setSelection(1)
-        updateFilteredData(1)
     }
     private fun loadData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
@@ -95,6 +96,58 @@ class MemberMoodCorrelationActivity : BaseActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
+    private fun setupSortSpinner() {
+        val matrixTitle = findViewById<TextView>(R.id.labelMatrixTitle) ?: return
+        val layout = matrixTitle.parent as? LinearLayout ?: return
+        val label = TextView(this).apply {
+            text = getString(R.string.sort_label)
+            textSize = 14f
+            setTextColor(ColorHelper.getTextColor(this@MemberMoodCorrelationActivity))
+            setPadding(0, (8 * resources.displayMetrics.density).toInt(), 0, (4 * resources.displayMetrics.density).toInt())
+        }
+        val spinner = Spinner(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setPadding(0, 0, 0, (12 * resources.displayMetrics.density).toInt())
+            }
+        }
+        val options = listOf(
+            getString(R.string.sort_default),
+            getString(R.string.sort_most_fronts),
+            getString(R.string.sort_most_activity)
+        )
+        val textColor = ColorHelper.getTextColor(this)
+        val bgColor = ColorHelper.getBgColor(this)
+        val adapter = object : ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, options) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val v = super.getView(position, convertView, parent)
+                (v as? TextView)?.setTextColor(textColor)
+                return v
+            }
+            override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val v = super.getDropDownView(position, convertView, parent)
+                (v as? TextView)?.setTextColor(textColor)
+                v.setBackgroundColor(bgColor)
+                return v
+            }
+        }
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinner.adapter = adapter
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (currentSortMode != position) {
+                    currentSortMode = position
+                    render()
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+        val idx = layout.indexOfChild(matrixTitle)
+        layout.addView(spinner, idx + 1)
+    }
+
     private fun setupDatePickers() {
         val btnStart = findViewById<Button>(R.id.btnStartDate)
         val btnEnd = findViewById<Button>(R.id.btnEndDate)
@@ -189,8 +242,11 @@ class MemberMoodCorrelationActivity : BaseActivity() {
     private fun render() {
         val filtered = allEntries.filter { entry ->
             val matchesPeriod = entry.timestamp in currentPeriodStart..currentPeriodEnd
-            val matchesMembers = selectedMemberIds.isEmpty() || entry.memberIds.any { selectedMemberIds.contains(it) }
-            val matchesActivities = selectedActivities.isEmpty() || entry.activities.any { selectedActivities.contains(it) }
+            val matchesMembers =
+                selectedMemberIds.isEmpty() || entry.memberIds.any { selectedMemberIds.contains(it) }
+            val matchesActivities = selectedActivities.isEmpty() || entry.activities.any {
+                selectedActivities.contains(it)
+            }
             matchesPeriod && matchesMembers && matchesActivities
         }
         renderRecentFrontingActivity(filtered)
@@ -440,15 +496,27 @@ class MemberMoodCorrelationActivity : BaseActivity() {
     private fun renderMemberActivityMatrix(entries: List<MoodActivity.MoodEntry>) {
         val tableData = findViewById<TableLayout>(R.id.tableMemberActivityMatrix) ?: return
         val tableNames = findViewById<TableLayout>(R.id.tableMemberNamesSticky) ?: return
+        tableData.setTag(R.id.color_tag, "skip")
+        tableNames.setTag(R.id.color_tag, "skip")
         tableData.removeAllViews()
         tableNames.removeAllViews()
         val textColor = ColorHelper.getTextColor(this)
         findViewById<TextView>(R.id.labelMatrixTitle)?.setTextColor(textColor)
-        val targetMembers = if (selectedMemberIds.isEmpty()) people else people.filter { selectedMemberIds.contains(it.id) }
-        val targetActivities = if (selectedActivities.isEmpty()) {
+        var targetMembers = if (selectedMemberIds.isEmpty()) people else people.filter { selectedMemberIds.contains(it.id) }
+        var targetActivities = if (selectedActivities.isEmpty()) {
             entries.flatMap { it.activities }.distinct().sortedWith(String.CASE_INSENSITIVE_ORDER)
         } else {
             selectedActivities.sortedWith(String.CASE_INSENSITIVE_ORDER)
+        }
+        when (currentSortMode) {
+            1 -> {
+                val memberCounts = entries.flatMap { it.memberIds }.groupingBy { it }.eachCount()
+                targetMembers = targetMembers.sortedByDescending { memberCounts[it.id] ?: 0 }
+            }
+            2 -> {
+                val activityCounts = entries.flatMap { it.activities }.groupingBy { it }.eachCount()
+                targetActivities = targetActivities.sortedByDescending { activityCounts[it] ?: 0 }
+            }
         }
         if (targetActivities.isEmpty() || targetMembers.isEmpty()) {
             val row = TableRow(this)
@@ -461,14 +529,29 @@ class MemberMoodCorrelationActivity : BaseActivity() {
             tableData.addView(row)
             return
         }
+        val statsMap = mutableMapOf<String, MutableList<Int>>()
+        for (entry in entries) {
+            val idx = moodKeys.indexOf(entry.moodLabel)
+            val scoreValue = if (idx != -1) idx + 1 else 3
+            for (mId in entry.memberIds) {
+                for (act in entry.activities) {
+                    val key = "$mId|$act"
+                    statsMap.getOrPut(key) { mutableListOf() }.add(scoreValue)
+                }
+            }
+        }
         val rowHeight = 72.dpToPx()
+        val p8 = 8.dpToPx()
+        val p16 = 16.dpToPx()
+        val p24 = 24.dpToPx()
+        val w120 = 120.dpToPx()
         val headerRowNames = TableRow(this).apply { minimumHeight = rowHeight }
         headerRowNames.addView(TextView(this).apply {
             text = getString(R.string.label_member_activity)
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(textColor)
-            setPadding(8.dpToPx(), 16.dpToPx(), 24.dpToPx(), 16.dpToPx())
-            layoutParams = TableRow.LayoutParams(120.dpToPx(), ViewGroup.LayoutParams.WRAP_CONTENT)
+            setPadding(p8, p16, p24, p16)
+            layoutParams = TableRow.LayoutParams(w120, ViewGroup.LayoutParams.WRAP_CONTENT)
         })
         tableNames.addView(headerRowNames)
         val headerRowData = TableRow(this).apply { minimumHeight = rowHeight }
@@ -478,62 +561,72 @@ class MemberMoodCorrelationActivity : BaseActivity() {
                 setTypeface(null, android.graphics.Typeface.BOLD)
                 setTextColor(textColor)
                 gravity = android.view.Gravity.CENTER
-                setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
+                setPadding(p16, p16, p16, p16)
             })
         }
         tableData.addView(headerRowData)
-        targetMembers.forEach { person ->
-            val rowNames = TableRow(this).apply { minimumHeight = rowHeight }
-            rowNames.addView(TextView(this).apply {
-                text = person.name
-                setTypeface(null, android.graphics.Typeface.BOLD)
-                setTextColor(textColor)
-                setPadding(8.dpToPx(), 16.dpToPx(), 8.dpToPx(), 16.dpToPx())
-                layoutParams = TableRow.LayoutParams(120.dpToPx(), ViewGroup.LayoutParams.WRAP_CONTENT)
-                maxLines = 2
-                ellipsize = android.text.TextUtils.TruncateAt.END
-            })
-            tableNames.addView(rowNames)
-            val rowData = TableRow(this).apply { minimumHeight = rowHeight }
-            targetActivities.forEach { activity ->
-                val matches = entries.filter { it.memberIds.contains(person.id) && it.activities.contains(activity) }
-                val cellLayout = LinearLayout(this).apply {
-                    orientation = LinearLayout.VERTICAL
-                    gravity = android.view.Gravity.CENTER
-                    setPadding(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
-                    layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, rowHeight)
+        var memberIdx = 0
+
+        fun renderNextBatch() {
+            if (memberIdx >= targetMembers.size) return
+            val batchSize = 2
+            var renderedInThisBatch = 0
+            while (memberIdx < targetMembers.size && renderedInThisBatch < batchSize) {
+                val person = targetMembers[memberIdx]
+                val rowNames = TableRow(this@MemberMoodCorrelationActivity).apply { minimumHeight = rowHeight }
+                rowNames.addView(TextView(this@MemberMoodCorrelationActivity).apply {
+                    text = person.name
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    setTextColor(textColor)
+                    setPadding(p8, p16, p8, p16)
+                    layoutParams = TableRow.LayoutParams(w120, ViewGroup.LayoutParams.WRAP_CONTENT)
+                    maxLines = 2
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                })
+                tableNames.addView(rowNames)
+                val rowData = TableRow(this@MemberMoodCorrelationActivity).apply { minimumHeight = rowHeight }
+                targetActivities.forEach { activity ->
+                    val scores = statsMap["${person.id}|$activity"]
+                    val cellLayout = LinearLayout(this@MemberMoodCorrelationActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = android.view.Gravity.CENTER
+                        setPadding(p8, p8, p8, p8)
+                        layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, rowHeight)
+                    }
+                    if (scores != null && scores.isNotEmpty()) {
+                        val count = scores.size
+                        val avgScore = scores.average()
+                        cellLayout.addView(TextView(this@MemberMoodCorrelationActivity).apply {
+                            text = "${count}x"
+                            textSize = 14f
+                            setTextColor(textColor)
+                            setTypeface(null, android.graphics.Typeface.BOLD)
+                        })
+                        cellLayout.addView(TextView(this@MemberMoodCorrelationActivity).apply {
+                            text = String.format(Locale.getDefault(), "%.1f", avgScore)
+                            textSize = 12f
+                            setTextColor(textColor)
+                            alpha = 0.7f
+                        })
+                        val moodColor = ColorHelper.getMoodColorByScore(this@MemberMoodCorrelationActivity, (avgScore - 1).toFloat())
+                        cellLayout.setBackgroundColor((moodColor and 0x00FFFFFF) or 0x22000000)
+                    } else {
+                        cellLayout.addView(TextView(this@MemberMoodCorrelationActivity).apply {
+                            text = "-"
+                            setTextColor(textColor)
+                            alpha = 0.3f
+                        })
+                    }
+                    rowData.addView(cellLayout)
                 }
-                if (matches.isNotEmpty()) {
-                    val count = matches.size
-                    val avgScore = matches.map { entry ->
-                        val score = moodKeys.indexOf(entry.moodLabel) + 1
-                        if (score > 0) score else 3
-                    }.average()
-                    cellLayout.addView(TextView(this).apply {
-                        text = "${count}x"
-                        textSize = 14f
-                        setTextColor(textColor)
-                        setTypeface(null, android.graphics.Typeface.BOLD)
-                    })
-                    cellLayout.addView(TextView(this).apply {
-                        text = String.format(Locale.getDefault(), "%.1f", avgScore)
-                        textSize = 12f
-                        setTextColor(textColor)
-                        alpha = 0.7f
-                    })
-                    val moodColor = ColorHelper.getMoodColorByScore(this@MemberMoodCorrelationActivity, (avgScore-1).toFloat())
-                    cellLayout.setBackgroundColor((moodColor and 0x00FFFFFF) or 0x22000000)
-                } else {
-                    cellLayout.addView(TextView(this).apply {
-                        text = "-"
-                        setTextColor(textColor)
-                        alpha = 0.3f
-                    })
-                }
-                rowData.addView(cellLayout)
+                tableData.addView(rowData)
+
+                memberIdx++
+                renderedInThisBatch++
             }
-            tableData.addView(rowData)
+            tableData.postDelayed({ renderNextBatch() }, 10)
         }
+        renderNextBatch()
     }
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 }
