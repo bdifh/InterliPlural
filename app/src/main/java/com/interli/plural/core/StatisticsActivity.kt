@@ -42,10 +42,12 @@ class StatisticsActivity : BaseActivity() {
 
         findViewById<Button>(R.id.btnOpenFullVisualTimeline).setOnClickListener {
             val intent = android.content.Intent(this, TimelineVisualActivity::class.java)
+            intent.putExtras(this.intent)
             startActivity(intent)
         }
         findViewById<Button>(R.id.btnOpenFrontTimeline).setOnClickListener {
             val intent = android.content.Intent(this, TimelineActivity::class.java)
+            intent.putExtras(this.intent)
             startActivity(intent)
         }
 
@@ -224,7 +226,11 @@ class StatisticsActivity : BaseActivity() {
 
     private fun loadData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-        val sessionsJson = sharedPref.getString("sessions_list", "[]")
+
+        val sessionKey = intent.getStringExtra("session_key") ?: "sessions_list"
+        val filterIds = intent.getStringArrayListExtra("filter_member_ids")
+
+        val sessionsJson = sharedPref.getString(sessionKey, "[]")
         val peopleJson = sharedPref.getString("people_list", "[]")
 
         Thread {
@@ -233,17 +239,15 @@ class StatisticsActivity : BaseActivity() {
                 val rawPeople: List<Person> = gson.fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
                 val rawSessions: List<FrontSession> = gson.fromJson(sessionsJson, object : TypeToken<List<FrontSession>>() {}.type) ?: emptyList()
 
-                val excludedIds = rawPeople.filter { it.excludeFromStats || it.isArchived || it.isSysmediaOnly }.map { it.id }.toSet()
-                val excludedNames = rawPeople.filter { it.excludeFromStats || it.isArchived || it.isSysmediaOnly }.map { it.name }.toSet()
-
-                val filteredPeople = rawPeople.filter { !it.excludeFromStats && !it.isArchived && !it.isSysmediaOnly }
-                val filteredSessions = rawSessions.filter {
-                    val pId = it.personId
-                    if (pId != null) !excludedIds.contains(pId) else !excludedNames.contains(it.personName)
+                val filteredSessions = if (filterIds != null) {
+                    rawSessions.filter { it.personId != null && filterIds.contains(it.personId) }
+                } else {
+                    val excludedIds = rawPeople.filter { it.excludeFromStats || it.isArchived || it.isSysmediaOnly }.map { it.id }.toSet()
+                    rawSessions.filter { it.personId == null || !excludedIds.contains(it.personId) }
                 }
 
                 runOnUiThread {
-                    people = filteredPeople
+                    people = rawPeople
                     allSessions = filteredSessions
                     val spinner = findViewById<Spinner>(R.id.spinnerStatsPeriod)
                     val settingsSp = getSharedPreferences("settings_prefs", MODE_PRIVATE)

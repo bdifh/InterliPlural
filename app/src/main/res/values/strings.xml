@@ -672,5 +672,17 @@
     <string name="help_front_density_message">This graph shows the average percentage of time a member was fronting per hour during the selected period.\n\n<b>Examples:</b>\n\n• <b>1 person:</b> If Member A fronts from 10:00 to 11:00 every single day, you will see a peak at 100% for that hour.\n\n• <b>2 persons separately:</b> If Member A fronts from 10:00 to 11:00 on Monday, and Member B fronts from 10:00 to 11:00 on Tuesday, you will see both lines at 50% for that hour (since each was fronting half of the time in that period).\n\n• <b>Co-fronting:</b> If Member A and Member B always front together from 10:00 to 11:00, you will see both lines reach 100%.</string>
     <string name="todo_widget_config_title">To-Do Widget Settings</string>
     <string name="todo_widget_select_lists">Select lists to show (leave empty for all):</string>
-
+    <string name="subsystem_page">Subsystems</string>
+    <string name="add_subsystem_group">Add subsystem group</string>
+    <string name="add_subsystem_member">Add subsystem member</string>
+    <string name="nobody_fronting_group">No-one is fronting in this group</string>
+    <string name="subsystem_group_hint">Subsystem group name</string>
+    <string name="action_copy_to_subsystem">Copy to Subsystems</string>
+    <string name="select_subsystem_group">Select Subsystem Group</string>
+    <string name="copy_success">%1$s is added to subsystem: %2$s</string>
+    <string name="no_subsystem_groups">Make first a group on the Subsystem-pagina.</string>
+    <string name="promote_to_main">Promote to main system</string>
+    <string name="relink_to_main">Link to existing member</string>
+    <string name="add_to_frontpage">Add to frontpage</string>
+    <string name="delete_from_subsystem">Remove from subsystem</string>
 </resources>

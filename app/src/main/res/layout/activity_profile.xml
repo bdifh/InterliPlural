@@ -246,6 +246,16 @@
                     android:textSize="12sp"
                     android:textColor="@color/black" />
 
+                <Button
+                    android:id="@+id/btnCopyToSubsystem"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/action_copy_to_subsystem"
+                    android:textAlignment="viewStart"
+                    app:icon="@android:drawable/ic_menu_share" />
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -284,7 +294,6 @@
                     android:text="@string/label_include_in_stats"
                     android:textColor="@color/black"
                     android:visibility="gone" />
-
 
                 <Button
                     android:id="@+id/btnArchivePerson"

@@ -285,6 +285,9 @@ class ProfileActivity : BaseActivity() {
                 }
             }
         }
+        findViewById<Button>(R.id.btnCopyToSubsystem).setOnClickListener {
+            showSubsystemCopyDialog()
+        }
     }
     private fun captureInitialState() {
         val person = people[personIndex]
@@ -442,7 +445,9 @@ class ProfileActivity : BaseActivity() {
                 intent.putExtra("person_id", person.id)
                 startActivity(intent)
             }
-        } catch (_: Exception) { }
+            findViewById<Button>(R.id.btnCopyToSubsystem)?.visibility = if (isEditMode) View.VISIBLE else View.GONE
+        }
+        catch (_: Exception) { }
     }
     private fun renderCustomFields(container: LinearLayout, person: Person) {
         container.removeAllViews()
@@ -810,5 +815,41 @@ class ProfileActivity : BaseActivity() {
     private fun updateColorPreview(preview: View) {
         preview.setBackgroundColor(selectedColor)
     }
+
+    private fun showSubsystemCopyDialog() {
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val json = sharedPref.getString("subsystem_data", "[]")
+        val type = object : com.google.gson.reflect.TypeToken<MutableList<com.interli.plural.features.subsystem.SubsystemGroup>>() {}.type
+        val subGroups: MutableList<com.interli.plural.features.subsystem.SubsystemGroup> = com.google.gson.Gson().fromJson(json, type) ?: mutableListOf()
+
+        if (subGroups.isEmpty()) {
+            Toast.makeText(this, getString(R.string.no_subsystem_groups), Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val person = people[personIndex]
+        val groupNames = subGroups.map { it.name }.toTypedArray()
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.select_subsystem_group))
+            .setItems(groupNames) { _, which ->
+                val targetGroup = subGroups[which]
+                val newSubMember = com.interli.plural.features.subsystem.SubsystemMember(
+                    personId = person.id,
+                    name = person.name,
+                    profileColor = person.profileColor,
+                    isFronting = false
+                )
+
+                targetGroup.members.add(newSubMember)
+                sharedPref.edit().putString("subsystem_data", com.google.gson.Gson().toJson(subGroups)).apply()
+
+                Toast.makeText(this, getString(R.string.copy_success, person.name, targetGroup.name), Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+            .let { com.interli.plural.core.ColorHelper.styleAlertDialog(it, this) }
+    }
+
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 }

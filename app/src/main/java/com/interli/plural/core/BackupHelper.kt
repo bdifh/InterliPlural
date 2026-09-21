@@ -67,7 +67,7 @@ object BackupHelper {
         val exportCalendar = exportAll || (selections != null && selections.size > 7 && selections[7])
 
 
-        val frontKeys = listOf("people_list", "sysmedia_people_list", "groups_list", "sessions_list", "last_fronter_name", "current_fronters")
+        val frontKeys = listOf("people_list", "sysmedia_people_list", "groups_list", "sessions_list", "last_fronter_name", "current_fronters", "subsystem_data", "subsystem_sessions")
         val moodKeys = listOf("mood_entries", "mood_color_1", "mood_color_2", "mood_color_3", "mood_color_4", "mood_color_5", "activity_groups")
         val notesKeys = listOf("diary_notes", "diary_bundles", "sysmedia_posts", "sysmedia_notifications", "sysmedia_dms", "sysmedia_chat_groups")
         val todoKeys = listOf("todo_lists", "todo_bundles")

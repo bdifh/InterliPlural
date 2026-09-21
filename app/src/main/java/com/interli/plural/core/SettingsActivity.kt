@@ -612,6 +612,8 @@ class SettingsActivity : BaseActivity() {
         val notesEnabled = sp.getBoolean("module_notes_enabled", true)
         val todoEnabled = sp.getBoolean("module_todo_enabled", true)
         val calendarEnabled = sp.getBoolean("module_calendar_enabled", true)
+        val subsystemSub = sp.getBoolean("sub_subsystems_enabled", true) && pluralMaster
+
         if (frontSub) {
             options.add(getString(R.string.front_page))
             codes.add("members")
@@ -646,6 +648,10 @@ class SettingsActivity : BaseActivity() {
             options.add(getString(R.string.sysmedia))
             codes.add("sysmedia")
         }
+        if (subsystemSub) {
+            options.add(getString(R.string.subsystem_page))
+            codes.add("subsystem")
+        }
         val currentIdx = codes.indexOf(selectedStartPage).coerceAtLeast(0)
         AlertDialog.Builder(this)
             .setTitle(R.string.settings_start_page)
@@ -664,6 +670,7 @@ class SettingsActivity : BaseActivity() {
                 "module_fronting_enabled", getString(R.string.module_fronting), listOf(
                     ModuleSub("sub_front_page", getString(R.string.front_page)),
                     ModuleSub("sub_statistics", getString(R.string.statistics)),
+                    ModuleSub("sub_subsystems_enabled", getString(R.string.subsystem_page)),
                     ModuleSub("sub_who_am_i", getString(R.string.who_am_i)),
                     ModuleSub("sub_relations_enabled", getString(R.string.module_relations)),
                     ModuleSub("module_sysmedia_enabled", getString(R.string.sysmedia))
@@ -909,9 +916,10 @@ private var pendingPdfSelections: BooleanArray? = null
             getString(R.string.export_notes_data),
             getString(R.string.export_todo_data),
             getString(R.string.module_relations),
-            getString(R.string.calendar)
+            getString(R.string.calendar),
+            getString(R.string.subsystem_page)
         )
-        val selected = booleanArrayOf(true, true, true, true, true, true)
+        val selected = booleanArrayOf(true, true, true, true, true, true, true)
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24.dpToPx(), 16.dpToPx(), 24.dpToPx(), 8.dpToPx())
@@ -2423,7 +2431,7 @@ private var pendingPdfSelections: BooleanArray? = null
     }
     private fun showInterliExportDialog() {
         val items = arrayOf(
-            getString(R.string.export_front_data),
+            getString(R.string.export_front_data) + " + Subsystems",
             getString(R.string.export_mood_data),
             getString(R.string.export_notes_data),
             getString(R.string.export_todo_data),

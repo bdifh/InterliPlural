@@ -277,6 +277,13 @@
             android:parentActivityName=".MainActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".features.subsystem.SubsystemActivity"
+            android:label="@string/subsystem_page"
+            android:parentActivityName=".MainActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
         <receiver android:name=".widgets.CurrentFronterWidget"
             android:label="@string/widget_name_fronter"
             android:exported="false">
@@ -373,6 +380,25 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
+        </receiver>
+
+        <activity android:name=".widgets.SubsystemWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.DayNight.Dialog">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+            </intent-filter>
+        </activity>
+
+        <receiver android:name=".widgets.SubsystemFronterWidget"
+            android:label="Subsystem Fronter"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/subsystem_fronter_widget_info" />
         </receiver>
 
     </application>

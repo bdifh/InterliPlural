@@ -25,6 +25,7 @@ import com.interli.plural.features.todo.TodoActivity
 import com.interli.plural.MainActivity
 import com.interli.plural.Person
 import com.interli.plural.R
+import com.interli.plural.features.subsystem.SubsystemActivity
 
 abstract class BaseActivity : AppCompatActivity() {
     private fun applyFixedDisplayScale(context: android.content.Context): android.content.Context {
@@ -92,6 +93,7 @@ abstract class BaseActivity : AppCompatActivity() {
                 R.id.action_add_person to 0, R.id.action_add_group to 0,
                 R.id.action_front_page to 1, R.id.action_statistics to 1, R.id.action_who_am_i to 1,
                 R.id.action_relations to 1,
+                R.id.action_subsystem to 1,
                 R.id.action_diary to 2, R.id.action_todo to 2, R.id.action_calendar to 2,
                 R.id.action_mood_tracker to 3, R.id.action_mood_stats to 3, R.id.action_mood_insights to 3,
                 R.id.action_sysmedia to 4, R.id.action_settings to 99
@@ -129,6 +131,7 @@ abstract class BaseActivity : AppCompatActivity() {
                     R.id.action_todo -> if (this !is TodoActivity) startActivity(android.content.Intent(this, TodoActivity::class.java))
                     R.id.action_calendar -> if (this !is CalendarActivity) startActivity(android.content.Intent(this, CalendarActivity::class.java))
                     R.id.action_settings -> if (this !is SettingsActivity) startActivity(android.content.Intent(this, SettingsActivity::class.java))
+                    R.id.action_subsystem -> if (this !is SubsystemActivity) startActivity(android.content.Intent(this, SubsystemActivity::class.java))
                 }
                 drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START)
                 true
@@ -139,6 +142,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val menu = navigationView.menu
         val pluralMaster = sharedPref.getBoolean("module_fronting_enabled", true)
+        val subsystemSub = sharedPref.getBoolean("sub_subsystems_enabled", true) && pluralMaster
         val moodMaster = sharedPref.getBoolean("module_mood_enabled", true)
         val notesEnabled = sharedPref.getBoolean("module_notes_enabled", true)
         val todoEnabled = sharedPref.getBoolean("module_todo_enabled", true)
@@ -164,6 +168,7 @@ abstract class BaseActivity : AppCompatActivity() {
         menu.findItem(R.id.action_todo)?.isVisible = todoEnabled
         menu.findItem(R.id.action_calendar)?.isVisible = calendarEnabled
         menu.findItem(R.id.action_sysmedia)?.isVisible = sysmediaSub
+        menu.findItem(R.id.action_subsystem)?.isVisible = subsystemSub
         val header = navigationView.getHeaderView(0)
         header?.findViewById<View>(R.id.btnNavAddMember)?.visibility = if (frontSub) View.VISIBLE else View.GONE
         header?.findViewById<View>(R.id.btnNavAddGroup)?.visibility = if (frontSub) View.VISIBLE else View.GONE
@@ -203,6 +208,7 @@ abstract class BaseActivity : AppCompatActivity() {
             "todo" -> if (settingsPref.getBoolean("module_todo_enabled", true)) TodoActivity::class.java else MainActivity::class.java
             "stats" -> if (settingsPref.getBoolean("module_fronting_enabled", true) && settingsPref.getBoolean("sub_front_page", true)) StatisticsActivity::class.java else MainActivity::class.java
             "relations" -> if (settingsPref.getBoolean("module_fronting_enabled", true) && settingsPref.getBoolean("sub_relations_enabled", true)) RelationsActivity::class.java else MainActivity::class.java
+            "subsystem" -> if (settingsPref.getBoolean("module_fronting_enabled", true) && settingsPref.getBoolean("sub_subsystems_enabled", true)) com.interli.plural.features.subsystem.SubsystemActivity::class.java else MainActivity::class.java
             else -> MainActivity::class.java
         }
         if (this::class.java == targetClass) finish() else {

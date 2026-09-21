@@ -160,7 +160,7 @@ object PdfExportHelper {
                     currentY += spacing
                 }
 
-                // 1. Hoofdtitels en Periode
+                // 1. Headtitles and periods
                 drawText("${context.getString(R.string.app_name)} - Data Export", titlePaint, 15f)
                 drawText("Export Date: ${sdf.format(Date())}", textPaint, 10f)
 
@@ -196,7 +196,7 @@ object PdfExportHelper {
                     val allSessions: List<FrontSession> = gson.fromJson(sessionsJson, object : TypeToken<List<FrontSession>>() {}.type) ?: emptyList()
                     val sessions = allSessions.filter { (it.endTime ?: System.currentTimeMillis()) >= effectiveStart && it.startTime <= effectiveEnd }
 
-                    // Grafiek tekenen...
+                    // graphics
                     val chart = TimelineChartView(context, null)
                     chart.setData(sessions, people)
                     val chartStart = startDate ?: (sessions.minOfOrNull { it.startTime } ?: (System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000))
@@ -329,6 +329,46 @@ object PdfExportHelper {
                             if (!event.description.isNullOrBlank()) drawText(event.description!!, textPaint, 5f)
                             currentY += 10f
                             if (currentY > PAGE_HEIGHT - MARGIN) startNewPage()
+                        }
+                    }
+                }
+                // 9. Subsystems
+                if (selections.size > 6 && selections[6]) {
+                    startNewPage()
+                    drawText(context.getString(R.string.subsystem_page), headerPaint, 15f)
+
+                    val subJson = sharedPref.getString("subsystem_data", "[]")
+                    val subSessionsJson = sharedPref.getString("subsystem_sessions", "[]")
+
+                    val subGroups: List<Map<String, Any>> = try {
+                        gson.fromJson(subJson, object : TypeToken<List<Map<String, Any>>>() {}.type)
+                    } catch (_: Exception) { emptyList() }
+
+                    val subSessions: List<FrontSession> = try {
+                        gson.fromJson(subSessionsJson, object : TypeToken<List<FrontSession>>() {}.type)
+                    } catch (_: Exception) { emptyList() }
+
+                    subGroups.forEach { group ->
+                        val groupName = group["name"] as? String ?: "Unnamed Group"
+                        drawText("${context.getString(R.string.hint_group_name)}: $groupName", headerPaint, 8f)
+
+                        val members = group["members"] as? List<Map<String, Any>> ?: emptyList()
+                        members.forEach { m ->
+                            val mName = m["name"] as? String ?: "Unknown"
+                            drawText("  - $mName", textPaint, 3f)
+                        }
+                        currentY += 10f
+                    }
+
+                    if (subSessions.isNotEmpty()) {
+                        currentY += 10f
+                        drawText(context.getString(R.string.timeline_front_title) + " (Subsystems)", headerPaint, 10f)
+                        val filteredSubSessions = subSessions.filter { (it.endTime ?: System.currentTimeMillis()) >= effectiveStart && it.startTime <= effectiveEnd }
+
+                        filteredSubSessions.reversed().take(200).forEach { session ->
+                            val start = sdf.format(Date(session.startTime))
+                            val end = session.endTime?.let { sdf.format(Date(it)) } ?: context.getString(R.string.currently_active)
+                            drawText("${session.personName}: $start to $end", textPaint, 3f)
                         }
                     }
                 }

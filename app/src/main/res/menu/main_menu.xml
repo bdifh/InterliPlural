@@ -19,6 +19,10 @@
             android:id="@+id/action_relations"
             android:title="@string/module_relations"
             app:showAsAction="never" />
+        <item
+            android:id="@+id/action_subsystem"
+            android:title="@string/subsystem_page"
+            app:showAsAction="never" />
     </group>
 
     <group android:id="@+id/group_plural">

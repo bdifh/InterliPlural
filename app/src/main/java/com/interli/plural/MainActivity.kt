@@ -259,6 +259,26 @@ data class ChatGroup(
     var participantIds: MutableList<String> = mutableListOf(),
     var groupPictureUri: String? = null
 )
+
+data class SubsystemGroup(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    var name: String,
+    val memberIds: MutableList<String> = mutableListOf()
+)
+
+data class SubsystemMember(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    var name: String,
+    var isFronting: Boolean = false,
+    var profileColor: Int = -6934396
+)
+
+data class SubsystemFrontSession(
+    val groupId: String,
+    val memberId: String,
+    val startTime: Long,
+    var endTime: Long? = null
+)
 class MainActivity : BaseActivity() {
     private var people = java.util.concurrent.CopyOnWriteArrayList<Person>()
     private var groups = java.util.concurrent.CopyOnWriteArrayList<Group>()
@@ -325,10 +345,13 @@ class MainActivity : BaseActivity() {
                     val sub = settingsPref.getBoolean("sub_fronting_enabled", true)
                     if (master && sub) android.content.Intent(
                         this,
-                        StatisticsActivity::class.java
-                    ) else null
+                        StatisticsActivity::class.java) else null
                 }
-
+                "subsystem" -> {
+                    val master = settingsPref.getBoolean("module_fronting_enabled", true)
+                    val sub = settingsPref.getBoolean("sub_subsystems_enabled", true)
+                    if (master && sub) android.content.Intent(this, com.interli.plural.features.subsystem.SubsystemActivity::class.java) else null
+                }
                 else -> null
             }
             redirectIntent?.let {
@@ -339,7 +362,7 @@ class MainActivity : BaseActivity() {
         }
         setContentView(R.layout.activity_main)
         loadData()
-        healDataIntegrity() // Herstel koppelingen na import
+        healDataIntegrity()
         var migrationNeeded = false
         sessions.forEach { s ->
             if (s.personId == null) {
@@ -570,13 +593,11 @@ class MainActivity : BaseActivity() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val navigationView = findViewById<NavigationView>(R.id.navigationView)
         val menu = navigationView.menu
-        // Master switches
         val pluralMaster = sharedPref.getBoolean("module_fronting_enabled", true)
         val moodMaster = sharedPref.getBoolean("module_mood_enabled", true)
         val notesEnabled = sharedPref.getBoolean("module_notes_enabled", true)
         val todoEnabled = sharedPref.getBoolean("module_todo_enabled", true)
         val calendarEnabled = sharedPref.getBoolean("module_calendar_enabled", true)
-        // Sub switches
         val frontSub = sharedPref.getBoolean("sub_front_page", true) && pluralMaster
         val statsSub = sharedPref.getBoolean("sub_statistics", true) && pluralMaster
         val whoAmISub = sharedPref.getBoolean("sub_who_am_i", true) && pluralMaster
@@ -727,7 +748,7 @@ class MainActivity : BaseActivity() {
                     val customFieldsList: List<CustomField> = Gson().fromJson(fieldsJson, type)
                     val hiddenFields = customFieldsList.asSequence().map { it.name }.toMutableList()
                     val newPerson = Person(name = name, hiddenFields = hiddenFields)
-                    newPerson.addedTimestamp = System.currentTimeMillis() // Zet de huidige datum
+                    newPerson.addedTimestamp = System.currentTimeMillis()
                     people.add(newPerson)
                     savePeople()
                     adapter.updateItems()
@@ -796,7 +817,6 @@ class MainActivity : BaseActivity() {
         parentLabel.setPadding(0, 20, 0, 0)
         container.addView(parentLabel)
         val parentSpinner = Spinner(this)
-        // Filter: voorkom dat de groep zichzelf of een van zijn eigen subgroepen als 'parent' kiest
         val availableParents = groups.filter { potentialParent ->
             if (potentialParent.id == group.id) return@filter false
             var curr: Group? = potentialParent
@@ -820,6 +840,14 @@ class MainActivity : BaseActivity() {
             if (idx != -1) parentSpinner.setSelection(idx + 1)
         }
         container.addView(parentSpinner)
+        val btnCopySub = Button(this).apply {
+            text = getString(R.string.action_copy_to_subsystem)
+            setOnClickListener {
+                copyGroupToSubsystem(group)
+                Toast.makeText(context, R.string.entry_saved, Toast.LENGTH_SHORT).show()
+            }
+        }
+        container.addView(btnCopySub)
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(getString(R.string.dialog_edit_group_title))
             .setView(container)
@@ -1056,5 +1084,29 @@ class MainActivity : BaseActivity() {
         com.interli.plural.widgets.CalendarDayWidgetProvider.sendRefreshBroadcast(this)
         com.interli.plural.widgets.CalendarWeekWidgetProvider.sendRefreshBroadcast(this)
         com.interli.plural.widgets.CalendarMonthWidgetProvider.sendRefreshBroadcast(this)
+    }
+
+    private fun copyGroupToSubsystem(group: Group) {
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val subJson = sharedPref.getString("subsystem_data", "[]")
+        val subType = object : com.google.gson.reflect.TypeToken<MutableList<com.interli.plural.features.subsystem.SubsystemGroup>>() {}.type
+        val subGroups: MutableList<com.interli.plural.features.subsystem.SubsystemGroup> = com.google.gson.Gson().fromJson(subJson, subType) ?: mutableListOf()
+        val newSubGroup = com.interli.plural.features.subsystem.SubsystemGroup(
+            name = group.name,
+            members = mutableListOf()
+        )
+        val groupMembers = people.filter { it.safeGroupIds.contains(group.id) }
+        groupMembers.forEach { person ->
+            newSubGroup.members.add(com.interli.plural.features.subsystem.SubsystemMember(
+                personId = person.id,
+                name = person.name,
+                profileColor = person.profileColor,
+                isFronting = false
+            ))
+        }
+
+        subGroups.add(newSubGroup)
+        sharedPref.edit().putString("subsystem_data", com.google.gson.Gson().toJson(subGroups)).apply()
+        Toast.makeText(this, "Groep ${group.name} gekopieerd naar Subsystems", Toast.LENGTH_SHORT).show()
     }
 }
