@@ -17,7 +17,34 @@ object MemberHelper {
         val normalPeople: List<Person> = gson.fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
         val sysmediaPeopleJson = sharedPref.getString("sysmedia_people_list", "[]")
         val sysmediaOnlyPeople: List<Person> = gson.fromJson(sysmediaPeopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
+
         val people = (normalPeople + sysmediaOnlyPeople).distinctBy { it.id }.toMutableList()
+
+        val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
+        val subType = object : TypeToken<List<com.interli.plural.features.subsystem.SubsystemGroup>>() {}.type
+        val subGroups: List<com.interli.plural.features.subsystem.SubsystemGroup> = try { gson.fromJson(subJson, subType) } catch (_: Exception) { emptyList() }
+
+        val existingIds = people.map { it.id }.toSet()
+        val existingNames = people.map { it.name.trim().lowercase() }.toSet()
+
+        subGroups.forEach { group ->
+            group.members.forEach { subMember ->
+                val isAlreadyInPeople = (subMember.personId != null && existingIds.contains(subMember.personId))
+                        || existingIds.contains(subMember.id)
+                        || existingNames.contains(subMember.name.trim().lowercase())
+
+                if (!isAlreadyInPeople) {
+                    val virtualPerson = Person(
+                        id = subMember.id,
+                        name = subMember.name,
+                        profileColor = subMember.profileColor,
+                        isFront = subMember.isFronting
+                    )
+                    people.add(virtualPerson)
+                }
+            }
+        }
+
         people.forEach {
             if (it.sysmediaProfile == null) it.sysmediaProfile = SysmediaProfile()
             if (it.groupIds == null) it.groupIds = mutableListOf()

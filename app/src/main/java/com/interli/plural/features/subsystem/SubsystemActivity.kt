@@ -66,6 +66,8 @@ class SubsystemMemberAdapter(
         holder.tvName.setTextColor(textColor)
         holder.card.setCardBackgroundColor(ColorHelper.getBgColor(context))
         holder.card.strokeColor = displayColor
+        holder.smallImageCard.setCardBackgroundColor(android.graphics.Color.TRANSPARENT)
+        holder.smallImageCard.strokeWidth = 0
 
         if (!avatarUri.isNullOrBlank()) {
             holder.profileImage.load(avatarUri) {
@@ -77,13 +79,10 @@ class SubsystemMemberAdapter(
             holder.profileImage.load(android.R.drawable.ic_menu_gallery)
         }
         holder.itemView.setOnClickListener {
-            if (linkedPerson != null) {
-                val intent = Intent(context, com.interli.plural.features.member.ProfileActivity::class.java)
-                intent.putExtra("person_id", linkedPerson.id)
-                context.startActivity(intent)
-            } else {
-                activity?.showMemberOptionsDialog(subMember)
-            }
+            val targetId = linkedPerson?.id ?: subMember.personId ?: subMember.id
+            val intent = Intent(context, com.interli.plural.features.member.ProfileActivity::class.java)
+            intent.putExtra("person_id", targetId)
+            context.startActivity(intent)
         }
 
         holder.itemView.setOnLongClickListener {
@@ -102,6 +101,7 @@ class SubsystemMemberAdapter(
 
     class MemberViewHolder(v: View) : RecyclerView.ViewHolder(v) {
         val card: MaterialCardView = v.findViewById(R.id.personCard)
+        val smallImageCard: MaterialCardView = v.findViewById(R.id.personSmallImageCard)
         val tvName: TextView = v.findViewById(R.id.nameText)
         val btnFront: Button = v.findViewById(R.id.frontButton)
         val profileImage: ImageView = v.findViewById(R.id.personSmallImage)
