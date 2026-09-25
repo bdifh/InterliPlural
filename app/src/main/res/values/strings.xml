@@ -685,4 +685,5 @@
     <string name="relink_to_main">Link to existing member</string>
     <string name="add_to_frontpage">Add to frontpage</string>
     <string name="delete_from_subsystem">Remove from subsystem</string>
+    <string name="subsystem_member_not_in_main_list">%1$s is not in the main member list.</string>
 </resources>

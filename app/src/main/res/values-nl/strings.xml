@@ -553,4 +553,5 @@
     <string name="relink_to_main">Link naar bestaand lid</string>
     <string name="add_to_frontpage">Toevoegen aan hoofdpagina</string>
     <string name="delete_from_subsystem">Verwijderen uit subsystem</string>
+    <string name="subsystem_member_not_in_main_list">%1$s staat niet in de hoofdledenlijst.</string>
 </resources>

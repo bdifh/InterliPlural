@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
+import android.view.LayoutInflater
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -32,6 +33,8 @@ import com.interli.plural.features.mood.MoodActivity
 import com.interli.plural.features.sysmedia.SysmediaActivity
 import com.interli.plural.features.sysmedia.SysmediaNotificationHelper
 import com.interli.plural.features.todo.TodoActivity
+import com.interli.plural.features.subsystem.SubsystemGroup
+import com.interli.plural.features.subsystem.SubsystemMember
 import com.interli.plural.widgets.*
 import kotlinx.coroutines.launch
 
@@ -89,6 +92,8 @@ data class FrontSession(
     var personId: String? = null,
     var note: String? = null
 )
+
+
 data class AppTheme(
     val id: String = java.util.UUID.randomUUID().toString(),
     var name: String,
@@ -685,6 +690,64 @@ class MainActivity : BaseActivity() {
         val adapter = findViewById<RecyclerView>(R.id.recyclerView).adapter as? PersonAdapter
         adapter?.updateItems()
         updateFrontNotification()
+        updateSubsystemFrontTiles()
+    }
+
+    private fun updateSubsystemFrontTiles() {
+        val rvTiles = findViewById<RecyclerView>(R.id.rvSubsystemFronts) ?: return
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
+        val type = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
+        val subGroups: List<SubsystemGroup> = try { Gson().fromJson(subJson, type) } catch (e: Exception) { emptyList() }
+
+        val activeSubMembers = mutableListOf<Pair<SubsystemGroup, SubsystemMember>>()
+        subGroups.forEach { group ->
+            group.members.filter { it.isFronting }.forEach { member ->
+                activeSubMembers.add(Pair(group, member))
+            }
+        }
+
+        if (activeSubMembers.isEmpty()) {
+            rvTiles.visibility = View.GONE
+            return
+        }
+
+        rvTiles.visibility = View.VISIBLE
+
+        val gridManager = androidx.recyclerview.widget.GridLayoutManager(this, 6)
+        gridManager.spanSizeLookup = object : androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int): Int {
+                val total = activeSubMembers.size
+                if (total == 1) return 6
+                if (total == 2 || total == 4) return 3
+                if (total % 3 == 0) return 2
+                if (total % 3 == 2) {
+                    return if (position < total - 2) 2 else 3
+                }
+                return if (position < total - 4) 2 else 3
+            }
+        }
+        rvTiles.layoutManager = gridManager
+
+        rvTiles.adapter = SubsystemTileAdapter(
+            context = this,
+            items = activeSubMembers,
+            isBodyFronting = { subMember ->
+                people.any { p -> (p.id == subMember.personId || p.name.equals(subMember.name, ignoreCase = true)) && p.isFront }
+            },
+            onToggleBodyFront = { subMember ->
+                val targetPerson = people.find { it.id == subMember.personId }
+                    ?: people.find { it.name.equals(subMember.name, ignoreCase = true) }
+
+                if (targetPerson != null) {
+                    toggleFront(targetPerson)
+                    savePeople()
+                    updateUI()
+                } else {
+                    Toast.makeText(this, getString(R.string.subsystem_member_not_in_main_list, subMember.name), Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -1108,5 +1171,48 @@ class MainActivity : BaseActivity() {
         subGroups.add(newSubGroup)
         sharedPref.edit().putString("subsystem_data", com.google.gson.Gson().toJson(subGroups)).apply()
         Toast.makeText(this, "Groep ${group.name} gekopieerd naar Subsystems", Toast.LENGTH_SHORT).show()
+    }
+
+    class SubsystemTileAdapter(
+        private val context: android.content.Context,
+        private val items: List<Pair<SubsystemGroup, SubsystemMember>>,
+        private val isBodyFronting: (SubsystemMember) -> Boolean,
+        private val onToggleBodyFront: (SubsystemMember) -> Unit
+    ) : RecyclerView.Adapter<SubsystemTileAdapter.TileViewHolder>() {
+
+        class TileViewHolder(v: View) : RecyclerView.ViewHolder(v) {
+            val card: com.google.android.material.card.MaterialCardView = v.findViewById(R.id.subsystemTileCard)
+            val tvGroupName: TextView = v.findViewById(R.id.tvSubsystemGroupName)
+            val tvFronterName: TextView = v.findViewById(R.id.tvSubsystemFronterName)
+            val btnToggle: Button = v.findViewById(R.id.btnToggleBodyFront)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TileViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_subsystem_front_tile, parent, false)
+            return TileViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: TileViewHolder, position: Int) {
+            val (group, subMember) = items[position]
+            val textColor = ColorHelper.getTextColor(context)
+            val btnColor = ColorHelper.getBtnColor(context)
+            val isFrontOnBody = isBodyFronting(subMember)
+
+            holder.card.setCardBackgroundColor(ColorHelper.getBgColor(context))
+            holder.tvGroupName.text = group.name
+            holder.tvFronterName.text = subMember.name
+            holder.tvFronterName.setTextColor(textColor)
+
+            holder.btnToggle.text = if (isFrontOnBody) "▼" else "▲"
+            holder.btnToggle.setBackgroundColor(if (isFrontOnBody) ColorHelper.getFrontColor(context) else btnColor)
+            holder.btnToggle.setTextColor(if (isFrontOnBody) textColor else ColorHelper.getBtnTextColor(context))
+
+            holder.btnToggle.setOnClickListener {
+                onToggleBodyFront(subMember)
+            }
+        }
+
+        override fun getItemCount() = items.size
     }
 }
