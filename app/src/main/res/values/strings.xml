@@ -314,7 +314,7 @@
     <string name="import_plural_star_no_new_data">No new data found (might already exist)</string>
     <string name="plural_star_error">Plural Star Error: %1$s</string>
     <string name="action_pdf_export">PDF Export</string>
-    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Pluralstar / Hivemind / Daylio Import</string>
+    <string name="action_3rd_party_import">Other Pluralapps/Daylio Import</string>
     <string name="import_success">Import successful!</string>
     <string name="import_error">Import failed: %1$s</string>
     <string name="settings_section_management">Management</string>
@@ -686,4 +686,9 @@
     <string name="add_to_frontpage">Add to frontpage</string>
     <string name="delete_from_subsystem">Remove from subsystem</string>
     <string name="subsystem_member_not_in_main_list">%1$s is not in the main member list.</string>
+    <string name="action_3rd_party_file_import">Third Party Plural App Import</string>
+    <string name="desc_3rd_party_file_import">Simply Plural, PluralSpace, Plural Star, Hivemind, PluralKit (ZIP / JSON / Avatars)</string>
+    <string name="action_import_file">Import File (ZIP / JSON)</string>
+    <string name="import_unknown_format">Unknown or unsupported file format</string>
+    <string name="import_empty_file">Empty or unreadable file</string>
 </resources>

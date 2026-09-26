@@ -303,7 +303,7 @@
     <string name="import_plural_star_no_new_data">Geen nieuwe data gevonden (bestaat mogelijk al)</string>
     <string name="plural_star_error">Plural Star Fout: %1$s</string>
     <string name="action_pdf_export">PDF Export</string>
-    <string name="action_3rd_party_import">PluralKit / Simply Plural / Pluralspace / Pluralstar / Hivemind / Daylio Importeren</string>
+    <string name="action_3rd_party_import">andere Pluralapps/Daylio Importeren</string>
     <string name="import_success">Import succesvol!</string>
     <string name="import_error">Import mislukt: %1$s</string>
     <string name="settings_section_management">Beheer</string>
@@ -555,4 +555,9 @@
     <string name="delete_from_subsystem">Verwijderen uit subsystem</string>
     <string name="subsystem_member_not_in_main_list">%1$s staat niet in de hoofdledenlijst.</string>
     <string name="who_am_i">Wie ben ik?</string>
+    <string name="action_3rd_party_file_import">Derde Partij Plural App Import</string>
+    <string name="desc_3rd_party_file_import">Simply Plural, PluralSpace, Plural Star, Hivemind, PluralKit (ZIP / JSON / Avatars)</string>
+    <string name="action_import_file">Bestand Importeren (ZIP / JSON)</string>
+    <string name="import_unknown_format">Onbekend of niet-ondersteund bestandsformaat</string>
+    <string name="import_empty_file">Leeg of onleesbaar bestand</string>
 </resources>

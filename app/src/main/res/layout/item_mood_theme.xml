@@ -32,6 +32,15 @@
                 android:text="Mood Theme Name" />
 
             <ImageView
+                android:id="@+id/btnExportHex"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_menu_share"
+                android:layout_marginEnd="4dp"
+                android:contentDescription="@string/action_export" />
+
+            <ImageView
                 android:id="@+id/btnDuplicate"
                 android:layout_width="36dp"
                 android:layout_height="36dp"

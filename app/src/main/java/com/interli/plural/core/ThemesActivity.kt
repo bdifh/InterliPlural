@@ -463,6 +463,13 @@ class ThemesActivity : BaseActivity() {
             holder.viewColor4.setOnClickListener { showColorPicker(theme, 4) }
             holder.viewColor5.setOnClickListener { showColorPicker(theme, 5) }
             holder.btnDuplicate.setOnClickListener { onDuplicate(theme) }
+            holder.btnExportHex.setOnClickListener {
+                val hexString = "${theme.bgColor},${theme.btnColor},${theme.btnTextColor},${theme.frontColor},${theme.textColor}"
+                val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("theme_hex", hexString)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(this@ThemesActivity, "Theme Hex copied to clipboard", Toast.LENGTH_SHORT).show()
+            }
             holder.btnDelete.setOnClickListener { onDelete(theme) }
             holder.btnSetDefault.setOnClickListener { onSetDefault(theme) }
             holder.btnSetMulti.setOnClickListener { onSetMulti(theme) }
@@ -486,6 +493,7 @@ class ThemesActivity : BaseActivity() {
             holder.btnLinkCoFront.setTextColor(textColor)
             holder.btnDelete.imageTintList = android.content.res.ColorStateList.valueOf(textColor)
             holder.btnDuplicate.imageTintList = android.content.res.ColorStateList.valueOf(textColor)
+            holder.btnExportHex.imageTintList = android.content.res.ColorStateList.valueOf(textColor)
             val statusParts = mutableListOf<String>()
             if (theme.id == defaultId) statusParts.add(getString(R.string.theme_none))
             if (theme.id == multiId) statusParts.add(getString(R.string.label_multi))
@@ -525,6 +533,7 @@ class ThemesActivity : BaseActivity() {
         override fun getItemCount(): Int = items.size
         inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val tvThemeName: TextView = view.findViewById(R.id.tvThemeName)
+            val btnExportHex: ImageView = view.findViewById(R.id.btnExportHex)
             val viewColor1: View = view.findViewById(R.id.viewColor1)
             val viewColor2: View = view.findViewById(R.id.viewColor2)
             val viewColor3: View = view.findViewById(R.id.viewColor3)

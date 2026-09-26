@@ -22,9 +22,20 @@ import com.interli.plural.Group
 import com.interli.plural.IdentityGroup
 import com.interli.plural.Person
 import com.interli.plural.R
+import coil.load
+import com.google.android.material.chip.Chip
+import com.google.android.material.chip.ChipGroup
+import com.interli.plural.CustomField
+import com.interli.plural.core.MediaEmbedHelper
+import io.noties.markwon.Markwon
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
+import io.noties.markwon.image.coil.CoilImagesPlugin
+import io.noties.markwon.linkify.LinkifyPlugin
+import io.noties.markwon.ext.tables.TablePlugin
 
 class WhoAmIActivity : BaseActivity() {
-    private val sessionAnswers = mutableMapOf<String, String>() // activityName -> "LIKE"/"NEUTRAL"/"DISLIKE"
+    private val sessionAnswers =
+        mutableMapOf<String, String>() // activityName -> "LIKE"/"NEUTRAL"/"DISLIKE"
     private val nowAnswers = mutableSetOf<String>()
     private lateinit var people: List<Person>
     private lateinit var moodEntries: List<MoodActivity.MoodEntry>
@@ -57,29 +68,42 @@ class WhoAmIActivity : BaseActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 renderAll(s?.toString() ?: "")
             }
+
             override fun afterTextChanged(s: Editable?) {}
         })
         renderAll()
         triggerRankingUpdate(immediate = true)
     }
+
     private fun triggerRankingUpdate(immediate: Boolean = false) {
         rankingRunnable?.let { handler.removeCallbacks(it) }
         rankingRunnable = Runnable { updateRanking() }
         if (immediate) handler.post(rankingRunnable!!)
         else handler.postDelayed(rankingRunnable!!, 300)
     }
+
     private fun loadMoodEntries(): List<MoodActivity.MoodEntry> {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = prefs.getString("mood_entries", "[]") ?: "[]"
         val type = object : TypeToken<List<MoodActivity.MoodEntry>>() {}.type
-        return try { gson.fromJson(json, type) ?: emptyList() } catch (_: Exception) { emptyList() }
+        return try {
+            gson.fromJson(json, type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
+
     private fun loadMoodActivityGroups(): List<MoodActivity.ActivityGroup> {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = prefs.getString("activity_groups", "[]") ?: "[]"
         val type = object : TypeToken<List<MoodActivity.ActivityGroup>>() {}.type
-        return try { gson.fromJson(json, type) ?: emptyList() } catch (_: Exception) { emptyList() }
+        return try {
+            gson.fromJson(json, type) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
+
     private fun loadIdentityGroups(): List<IdentityGroup> {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         val json = prefs.getString("identity_groups", "[]") ?: "[]"
@@ -87,30 +111,44 @@ class WhoAmIActivity : BaseActivity() {
         return try {
             val list: List<IdentityGroup> = gson.fromJson(json, type) ?: emptyList()
             list.sortedBy { it.manualOrder }
-        } catch (_: Exception) { emptyList() }
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
+
     private fun saveIdentityGroups(groups: List<IdentityGroup>) {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         prefs.edit().putString("identity_groups", gson.toJson(groups)).apply()
     }
+
     private fun persistMoodActivityGroups(list: List<MoodActivity.ActivityGroup>) {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         prefs.edit().putString("activity_groups", gson.toJson(list)).apply()
     }
+
     private fun loadCollapsedMoodGroups(): Set<String> {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         return prefs.getStringSet("collapsed_mood_groups", emptySet()) ?: emptySet()
     }
+
     private fun saveCollapsedMoodGroups(ids: Set<String>) {
         val prefs = getSharedPreferences("my_app", MODE_PRIVATE)
         prefs.edit().putStringSet("collapsed_mood_groups", ids).apply()
     }
+
     private fun renderAll(query: String = "") {
         cardsContainer.removeAllViews()
         if (dataSourceMode == "IDENTITY" || dataSourceMode == "BOTH") {
             val identityGroups = loadIdentityGroups()
             identityGroups.forEach { group ->
-                renderGroupCard(group.id, group.name, group.itemNames, query, isMoodGroup = false, isExpanded = group.isExpanded)
+                renderGroupCard(
+                    group.id,
+                    group.name,
+                    group.itemNames,
+                    query,
+                    isMoodGroup = false,
+                    isExpanded = group.isExpanded
+                )
             }
         }
         if (dataSourceMode == "MOOD" || dataSourceMode == "BOTH") {
@@ -118,22 +156,42 @@ class WhoAmIActivity : BaseActivity() {
             val collapsedMoodGroups = loadCollapsedMoodGroups()
             moodGroups.forEach { group ->
                 val isExpanded = !collapsedMoodGroups.contains(group.id)
-                renderGroupCard(group.id, group.name, group.activityNames, query, isMoodGroup = true, isExpanded = isExpanded)
+                renderGroupCard(
+                    group.id,
+                    group.name,
+                    group.activityNames,
+                    query,
+                    isMoodGroup = true,
+                    isExpanded = isExpanded
+                )
             }
         }
     }
-    private fun renderGroupCard(groupId: String, groupName: String, items: List<String>, query: String, isMoodGroup: Boolean, isExpanded: Boolean) {
-        val filteredItems = items.filter { query.isEmpty() || it.contains(query, ignoreCase = true) }
+
+    private fun renderGroupCard(
+        groupId: String,
+        groupName: String,
+        items: List<String>,
+        query: String,
+        isMoodGroup: Boolean,
+        isExpanded: Boolean
+    ) {
+        val filteredItems =
+            items.filter { query.isEmpty() || it.contains(query, ignoreCase = true) }
         if (filteredItems.isEmpty() && query.isNotEmpty()) return
         val inflater = LayoutInflater.from(this)
         val card = MaterialCardView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
                 setMargins(0, 0, 0, (16 * resources.displayMetrics.density).toInt())
             }
             radius = 12f * resources.displayMetrics.density
             setCardBackgroundColor(ColorHelper.getBgColor(this@WhoAmIActivity))
             strokeWidth = 2
-            strokeColor = (ColorHelper.getTextColor(this@WhoAmIActivity) and 0x33FFFFFF) or 0x33000000
+            strokeColor =
+                (ColorHelper.getTextColor(this@WhoAmIActivity) and 0x33FFFFFF) or 0x33000000
             cardElevation = 0f
         }
         val contentLayout = LinearLayout(this).apply {
@@ -208,26 +266,61 @@ class WhoAmIActivity : BaseActivity() {
                 val btnDislike = row.findViewById<View>(R.id.btnDislike)
                 val btnNow = row.findViewById<View>(R.id.btnNow)
                 btnNow.visibility = if (isMoodGroup) View.VISIBLE else View.GONE
-                updateSelectionUi(btnLike, btnNeutral, btnDislike, btnNow, sessionAnswers[itemName], nowAnswers.contains(itemName))
+                updateSelectionUi(
+                    btnLike,
+                    btnNeutral,
+                    btnDislike,
+                    btnNow,
+                    sessionAnswers[itemName],
+                    nowAnswers.contains(itemName)
+                )
                 btnLike.setOnClickListener {
                     toggleAnswer(itemName, "LIKE")
-                    updateSelectionUi(btnLike, btnNeutral, btnDislike, btnNow, sessionAnswers[itemName], nowAnswers.contains(itemName))
+                    updateSelectionUi(
+                        btnLike,
+                        btnNeutral,
+                        btnDislike,
+                        btnNow,
+                        sessionAnswers[itemName],
+                        nowAnswers.contains(itemName)
+                    )
                     triggerRankingUpdate()
                 }
                 btnNeutral.setOnClickListener {
                     toggleAnswer(itemName, "NEUTRAL")
-                    updateSelectionUi(btnLike, btnNeutral, btnDislike, btnNow, sessionAnswers[itemName], nowAnswers.contains(itemName))
+                    updateSelectionUi(
+                        btnLike,
+                        btnNeutral,
+                        btnDislike,
+                        btnNow,
+                        sessionAnswers[itemName],
+                        nowAnswers.contains(itemName)
+                    )
                     triggerRankingUpdate()
                 }
                 btnDislike.setOnClickListener {
                     toggleAnswer(itemName, "DISLIKE")
-                    updateSelectionUi(btnLike, btnNeutral, btnDislike, btnNow, sessionAnswers[itemName], nowAnswers.contains(itemName))
+                    updateSelectionUi(
+                        btnLike,
+                        btnNeutral,
+                        btnDislike,
+                        btnNow,
+                        sessionAnswers[itemName],
+                        nowAnswers.contains(itemName)
+                    )
                     triggerRankingUpdate()
                 }
                 btnNow.setOnClickListener {
                     if (nowAnswers.contains(itemName)) nowAnswers.remove(itemName)
                     else nowAnswers.add(itemName)
-                    updateSelectionUi(btnLike, btnNeutral, btnDislike, btnNow, sessionAnswers[itemName], nowAnswers.contains(itemName))
+                    updateSelectionUi(
+                        btnLike,
+                        btnNeutral,
+                        btnDislike,
+                        btnNow,
+                        sessionAnswers[itemName],
+                        nowAnswers.contains(itemName)
+                    )
                     triggerRankingUpdate()
                 }
                 if (!isMoodGroup) {
@@ -259,11 +352,14 @@ class WhoAmIActivity : BaseActivity() {
                 contentLayout.addView(row)
             }
         }
-        if (contentLayout.parent != null) (contentLayout.parent as ViewGroup).removeView(contentLayout)
+        if (contentLayout.parent != null) (contentLayout.parent as ViewGroup).removeView(
+            contentLayout
+        )
         card.addView(contentLayout)
         if (card.parent != null) (card.parent as ViewGroup).removeView(card)
         cardsContainer.addView(card)
     }
+
     private fun toggleAnswer(name: String, type: String) {
         if (sessionAnswers[name] == type) {
             sessionAnswers.remove(name)
@@ -271,17 +367,30 @@ class WhoAmIActivity : BaseActivity() {
             sessionAnswers[name] = type
         }
     }
-    private fun updateSelectionUi(like: View, neutral: View, dislike: View, now: View, selection: String?, isNow: Boolean) {
+
+    private fun updateSelectionUi(
+        like: View,
+        neutral: View,
+        dislike: View,
+        now: View,
+        selection: String?,
+        isNow: Boolean
+    ) {
         like.alpha = if (selection == "LIKE") 1.0f else 0.3f
         neutral.alpha = if (selection == "NEUTRAL") 1.0f else 0.3f
         dislike.alpha = if (selection == "DISLIKE") 1.0f else 0.3f
         now.alpha = if (isNow) 1.0f else 0.15f
-        now.findViewById<TextView>(R.id.tvNow)?.setTextColor(if (isNow) Color.GREEN else ColorHelper.getTextColor(this))
+        now.findViewById<TextView>(R.id.tvNow)
+            ?.setTextColor(if (isNow) Color.GREEN else ColorHelper.getTextColor(this))
         listOf(like, neutral, dislike).forEach {
-            it.scaleX = if (selection != null && it == when(selection) { "LIKE" -> like; "NEUTRAL" -> neutral; else -> dislike }) 1.2f else 1.0f
+            it.scaleX = if (selection != null && it == when (selection) {
+                    "LIKE" -> like; "NEUTRAL" -> neutral; else -> dislike
+                }
+            ) 1.2f else 1.0f
             it.scaleY = it.scaleX
         }
     }
+
     private fun updateRanking() {
         if (rankingContainer.childCount == 0) return
         val titleView = rankingContainer.getChildAt(0)
@@ -326,19 +435,32 @@ class WhoAmIActivity : BaseActivity() {
             cachedMaxActivityCounts = maxActivityCounts
         }
         val memberScores = people.map { person ->
-            val score = calculateScore(person, cachedPersonActivityStats!![person.id] ?: emptyMap(), cachedMaxActivityCounts!!)
+            val score = calculateScore(
+                person,
+                cachedPersonActivityStats!![person.id] ?: emptyMap(),
+                cachedMaxActivityCounts!!
+            )
             person to score
         }.filter { it.second != null }
             .sortedByDescending { it.second }
         val themeTextColor = ColorHelper.getTextColor(this)
+        val density = resources.displayMetrics.density
+
         memberScores.forEach { (person, score) ->
             val row = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                setPadding(0, 4, 0, 4)
+                setPadding(0, (6 * density).toInt(), 0, (6 * density).toInt())
+                isClickable = true
+                isFocusable = true
+                val outValue = android.util.TypedValue()
+                theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+                setBackgroundResource(outValue.resourceId)
+                setOnClickListener { showPersonProfilePopup(person) }
             }
             val nameTv = TextView(this).apply {
                 text = person.name
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                layoutParams =
+                    LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 setTextColor(themeTextColor)
                 setTypeface(null, Typeface.BOLD)
             }
@@ -350,12 +472,14 @@ class WhoAmIActivity : BaseActivity() {
             row.addView(scoreTv)
             rankingContainer.addView(row)
         }
+
         val withoutData = people.filter { p -> memberScores.none { it.first.id == p.id } }
         if (withoutData.isNotEmpty()) {
             val divider = View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply {
-                    setMargins(0, 16, 0, 8)
-                }
+                layoutParams =
+                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 1).apply {
+                        setMargins(0, 16, 0, 8)
+                    }
                 setBackgroundColor(Color.LTGRAY)
             }
             rankingContainer.addView(divider)
@@ -367,16 +491,203 @@ class WhoAmIActivity : BaseActivity() {
                 setTextColor(themeTextColor)
             }
             rankingContainer.addView(noDataTitle)
-            val noDataNamesTv = TextView(this).apply {
-                text = withoutData.joinToString(", ") { it.name }
-                alpha = 0.5f
+
+            val noDataTv = TextView(this).apply {
                 textSize = 12f
-                setPadding(0, 0, 0, 8)
                 setTextColor(themeTextColor)
+                alpha = 0.8f
+                setPadding(0, 0, 0, (8 * density).toInt())
+                movementMethod = android.text.method.LinkMovementMethod.getInstance()
+                highlightColor = Color.TRANSPARENT
             }
-            rankingContainer.addView(noDataNamesTv)
+            val builder = android.text.SpannableStringBuilder()
+            withoutData.forEachIndexed { index, person ->
+                val start = builder.length
+                builder.append(person.name)
+                val end = builder.length
+
+                val clickableSpan = object : android.text.style.ClickableSpan() {
+                    override fun onClick(widget: View) {
+                        showPersonProfilePopup(person)
+                    }
+
+                    override fun updateDrawState(ds: android.text.TextPaint) {
+                        super.updateDrawState(ds)
+                        ds.isUnderlineText = false
+                        ds.color = themeTextColor
+                    }
+                }
+                builder.setSpan(
+                    clickableSpan,
+                    start,
+                    end,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+
+                if (index < withoutData.size - 1) {
+                    builder.append(", ")
+                }
+            }
+            noDataTv.text = builder
+            rankingContainer.addView(noDataTv)
         }
     }
+
+    private fun showPersonProfilePopup(person: Person) {
+        val themeTextColor = ColorHelper.getTextColor(this)
+        val density = resources.displayMetrics.density
+
+        val markwon = Markwon.builder(this)
+            .usePlugin(TablePlugin.create(this))
+            .usePlugin(CoilImagesPlugin.create(this))
+            .usePlugin(LinkifyPlugin.create())
+            .usePlugin(StrikethroughPlugin.create())
+            .build()
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((20 * density).toInt(), (16 * density).toInt(), (20 * density).toInt(), (16 * density).toInt())
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+        }
+
+        val cardSize = (90 * density).toInt()
+        val imageCard = MaterialCardView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(cardSize, cardSize).apply {
+                bottomMargin = (12 * density).toInt()
+            }
+            radius = (cardSize / 2).toFloat()
+            strokeWidth = (2 * density).toInt()
+            strokeColor = (themeTextColor and 0x33FFFFFF) or 0x33000000.toInt()
+            setCardBackgroundColor(ColorHelper.getBgColor(this@WhoAmIActivity))
+            cardElevation = 0f
+        }
+
+        val imageView = ImageView(this).apply {
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            scaleType = ImageView.ScaleType.CENTER_CROP
+        }
+
+        val avatarUri = person.profilePictureUri
+        if (!avatarUri.isNullOrBlank()) {
+            imageView.load(avatarUri) {
+                crossfade(true)
+                error(android.R.drawable.ic_menu_gallery)
+            }
+        } else {
+            imageView.setImageResource(android.R.drawable.ic_menu_gallery)
+        }
+        imageCard.addView(imageView)
+        container.addView(imageCard)
+
+        val nameTv = TextView(this).apply {
+            text = person.name
+            textSize = 18f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(themeTextColor)
+            gravity = android.view.Gravity.CENTER
+            setPadding(0, 0, 0, (12 * density).toInt())
+        }
+        container.addView(nameTv)
+
+        fun addFieldView(labelTitle: String, textContent: String) {
+            val labelTv = TextView(this).apply {
+                text = labelTitle
+                textSize = 12f
+                setTextColor(themeTextColor)
+                alpha = 0.6f
+                setPadding(0, (6 * density).toInt(), 0, (2 * density).toInt())
+            }
+            container.addView(labelTv)
+
+            val valTv = TextView(this).apply {
+                textSize = 14f
+                setTextColor(themeTextColor)
+                movementMethod = android.text.method.LinkMovementMethod.getInstance()
+                setPadding(0, 0, 0, (8 * density).toInt())
+            }
+            val processedText = textContent.replace("\n", "  \n")
+            markwon.setMarkdown(valTv, processedText)
+            container.addView(valTv)
+        }
+
+        if (person.profileInfo.isNotBlank()) {
+            addFieldView("Info", person.profileInfo)
+        }
+
+        val sharedPrefSettings = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        val fieldsJson = sharedPrefSettings.getString("custom_fields", "[]") ?: "[]"
+        val customFieldsSettings: List<CustomField> = try {
+            gson.fromJson(fieldsJson, object : TypeToken<List<CustomField>>() {}.type) ?: emptyList()
+        } catch (_: Exception) {
+            try {
+                val names: List<String> = gson.fromJson(fieldsJson, object : TypeToken<List<String>>() {}.type) ?: emptyList()
+                names.map { CustomField(name = it, template = "") }
+            } catch (_: Exception) { emptyList() }
+        }
+
+        var needsSettingsSave = false
+        customFieldsSettings.forEach {
+            if (it.id == null) {
+                it.getUniqueId()
+                needsSettingsSave = true
+            }
+        }
+        if (needsSettingsSave) {
+            sharedPrefSettings.edit().putString("custom_fields", gson.toJson(customFieldsSettings)).apply()
+        }
+
+        val shownKeys = mutableSetOf<String>()
+
+        customFieldsSettings.forEach { field ->
+            val fieldId = field.id ?: ""
+            val uniqueId = field.getUniqueId()
+            val fieldName = field.name
+
+            if (fieldId.isNotEmpty()) shownKeys.add(fieldId)
+            if (uniqueId.isNotEmpty()) shownKeys.add(uniqueId)
+            if (fieldName.isNotEmpty()) shownKeys.add(fieldName)
+
+            val isExplicitlyHidden = (fieldId.isNotEmpty() && person.safeHiddenFields.contains(fieldId)) ||
+                    (uniqueId.isNotEmpty() && person.safeHiddenFields.contains(uniqueId)) ||
+                    (fieldName.isNotEmpty() && person.safeHiddenFields.contains(fieldName))
+            if (isExplicitlyHidden) return@forEach
+
+            val keyInMap = person.safeCustomFields.keys.find { k ->
+                k == fieldId || k == uniqueId || k == fieldName
+            }
+
+            if (keyInMap != null) shownKeys.add(keyInMap)
+
+            val value = if (keyInMap != null) person.safeCustomFields[keyInMap] else null
+
+            if (!value.isNullOrBlank()) {
+                val labelName = if (fieldName.isEmpty()) getString(R.string.unnamed_field) else fieldName
+                addFieldView(labelName, value)
+            }
+        }
+
+        val uuidPattern = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
+        person.safeCustomFields.forEach { (key, value) ->
+            if (!shownKeys.contains(key) && !person.safeHiddenFields.contains(key) && value.isNotBlank()) {
+                if (!uuidPattern.matches(key)) {
+                    addFieldView(key, value)
+                }
+            }
+        }
+
+        val scrollView = ScrollView(this).apply {
+            addView(container)
+        }
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(scrollView)
+            .setPositiveButton(R.string.done, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleSupportAlertDialog(dialog, this)
+    }
+
     private fun calculateScore(person: Person, personMoodStats: Map<String, Pair<Float, Int>>, maxActivityCounts: Map<String, Int>): Float? {
         val personManualPrefs = if (dataSourceMode == "IDENTITY" || dataSourceMode == "BOTH") {
             person.safePreferences

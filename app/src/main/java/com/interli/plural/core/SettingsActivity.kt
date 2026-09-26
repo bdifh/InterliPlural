@@ -72,29 +72,9 @@ class SettingsActivity : BaseActivity() {
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             uri?.let { importFromDaylio(it) }
         }
-    private val spJsonLauncher =
+    private val thirdPartyFileLauncher =
         registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { importFromSpJson(it) }
-        }
-    private val pkJsonLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { importFromPkJson(it) }
-        }
-    private val spAvatarZipLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { importSpAvatars(it) }
-        }
-    private val psJsonLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { importFromPsJson(it) }
-        }
-    private val hmJsonLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { importFromHivemindJson(it) }
-        }
-    private val pluralStarLauncher =
-        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            uri?.let { importFromPluralStar(it) }
+            uri?.let { autoDetectAndImport(it) }
         }
     private var initialBg = ""
     private var initialBtn = ""
@@ -1040,43 +1020,142 @@ private var pendingPdfSelections: BooleanArray? = null
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val etPkToken = view.findViewById<EditText>(R.id.etPkToken)
         etPkToken.setText(sharedPref.getString("pk_token", ""))
-        view.findViewById<Button>(R.id.btnImportSpJson).setOnClickListener {
-            spJsonLauncher.launch("*/*")
-            dialog.dismiss()
-        }
-        view.findViewById<Button>(R.id.btnImportSpAvatars)?.setOnClickListener {
-            spAvatarZipLauncher.launch("*/*")
-            dialog.dismiss()
-        }
-        view.findViewById<Button>(R.id.btnImportHm).setOnClickListener {
-            hmJsonLauncher.launch("*/*")
-            dialog.dismiss()
-        }
+
+        // 1. PluralKit API Token Sync
         view.findViewById<Button>(R.id.btnImportPk).setOnClickListener {
             val token = etPkToken.text.toString()
             sharedPref.edit().putString("pk_token", token).apply()
             importFromPluralKit(token)
             dialog.dismiss()
         }
-        view.findViewById<Button>(R.id.btnImportPkJson).setOnClickListener {
-            pkJsonLauncher.launch("*/*")
+
+        // 2. Universal plural ZIP / JSON: SP, PluralSpace, Plural Star, Hivemind, PK JSON)
+        view.findViewById<Button>(R.id.btnImport3rdPartyFile).setOnClickListener {
+            thirdPartyFileLauncher.launch("*/*")
             dialog.dismiss()
         }
+
+        // 3. Daylio CSV import
         view.findViewById<Button>(R.id.btnImportDaylio).setOnClickListener {
             daylioLauncher.launch("*/*")
             dialog.dismiss()
         }
-        view.findViewById<Button>(R.id.btnImportPs).setOnClickListener {
-            psJsonLauncher.launch("*/*")
-            dialog.dismiss()
-        }
-        view.findViewById<Button>(R.id.btnImportPluralStar)?.setOnClickListener {
-            pluralStarLauncher.launch("*/*")
-            dialog.dismiss()
-        }
+
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
         etPkToken.setTextColor(ColorHelper.getTextColor(this))
+    }
+
+    private fun autoDetectAndImport(uri: Uri) {
+        Thread {
+            try {
+                var isZip = false
+                var hasDataJsonInZip = false
+                try {
+                    contentResolver.openInputStream(uri)?.use { input ->
+                        java.util.zip.ZipInputStream(input).use { zis ->
+                            var entry = zis.nextEntry
+                            while (entry != null) {
+                                isZip = true
+                                val fileName = entry.name.substringAfterLast('/').substringAfterLast('\\')
+                                if (fileName.equals("data.json", ignoreCase = true) && !entry.isDirectory) {
+                                    hasDataJsonInZip = true
+                                    break
+                                }
+                                zis.closeEntry()
+                                entry = zis.nextEntry
+                            }
+                        }
+                    }
+                } catch (_: Exception) {
+                    isZip = false
+                }
+
+                if (isZip) {
+                    if (hasDataJsonInZip) {
+                        importFromPluralStar(uri)
+                    } else {
+                        importSpAvatars(uri)
+                    }
+                    return@Thread
+                }
+
+                val text = contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                if (text.isNullOrBlank()) {
+                    runOnUiThread { Toast.makeText(this, getString(R.string.import_empty_file), Toast.LENGTH_SHORT).show() }
+                    return@Thread
+                }
+
+                var parsedJson: Any? = null
+                try {
+                    parsedJson = Gson().fromJson(text, object : TypeToken<Any>() {}.type)
+                } catch (_: Exception) {
+                    parsedJson = null
+                }
+
+                if (parsedJson is Map<*, *>) {
+                    @Suppress("UNCHECKED_CAST")
+                    val root = parsedJson as Map<String, Any>
+
+                    if (root.containsKey("tid_alters") || root.containsKey("tid_tracker") || root.containsKey("tid_fronting")) {
+                        runOnUiThread { processPsImport(root) }
+                        return@Thread
+                    }
+
+                    if (root.containsKey("alters") || root.containsKey("subsystems") || root.containsKey("front_entries") || root.containsKey("journal_entries")) {
+                        runOnUiThread { processHivemindImport(root) }
+                        return@Thread
+                    }
+
+                    if (root.containsKey("switches")) {
+                        importFromPkJson(uri)
+                        return@Thread
+                    }
+
+                    val membersList = root["members"] as? List<Map<String, Any>>
+                    if (membersList != null && membersList.isNotEmpty()) {
+                        val firstMember = membersList[0]
+                        if (firstMember.containsKey("avatar_url") || firstMember.containsKey("proxy_tags") || firstMember.containsKey("keep_proxy")) {
+                            importFromPkJson(uri)
+                        } else {
+                            importFromSpJson(uri)
+                        }
+                        return@Thread
+                    }
+
+                    if (root.containsKey("frontHistory")) {
+                        importFromSpJson(uri)
+                        return@Thread
+                    }
+
+                    importFromSpJson(uri)
+                    return@Thread
+                } else if (parsedJson is List<*>) {
+                    @Suppress("UNCHECKED_CAST")
+                    val list = parsedJson as List<Map<String, Any>>
+                    if (list.isNotEmpty()) {
+                        val firstMember = list[0]
+                        if (firstMember.containsKey("avatar_url") || firstMember.containsKey("proxy_tags")) {
+                            processPkMembers(list)
+                        } else {
+                            processSpMembers(list)
+                        }
+                    } else {
+                        runOnUiThread { Toast.makeText(this, getString(R.string.import_empty_file), Toast.LENGTH_SHORT).show() }
+                    }
+                    return@Thread
+                }
+
+                if (text.contains(",") || text.contains(";")) {
+                    importFromDaylio(uri)
+                    return@Thread
+                }
+
+                runOnUiThread { Toast.makeText(this, getString(R.string.import_unknown_format), Toast.LENGTH_SHORT).show() }
+            } catch (e: Exception) {
+                runOnUiThread { Toast.makeText(this, getString(R.string.import_error, e.message ?: ""), Toast.LENGTH_SHORT).show() }
+            }
+        }.start()
     }
 
     private fun findMemberMatching(people: List<Person>, id: String?, name: String?): Person? {

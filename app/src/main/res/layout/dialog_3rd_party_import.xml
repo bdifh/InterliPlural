@@ -7,34 +7,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="40dp">
+        android:padding="24dp">
 
-        <!-- Simply Plural Section -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/action_import_sp"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnImportSpAvatars"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Simply Plural Avatars (ZIP)"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnImportSpJson"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Simply Plural JSON"
-            android:layout_marginBottom="24dp" />
-
-        <!-- PluralKit Section -->
+        <!-- PluralKit API Token Section -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -57,64 +32,32 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/action_import"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Third Party Plural App File Import Section -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/action_3rd_party_file_import"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/desc_3rd_party_file_import"
+            android:textSize="12sp"
+            android:textColor="#666666"
             android:layout_marginBottom="8dp" />
 
         <Button
-            android:id="@+id/btnImportPkJson"
+            android:id="@+id/btnImport3rdPartyFile"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="PluralKit JSON"
-            android:layout_marginBottom="8dp" />
-
-        <!-- PluralSpace Section -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="PluralSpace"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnImportPs"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/action_import_ps" />
-
-        <!-- Plural Star Section -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Plural Star"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnImportPluralStar"
-            style="@style/Widget.Material3.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Import Plural Star (ZIP)" />
-
-        <!-- Hivemind Section -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Hivemind (Multiplicity)"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="8dp" />
-
-        <Button
-            android:id="@+id/btnImportHm"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Hivemind (Multiplicity)" />
+            android:text="@string/action_import_file"
+            android:layout_marginBottom="24dp" />
 
         <!-- Daylio Section -->
         <TextView
@@ -123,7 +66,6 @@
             android:text="@string/action_import_daylio"
             android:textStyle="bold"
             android:textSize="16sp"
-            android:layout_marginTop="24dp"
             android:layout_marginBottom="8dp" />
 
         <Button
