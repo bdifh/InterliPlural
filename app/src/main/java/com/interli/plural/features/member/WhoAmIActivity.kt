@@ -653,16 +653,23 @@ class WhoAmIActivity : BaseActivity() {
             if (isExplicitlyHidden) return@forEach
 
             val keyInMap = person.safeCustomFields.keys.find { k ->
-                k == fieldId || k == uniqueId || k == fieldName
+                (fieldId.isNotEmpty() && k == fieldId) ||
+                        (uniqueId.isNotEmpty() && k == uniqueId) ||
+                        (fieldName.isNotEmpty() && k == fieldName)
             }
 
             if (keyInMap != null) shownKeys.add(keyInMap)
 
-            val value = if (keyInMap != null) person.safeCustomFields[keyInMap] else null
+            val savedValue = if (keyInMap != null) person.safeCustomFields[keyInMap] else null
+            val displayValue = if (savedValue == null || savedValue.trim() == field.template.trim()) {
+                field.template
+            } else {
+                savedValue
+            }
 
-            if (!value.isNullOrBlank()) {
+            if (displayValue.isNotBlank()) {
                 val labelName = if (fieldName.isEmpty()) getString(R.string.unnamed_field) else fieldName
-                addFieldView(labelName, value)
+                addFieldView(labelName, displayValue)
             }
         }
 
