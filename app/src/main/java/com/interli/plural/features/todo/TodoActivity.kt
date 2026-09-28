@@ -45,7 +45,7 @@ class TodoActivity : BaseActivity() {
         todoAdapter = TodoMainAdapter()
         rvTodoMain.adapter = todoAdapter
         setupItemTouchHelper()
-        findViewById<Button>(R.id.btnAddTodoList).setOnClickListener { 
+        findViewById<Button>(R.id.btnAddTodoList).setOnClickListener {
             val intent = android.content.Intent(this, EditTodoListActivity::class.java)
             startActivity(intent)
         }
@@ -59,16 +59,23 @@ class TodoActivity : BaseActivity() {
             setTextColor(btnTextColor)
             if (this is com.google.android.material.button.MaterialButton) {
                 strokeWidth = 0
-                rippleColor = android.content.res.ColorStateList.valueOf(btnTextColor and 0x33FFFFFF)
+                rippleColor =
+                    android.content.res.ColorStateList.valueOf(btnTextColor and 0x33FFFFFF)
             }
         }
         setupNavigationDrawer()
         loadData()
         renderLists()
     }
+
     private fun setupItemTouchHelper() {
-        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
-            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+        val itemTouchHelper = ItemTouchHelper(object :
+            ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
                 val fromPos = viewHolder.bindingAdapterPosition
                 val toPos = target.bindingAdapterPosition
                 if (fromPos != RecyclerView.NO_POSITION && toPos != RecyclerView.NO_POSITION) {
@@ -77,8 +84,12 @@ class TodoActivity : BaseActivity() {
                 }
                 return false
             }
+
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
-            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+            override fun clearView(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ) {
                 super.clearView(recyclerView, viewHolder)
                 saveManualOrder()
                 renderLists()
@@ -91,6 +102,7 @@ class TodoActivity : BaseActivity() {
             }
         }
     }
+
     private fun saveManualOrder() {
         val currentItems = todoAdapter.getCurrentItems()
         var order = 0
@@ -99,6 +111,7 @@ class TodoActivity : BaseActivity() {
                 is TodoItem.BundleHeader -> {
                     item.bundle.manualOrder = order++
                 }
+
                 is TodoItem.ListCard -> {
                     item.list.manualOrder = order++
                 }
@@ -106,6 +119,7 @@ class TodoActivity : BaseActivity() {
         }
         saveData()
     }
+
     private fun showAddBundleDialog() {
         val input = EditText(this).apply { hint = getString(R.string.hint_note_title) }
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
@@ -114,7 +128,12 @@ class TodoActivity : BaseActivity() {
             .setPositiveButton(R.string.save) { _, _ ->
                 val name = input.text.toString().trim()
                 if (name.isNotEmpty()) {
-                    todoBundles.add(TodoBundle(name = name, manualOrder = todoBundles.size + todoLists.size))
+                    todoBundles.add(
+                        TodoBundle(
+                            name = name,
+                            manualOrder = todoBundles.size + todoLists.size
+                        )
+                    )
                     saveData()
                     renderLists()
                 }
@@ -125,8 +144,9 @@ class TodoActivity : BaseActivity() {
         ColorHelper.styleSupportAlertDialog(dialog, this)
         input.setTextColor(ColorHelper.getTextColor(this))
     }
+
     private fun showEditBundleDialog(bundle: TodoBundle) {
-        val input = EditText(this).apply { 
+        val input = EditText(this).apply {
             hint = getString(R.string.hint_note_title)
             setText(bundle.name)
         }
@@ -160,23 +180,27 @@ class TodoActivity : BaseActivity() {
             }
         }
     }
+
     override fun onResume() {
         super.onResume()
         loadData()
         autoResetPastRecurringTasks()
         renderLists()
     }
+
     private fun loadData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val todoJson = sharedPref.getString("todo_lists", "[]") ?: "[]"
         todoLists = try {
-            gson.fromJson(todoJson, object : TypeToken<MutableList<TodoList>>() {}.type) ?: mutableListOf()
+            gson.fromJson(todoJson, object : TypeToken<MutableList<TodoList>>() {}.type)
+                ?: mutableListOf()
         } catch (_: Exception) {
             mutableListOf()
         }
         val bundlesJson = sharedPref.getString("todo_bundles", "[]") ?: "[]"
         todoBundles = try {
-            gson.fromJson(bundlesJson, object : TypeToken<MutableList<TodoBundle>>() {}.type) ?: mutableListOf()
+            gson.fromJson(bundlesJson, object : TypeToken<MutableList<TodoBundle>>() {}.type)
+                ?: mutableListOf()
         } catch (_: Exception) {
             mutableListOf()
         }
@@ -198,6 +222,7 @@ class TodoActivity : BaseActivity() {
         super.onPause()
         saveData()
     }
+
     private fun saveData() {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         sharedPref.edit()
@@ -206,14 +231,16 @@ class TodoActivity : BaseActivity() {
             .commit()
         com.interli.plural.widgets.TodoWidgetProvider.sendRefreshBroadcast(this)
     }
+
     private fun renderLists() {
         val items = mutableListOf<TodoItem>()
         val bundlesMap = todoBundles.filter { it.id != null }.associateBy { it.id }
-        val topLevelLists = todoLists.filter { it.bundleId == null || !bundlesMap.containsKey(it.bundleId) }
+        val topLevelLists =
+            todoLists.filter { it.bundleId == null || !bundlesMap.containsKey(it.bundleId) }
         val allContainers = mutableListOf<Any>()
         allContainers.addAll(todoBundles)
         allContainers.addAll(topLevelLists)
-        val sortedContainers = allContainers.sortedBy { 
+        val sortedContainers = allContainers.sortedBy {
             when (it) {
                 is TodoBundle -> it.manualOrder
                 is TodoList -> it.manualOrder
@@ -224,7 +251,9 @@ class TodoActivity : BaseActivity() {
             if (container is TodoBundle) {
                 items.add(TodoItem.BundleHeader(container))
                 if (container.isExpanded) {
-                    val childLists = todoLists.filter { it.bundleId != null && it.bundleId == container.id }.sortedBy { it.manualOrder }
+                    val childLists =
+                        todoLists.filter { it.bundleId != null && it.bundleId == container.id }
+                            .sortedBy { it.manualOrder }
                     childLists.forEach { items.add(TodoItem.ListCard(it)) }
                 }
             } else if (container is TodoList) {
@@ -233,6 +262,7 @@ class TodoActivity : BaseActivity() {
         }
         todoAdapter.setItems(items)
     }
+
     private inner class TodoMainAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
         private var items: MutableList<TodoItem> = mutableListOf()
         var onDragStart: ((RecyclerView.ViewHolder) -> Unit)? = null
@@ -240,15 +270,18 @@ class TodoActivity : BaseActivity() {
             items = newItems.toMutableList()
             notifyDataSetChanged()
         }
+
         fun getCurrentItems() = items
         fun moveItem(from: Int, to: Int) {
             Collections.swap(items, from, to)
             notifyItemMoved(from, to)
         }
+
         override fun getItemViewType(position: Int): Int = when (items[position]) {
             is TodoItem.BundleHeader -> 1
             is TodoItem.ListCard -> 2
         }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             val card = com.google.android.material.card.MaterialCardView(parent.context)
             card.layoutParams = RecyclerView.LayoutParams(
@@ -260,6 +293,7 @@ class TodoActivity : BaseActivity() {
                 else -> ListViewHolder(com.google.android.material.card.MaterialCardView(this@TodoActivity))
             }
         }
+
         override fun getItemCount() = items.size
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             val textColor = ColorHelper.getTextColor(this@TodoActivity)
@@ -268,15 +302,22 @@ class TodoActivity : BaseActivity() {
                 is TodoItem.BundleHeader -> {
                     (holder as BundleViewHolder).bind(item.bundle)
                 }
+
                 is TodoItem.ListCard -> {
                     (holder as ListViewHolder).bind(item.list, textColor, bgColor)
                 }
             }
         }
-        inner class BundleViewHolder(val card: com.google.android.material.card.MaterialCardView) : RecyclerView.ViewHolder(card) {
+
+        inner class BundleViewHolder(val card: com.google.android.material.card.MaterialCardView) :
+            RecyclerView.ViewHolder(card) {
             @android.annotation.SuppressLint("ClickableViewAccessibility")
             fun bind(bundle: TodoBundle) {
-                val p = card.layoutParams as? ViewGroup.MarginLayoutParams ?: RecyclerView.LayoutParams(-1, -2)
+                val p =
+                    card.layoutParams as? ViewGroup.MarginLayoutParams ?: RecyclerView.LayoutParams(
+                        -1,
+                        -2
+                    )
                 p.width = ViewGroup.LayoutParams.MATCH_PARENT
                 p.height = ViewGroup.LayoutParams.WRAP_CONTENT
                 val m = 8.dpToPx()
@@ -284,7 +325,8 @@ class TodoActivity : BaseActivity() {
                 p.marginStart = m
                 p.marginEnd = m
                 card.layoutParams = p
-                card.layoutParams = (card.layoutParams as? ViewGroup.MarginLayoutParams ?: LinearLayout.LayoutParams(-1, -2)).apply {
+                card.layoutParams = (card.layoutParams as? ViewGroup.MarginLayoutParams
+                    ?: LinearLayout.LayoutParams(-1, -2)).apply {
                     setMargins(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 0)
                 }
                 card.radius = 8f * resources.displayMetrics.density
@@ -297,7 +339,8 @@ class TodoActivity : BaseActivity() {
                     setPadding(12.dpToPx(), 6.dpToPx(), 12.dpToPx(), 6.dpToPx())
                 }
                 val ivDrag = ImageView(this@TodoActivity).apply {
-                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx()).apply { marginEnd = 8.dpToPx() }
+                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx())
+                        .apply { marginEnd = 8.dpToPx() }
                     setImageResource(android.R.drawable.ic_menu_sort_by_size)
                     setColorFilter(ColorHelper.getBtnTextColor(this@TodoActivity))
                     setOnTouchListener { _, event ->
@@ -324,7 +367,8 @@ class TodoActivity : BaseActivity() {
                 }
                 content.addView(btnExpand)
                 val btnEdit = ImageView(this@TodoActivity).apply {
-                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx()).apply { marginStart = 8.dpToPx() }
+                    layoutParams = LinearLayout.LayoutParams(24.dpToPx(), 24.dpToPx())
+                        .apply { marginStart = 8.dpToPx() }
                     setImageResource(android.R.drawable.ic_menu_edit)
                     setColorFilter(ColorHelper.getBtnTextColor(this@TodoActivity))
                     alpha = 0.6f
@@ -340,11 +384,17 @@ class TodoActivity : BaseActivity() {
                 card.setOnLongClickListener { showEditBundleDialog(bundle); true }
             }
         }
-        inner class ListViewHolder(val card: com.google.android.material.card.MaterialCardView) : RecyclerView.ViewHolder(card) {
+
+        inner class ListViewHolder(val card: com.google.android.material.card.MaterialCardView) :
+            RecyclerView.ViewHolder(card) {
             @android.annotation.SuppressLint("ClickableViewAccessibility")
             fun bind(list: TodoList, textColor: Int, bgColor: Int) {
                 val isNested = list.bundleId != null
-                val p = card.layoutParams as? ViewGroup.MarginLayoutParams ?: RecyclerView.LayoutParams(-1, -2)
+                val p =
+                    card.layoutParams as? ViewGroup.MarginLayoutParams ?: RecyclerView.LayoutParams(
+                        -1,
+                        -2
+                    )
                 p.width = ViewGroup.LayoutParams.MATCH_PARENT
                 p.height = ViewGroup.LayoutParams.WRAP_CONTENT
                 val leftMargin = if (isNested) 32.dpToPx() else 0
@@ -353,9 +403,12 @@ class TodoActivity : BaseActivity() {
                 p.marginEnd = 0
                 card.layoutParams = p
                 val sp = card.context.getSharedPreferences("settings_prefs", MODE_PRIVATE)
-                val frontEnabled = sp.getBoolean("module_fronting_enabled", true) && sp.getBoolean("sub_fronting_enabled", true)
-                card.layoutParams = LinearLayout.LayoutParams(-1, -2).apply { 
-                    setMargins(if (isNested) 32.dpToPx() else 0, 0, 0, 16.dpToPx()) 
+                val frontEnabled = sp.getBoolean(
+                    "module_fronting_enabled",
+                    true
+                ) && sp.getBoolean("sub_fronting_enabled", true)
+                card.layoutParams = LinearLayout.LayoutParams(-1, -2).apply {
+                    setMargins(if (isNested) 32.dpToPx() else 0, 0, 0, 16.dpToPx())
                 }
                 card.radius = 12f * resources.displayMetrics.density
                 card.setCardBackgroundColor(bgColor)
@@ -370,7 +423,10 @@ class TodoActivity : BaseActivity() {
                 val titleRow = LinearLayout(this@TodoActivity).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER_VERTICAL
-                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                    layoutParams = LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
                 }
                 val ivDrag = ImageView(this@TodoActivity).apply {
                     setImageResource(android.R.drawable.ic_menu_sort_by_size)
@@ -406,20 +462,27 @@ class TodoActivity : BaseActivity() {
                     setImageResource(android.R.drawable.ic_menu_edit)
                     background = null
                     alpha = 0.4f
-                    setOnClickListener { 
-                        val intent = android.content.Intent(this@TodoActivity, EditTodoListActivity::class.java)
+                    setOnClickListener {
+                        val intent = android.content.Intent(
+                            this@TodoActivity,
+                            EditTodoListActivity::class.java
+                        )
                         intent.putExtra("list_id", list.id)
                         startActivity(intent)
                     }
                 }
                 titleRow.addView(btnEdit)
                 content.addView(titleRow)
-                val listMediaContainer = LinearLayout(this@TodoActivity).apply { orientation = LinearLayout.VERTICAL }
+                val listMediaContainer =
+                    LinearLayout(this@TodoActivity).apply { orientation = LinearLayout.VERTICAL }
                 MediaEmbedHelper.addEmbedsToContainer(listMediaContainer, list.title)
                 content.addView(listMediaContainer)
                 list.deadline?.let { dl ->
                     content.addView(TextView(this@TodoActivity).apply {
-                        text = getString(R.string.deadline, SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(dl)))
+                        text = getString(
+                            R.string.deadline,
+                            SimpleDateFormat("dd/MM HH:mm", Locale.getDefault()).format(Date(dl))
+                        )
                         textSize = 12f
                         alpha = 0.8f
                         setTextColor(textColor)
@@ -427,10 +490,11 @@ class TodoActivity : BaseActivity() {
                     })
                 }
                 if (frontEnabled && list.linkedMemberIds.isNotEmpty()) {
-                    val badgesRow = com.google.android.material.chip.ChipGroup(this@TodoActivity).apply { 
-                        setPadding(0, 0, 0, 8.dpToPx()) 
-                        chipSpacingVertical = 0
-                    }
+                    val badgesRow =
+                        com.google.android.material.chip.ChipGroup(this@TodoActivity).apply {
+                            setPadding(0, 0, 0, 8.dpToPx())
+                            chipSpacingVertical = 0
+                        }
                     addMemberBadges(badgesRow, list.linkedMemberIds)
                     content.addView(badgesRow)
                 }
@@ -451,6 +515,10 @@ class TodoActivity : BaseActivity() {
                         orientation = LinearLayout.HORIZONTAL
                         gravity = Gravity.CENTER_VERTICAL
                         setPadding(indent.dpToPx(), 4.dpToPx(), 0, 4.dpToPx())
+                        setOnLongClickListener {
+                            showTaskOptionsDialog(list, task)
+                            true
+                        }
                     }
                     val statusBtn = TextView(this@TodoActivity).apply {
                         text = getStatusChar(task.status)
@@ -473,54 +541,87 @@ class TodoActivity : BaseActivity() {
                             }
                             renderLists()
                         }
+                        setOnLongClickListener {
+                            showTaskOptionsDialog(list, task)
+                            true
+                        }
                     }
                     taskRow.addView(statusBtn)
                     val taskTextContainer = LinearLayout(this@TodoActivity).apply {
                         orientation = LinearLayout.VERTICAL
                         layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
-                        setOnClickListener { 
-                            val intent = android.content.Intent(this@TodoActivity, EditTodoListActivity::class.java)
+                        setOnClickListener {
+                            val intent = android.content.Intent(
+                                this@TodoActivity,
+                                EditTodoListActivity::class.java
+                            )
                             intent.putExtra("list_id", list.id)
                             startActivity(intent)
                         }
+                        setOnLongClickListener {
+                            showTaskOptionsDialog(list, task)
+                            true
+                        }
                     }
-                    taskTextContainer.addView(TextView(this@TodoActivity).apply { text = task.title; textSize = 15f; setTextColor(textColor) })
-                    val mediaContainer = LinearLayout(this@TodoActivity).apply { orientation = LinearLayout.VERTICAL }
+                    taskTextContainer.addView(TextView(this@TodoActivity).apply {
+                        text = task.title; textSize = 15f; setTextColor(textColor)
+                    })
+                    val mediaContainer = LinearLayout(this@TodoActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                    }
                     MediaEmbedHelper.addEmbedsToContainer(mediaContainer, task.title)
                     taskTextContainer.addView(mediaContainer)
                     task.deadline?.let { dl ->
                         taskTextContainer.addView(TextView(this@TodoActivity).apply {
                             val cal = Calendar.getInstance().apply { timeInMillis = dl }
-                            val isMidnight = cal.get(Calendar.HOUR_OF_DAY) == 0 && cal.get(Calendar.MINUTE) == 0
-                            text = getString(R.string.deadline, SimpleDateFormat(if (isMidnight) "dd/MM" else "dd/MM HH:mm", Locale.getDefault()).format(Date(dl)))
+                            val isMidnight =
+                                cal.get(Calendar.HOUR_OF_DAY) == 0 && cal.get(Calendar.MINUTE) == 0
+                            text = getString(
+                                R.string.deadline,
+                                SimpleDateFormat(
+                                    if (isMidnight) "dd/MM" else "dd/MM HH:mm",
+                                    Locale.getDefault()
+                                ).format(Date(dl))
+                            )
                             textSize = 11f; alpha = 0.6f; setTextColor(textColor)
                         })
                     }
                     taskRow.addView(taskTextContainer)
                     if (task.recurrence != null) {
                         taskRow.addView(TextView(this@TodoActivity).apply {
-                            text = "↻"; textSize = 20f; setPadding(12.dpToPx(), 0, 12.dpToPx(), 0); setTextColor(textColor); alpha = 0.7f
+                            text = "↻"; textSize = 20f; setPadding(
+                            12.dpToPx(),
+                            0,
+                            12.dpToPx(),
+                            0
+                        ); setTextColor(textColor); alpha = 0.7f
                             setOnClickListener { handleRecurrence(task); saveData(); renderLists() }
                         })
                     }
                     if (frontEnabled && task.linkedMemberIds.isNotEmpty()) {
-                        val taskBadges = com.google.android.material.chip.ChipGroup(this@TodoActivity).apply {
-                            chipSpacingVertical = 0
-                        }
+                        val taskBadges =
+                            com.google.android.material.chip.ChipGroup(this@TodoActivity).apply {
+                                chipSpacingVertical = 0
+                            }
                         addMemberBadges(taskBadges, task.linkedMemberIds)
-                        taskRow.addView(taskBadges, LinearLayout.LayoutParams(0, -2, 0.4f).apply { marginStart = 8.dpToPx() })
+                        taskRow.addView(
+                            taskBadges,
+                            LinearLayout.LayoutParams(0, -2, 0.4f)
+                                .apply { marginStart = 8.dpToPx() })
                     }
                     content.addView(taskRow)
                 }
                 card.addView(content, android.widget.FrameLayout.LayoutParams(-1, -2))
                 card.setOnClickListener {
-                    val intent = android.content.Intent(this@TodoActivity, EditTodoListActivity::class.java)
+                    val intent =
+                        android.content.Intent(this@TodoActivity, EditTodoListActivity::class.java)
                     intent.putExtra("list_id", list.id)
                     startActivity(intent)
                 }
             }
         }
     }
+
     private fun handleRecurrence(task: TodoTask, showToast: Boolean = true) {
         val baseTime = task.deadline ?: System.currentTimeMillis()
         val cal = Calendar.getInstance()
@@ -537,11 +638,13 @@ class TodoActivity : BaseActivity() {
                     var found = false
                     for (i in 1..7) {
                         cal.add(Calendar.DAY_OF_YEAR, 1)
-                        val d = when(cal.get(Calendar.DAY_OF_WEEK)) {
+                        val d = when (cal.get(Calendar.DAY_OF_WEEK)) {
                             Calendar.MONDAY -> 1; Calendar.TUESDAY -> 2; Calendar.WEDNESDAY -> 3
                             Calendar.THURSDAY -> 4; Calendar.FRIDAY -> 5; Calendar.SATURDAY -> 6; Calendar.SUNDAY -> 7; else -> 1
                         }
-                        if (days.contains(d)) { found = true; break }
+                        if (days.contains(d)) {
+                            found = true; break
+                        }
                     }
                     if (!found) cal.add(Calendar.WEEK_OF_YEAR, 1)
                 } else cal.add(Calendar.DAY_OF_YEAR, 1)
@@ -554,38 +657,57 @@ class TodoActivity : BaseActivity() {
         }
         if (task.recurrence == "MANUAL") {
             task.status = "EMPTY"
-            if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
+            if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT)
+                .show()
             return
         }
         task.deadline = cal.timeInMillis
         task.status = "EMPTY"
-        if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
+        if (showToast) Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT)
+            .show()
     }
+
     private fun getStatusChar(status: String): String = when (status) {
         "CHECKED" -> "✓"; "FORWARD" -> "→"; "BACKWARD" -> "←"; "WAITING" -> "⏳"; "CANCELED" -> "✕"; "QUESTION" -> "?"; else -> "☐"
     }
+
     private fun getNextStatus(current: String): String {
-        val statuses = listOf("EMPTY", "CHECKED", "FORWARD", "BACKWARD", "WAITING", "CANCELED", "QUESTION")
+        val statuses =
+            listOf("EMPTY", "CHECKED", "FORWARD", "BACKWARD", "WAITING", "CANCELED", "QUESTION")
         return statuses[(statuses.indexOf(current) + 1) % statuses.size]
     }
+
     private fun addMemberBadges(container: ViewGroup, memberIds: List<String>) {
         memberIds.forEach { id ->
             val person = people.find { it.id == id } ?: return@forEach
             val badge = TextView(this).apply {
-                text = person.name; textSize = 9f; setPadding(8.dpToPx(), 2.dpToPx(), 8.dpToPx(), 2.dpToPx())
+                text = person.name; textSize = 9f; setPadding(
+                8.dpToPx(),
+                2.dpToPx(),
+                8.dpToPx(),
+                2.dpToPx()
+            )
                 setTextColor(Color.WHITE)
-                background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = 100f; setColor(person.profileColor) }
-                layoutParams = (if (container is LinearLayout) LinearLayout.LayoutParams(-2, -2) else ViewGroup.MarginLayoutParams(-2, -2)).apply { 
+                background = android.graphics.drawable.GradientDrawable()
+                    .apply { cornerRadius = 100f; setColor(person.profileColor) }
+                layoutParams = (if (container is LinearLayout) LinearLayout.LayoutParams(
+                    -2,
+                    -2
+                ) else ViewGroup.MarginLayoutParams(-2, -2)).apply {
                     setMargins(4.dpToPx(), 2.dpToPx(), 4.dpToPx(), 2.dpToPx())
                 }
             }
             container.addView(badge)
         }
     }
+
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
     private var TextView.textStyle: Int
         get() = typeface?.style ?: android.graphics.Typeface.NORMAL
-        set(value) { setTypeface(typeface, value) }
+        set(value) {
+            setTypeface(typeface, value)
+        }
+
     private fun autoResetPastRecurringTasks() {
         val now = Calendar.getInstance()
         var changed = false
@@ -594,8 +716,14 @@ class TodoActivity : BaseActivity() {
                 if (task.recurrence != null && task.recurrence != "MANUAL" && task.status == "CHECKED") {
                     if (task.deadline == null) {
                         val today = Calendar.getInstance().apply {
-                            set(Calendar.HOUR_OF_DAY, if (task.resetType == "NEXT_DAY") task.resetHour else 0)
-                            set(Calendar.MINUTE, if (task.resetType == "NEXT_DAY") task.resetMinute else 0)
+                            set(
+                                Calendar.HOUR_OF_DAY,
+                                if (task.resetType == "NEXT_DAY") task.resetHour else 0
+                            )
+                            set(
+                                Calendar.MINUTE,
+                                if (task.resetType == "NEXT_DAY") task.resetMinute else 0
+                            )
                             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
                         }
                         task.deadline = today.timeInMillis
@@ -611,6 +739,205 @@ class TodoActivity : BaseActivity() {
         if (changed) {
             saveData()
             renderLists()
+        }
+    }
+
+    private fun showTaskOptionsDialog(list: TodoList, task: TodoTask) {
+        val context = this
+        val textColor = ColorHelper.getTextColor(context)
+        val btnColor = ColorHelper.getBtnColor(context)
+        val btnTextColor = ColorHelper.getBtnTextColor(context)
+
+        val dialogView = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20.dpToPx(), 16.dpToPx(), 20.dpToPx(), 8.dpToPx())
+        }
+
+        val editTitle = EditText(context).apply {
+            setText(task.title)
+            hint = getString(R.string.hint_todo_list_title)
+            textSize = 16f
+            setTextColor(textColor)
+            setHintTextColor(textColor and 0x77FFFFFF)
+            setSelectAllOnFocus(true)
+        }
+        dialogView.addView(editTitle)
+
+        val statusLabel = TextView(context).apply {
+            text = getString(R.string.label_status_colon)
+            textSize = 13f
+            setTextColor(textColor)
+            alpha = 0.7f
+            setPadding(0, 16.dpToPx(), 0, 8.dpToPx())
+        }
+        dialogView.addView(statusLabel)
+
+        val statuses = listOf(
+            "EMPTY" to "☐",
+            "CHECKED" to "✓",
+            "FORWARD" to "→",
+            "BACKWARD" to "←",
+            "WAITING" to "⏳",
+            "CANCELED" to "✕",
+            "QUESTION" to "?"
+        )
+
+        var selectedStatus = task.status
+
+        val statusRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, 12.dpToPx())
+        }
+
+        val statusViews = mutableListOf<Pair<String, TextView>>()
+
+        statuses.forEach { (statusKey, symbol) ->
+            val btn = TextView(context).apply {
+                text = symbol
+                textSize = 22f
+                setPadding(8.dpToPx(), 6.dpToPx(), 8.dpToPx(), 6.dpToPx())
+                setTextColor(if (statusKey == selectedStatus) btnColor else textColor)
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = 8f * resources.displayMetrics.density
+                    setColor(if (statusKey == selectedStatus) (btnColor and 0x33FFFFFF) else 0x00000000)
+                }
+                setOnClickListener {
+                    selectedStatus = statusKey
+                    statusViews.forEach { (key, tv) ->
+                        tv.setTextColor(if (key == selectedStatus) btnColor else textColor)
+                        tv.background = android.graphics.drawable.GradientDrawable().apply {
+                            cornerRadius = 8f * resources.displayMetrics.density
+                            setColor(if (key == selectedStatus) (btnColor and 0x33FFFFFF) else 0x00000000)
+                        }
+                    }
+                }
+            }
+            statusViews.add(statusKey to btn)
+            statusRow.addView(btn)
+        }
+        dialogView.addView(statusRow)
+
+        var currentIndent = task.indentLevel
+
+        val indentLabel = TextView(context).apply {
+            textSize = 13f
+            setTextColor(textColor)
+            alpha = 0.7f
+            setPadding(0, 4.dpToPx(), 0, 8.dpToPx())
+        }
+        dialogView.addView(indentLabel)
+
+        val indentRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 12.dpToPx())
+        }
+
+        lateinit var btnIndentLess: Button
+        lateinit var btnIndentMore: Button
+
+        fun updateIndentUI() {
+            indentLabel.text = getString(R.string.label_indent_level, currentIndent)
+            btnIndentLess.isEnabled = currentIndent > 0
+            btnIndentLess.alpha = if (currentIndent > 0) 1f else 0.35f
+            btnIndentMore.isEnabled = currentIndent < 10
+            btnIndentMore.alpha = if (currentIndent < 10) 1f else 0.35f
+        }
+
+        btnIndentLess = Button(context).apply {
+            text = getString(R.string.action_indent_less)
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = 6.dpToPx() }
+            setBackgroundColor(btnColor)
+            setTextColor(btnTextColor)
+            if (this is com.google.android.material.button.MaterialButton) {
+                strokeWidth = 0
+                rippleColor =
+                    android.content.res.ColorStateList.valueOf(btnTextColor and 0x44FFFFFF)
+            }
+            setOnClickListener { view ->
+                if (currentIndent > 0) {
+                    currentIndent--
+                    updateIndentUI()
+                    view.animate().scaleX(0.92f).scaleY(0.92f).setDuration(70).withEndAction {
+                        view.animate().scaleX(1.0f).scaleY(1.0f).setDuration(70).start()
+                    }.start()
+                }
+            }
+        }
+
+        btnIndentMore = Button(context).apply {
+            text = getString(R.string.action_indent_more)
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = 6.dpToPx() }
+            setBackgroundColor(btnColor)
+            setTextColor(btnTextColor)
+            if (this is com.google.android.material.button.MaterialButton) {
+                strokeWidth = 0
+                rippleColor =
+                    android.content.res.ColorStateList.valueOf(btnTextColor and 0x44FFFFFF)
+            }
+            setOnClickListener { view ->
+                if (currentIndent < 10) {
+                    currentIndent++
+                    updateIndentUI()
+                    view.animate().scaleX(0.92f).scaleY(0.92f).setDuration(70).withEndAction {
+                        view.animate().scaleX(1.0f).scaleY(1.0f).setDuration(70).start()
+                    }.start()
+                }
+            }
+        }
+
+        updateIndentUI()
+
+        indentRow.addView(btnIndentLess)
+        indentRow.addView(btnIndentMore)
+        dialogView.addView(indentRow)
+
+        var deleteClicks = 8
+        val deleteTextBase = getString(R.string.action_delete_task)
+
+        val btnDelete = Button(context).apply {
+            text = "$deleteTextBase ($deleteClicks)"
+            textSize = 12f
+            setTextColor(Color.RED)
+            setBackgroundColor(0x22FF0000)
+            if (this is com.google.android.material.button.MaterialButton) {
+                strokeWidth = 0
+            }
+        }
+        dialogView.addView(btnDelete)
+
+        val builder = androidx.appcompat.app.AlertDialog.Builder(context)
+            .setTitle(R.string.dialog_edit_todo_task)
+            .setView(dialogView)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val newTitle = editTitle.text.toString().trim()
+                if (newTitle.isNotEmpty()) {
+                    task.title = newTitle
+                }
+                task.status = selectedStatus
+                task.indentLevel = currentIndent
+                saveData()
+                renderLists()
+            }
+            .setNeutralButton(android.R.string.cancel, null)
+
+        val dialog = builder.create()
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, context)
+
+        btnDelete.setOnClickListener {
+            deleteClicks--
+            if (deleteClicks <= 0) {
+                list.tasks.remove(task)
+                saveData()
+                renderLists()
+                dialog.dismiss()
+            } else {
+                btnDelete.text = "$deleteTextBase ($deleteClicks)"
+            }
         }
     }
 }

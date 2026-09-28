@@ -691,4 +691,10 @@
     <string name="action_import_file">Import File (ZIP / JSON)</string>
     <string name="import_unknown_format">Unknown or unsupported file format</string>
     <string name="import_empty_file">Empty or unreadable file</string>
+    <string name="dialog_edit_todo_task">Edit Task</string>
+    <string name="label_status_colon">Status:</string>
+    <string name="label_indent_level">Indent (level %1$d):</string>
+    <string name="action_indent_less">◀ Left</string>
+    <string name="action_indent_more">Right ▶</string>
+    <string name="action_delete_task">Delete Task</string>
 </resources>

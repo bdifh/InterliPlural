@@ -560,4 +560,11 @@
     <string name="action_import_file">Bestand Importeren (ZIP / JSON)</string>
     <string name="import_unknown_format">Onbekend of niet-ondersteund bestandsformaat</string>
     <string name="import_empty_file">Leeg of onleesbaar bestand</string>
+    <string name="dialog_edit_todo_task">Taak bewerken</string>
+    <string name="label_status_colon">Status:</string>
+    <string name="label_indent_level">Inspringen (niveau %1$d):</string>
+    <string name="action_indent_less">◀ Links</string>
+    <string name="action_indent_more">Rechts ▶</string>
+    <string name="action_delete_task">Taak verwijderen</string>
+
 </resources>
