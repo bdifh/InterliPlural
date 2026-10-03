@@ -29,6 +29,13 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
     private var offsetX = 100f
     private var offsetY = 100f
     private var scaleFactor = 0.7f
+
+    var selectedEdgeIds: Set<String> = emptySet()
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     private val nodePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val dottedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -195,6 +202,7 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
 
     fun setData(newData: RelationsData) {
         data = newData
+        selectedEdgeIds = emptySet()
         preloadImages()
         removeCallbacks(smartLayoutRunnable)
         if (data.smartLayoutEnabled) {
@@ -341,6 +349,19 @@ class RelationsMapView(context: Context, attrs: AttributeSet?) : View(context, a
                             val boundary = getGroupBoundaryPoint(p2, p1, group2)
                             endX = boundary.x
                             endY = boundary.y
+                        }
+                    }
+                    if (selectedEdgeIds.contains(edge.id)) {
+                        val highlightPaint = Paint(edgePaint).apply {
+                            color = Color.YELLOW
+                            strokeWidth = edge.width + 12f
+                            alpha = 180
+                            pathEffect = null
+                        }
+                        if (edge.lineType == 3) {
+                            drawWavyLine(canvas, startX, startY, endX, endY, highlightPaint)
+                        } else {
+                            canvas.drawLine(startX, startY, endX, endY, highlightPaint)
                         }
                     }
 

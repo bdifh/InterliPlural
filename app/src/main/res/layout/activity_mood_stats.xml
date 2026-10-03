@@ -93,6 +93,7 @@
 
                 <!-- Mood History Chart -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardMoodHistory"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
@@ -136,6 +137,7 @@
 
                 <!-- Mood Average (7 Days) -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardMoodAverage"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
@@ -193,6 +195,7 @@
 
                 <!-- Mood Count Distribution -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardMoodCount"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
@@ -223,6 +226,7 @@
 
                 <!-- Activity Influence -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardActivityInfluence"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"
@@ -275,6 +279,7 @@
 
                 <!-- Dot Calendar -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardDotCalendar"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="24dp"

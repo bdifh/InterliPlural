@@ -29,11 +29,20 @@ class CurrentFronterWidget : AppWidgetProvider() {
                 Gson().fromJson(json, object : TypeToken<List<Person>>() {}.type)
             } catch (e: Exception) { emptyList() }
 
+            val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
+            val subGroups: List<com.interli.plural.features.subsystem.SubsystemGroup> = try {
+                Gson().fromJson(subJson, object : TypeToken<List<com.interli.plural.features.subsystem.SubsystemGroup>>() {}.type)
+            } catch (e: Exception) { emptyList() }
+
             val fronters = people.filter { it.isFront && !it.isArchived }
-            val namesText = if (fronters.isEmpty()) {
+            val activeSubGroups = subGroups.filter { it.isBodyFronting }
+
+            val allNames = fronters.map { it.name } + activeSubGroups.map { it.name }
+
+            val namesText = if (allNames.isEmpty()) {
                 context.getString(R.string.nobody_fronting)
             } else {
-                fronters.joinToString(", ") { it.name }
+                allNames.joinToString(", ")
             }
 
             val bgColor = ColorHelper.getBgColor(context)

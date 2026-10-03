@@ -37,7 +37,8 @@ data class SubsystemMember(
 data class SubsystemGroup(
     val id: String = java.util.UUID.randomUUID().toString(),
     var name: String,
-    val members: MutableList<SubsystemMember> = mutableListOf()
+    val members: MutableList<SubsystemMember> = mutableListOf(),
+    var isBodyFronting: Boolean = false
 )
 
 class SubsystemMemberAdapter(
@@ -96,7 +97,6 @@ class SubsystemMemberAdapter(
         holder.btnFront.setTextColor(if (subMember.isFronting) textColor else ColorHelper.getBtnTextColor(context))
     }
 
-
     override fun getItemCount() = members.size
 
     class MemberViewHolder(v: View) : RecyclerView.ViewHolder(v) {
@@ -128,6 +128,14 @@ class SubsystemGroupAdapter(
         holder.groupCard.setCardBackgroundColor(ColorHelper.getBgColor(context))
         holder.tvName.text = group.name
         holder.tvName.setTextColor(textColor)
+
+        // Subsystem Body Front Knop
+        holder.btnToggleGroupBodyFront.text = if (group.isBodyFronting) context.getString(R.string.unfront_arrow) else context.getString(R.string.front_arrow)
+        holder.btnToggleGroupBodyFront.setBackgroundColor(if (group.isBodyFronting) ColorHelper.getFrontColor(context) else ColorHelper.getBtnColor(context))
+        holder.btnToggleGroupBodyFront.setTextColor(if (group.isBodyFronting) textColor else ColorHelper.getBtnTextColor(context))
+        holder.btnToggleGroupBodyFront.setOnClickListener {
+            (context as? SubsystemActivity)?.toggleGroupBodyFront(group)
+        }
 
         val fronters = group.members.filter { it.isFronting }
         holder.tvFrontStatus.text = if (fronters.isEmpty()) context.getString(R.string.nobody_fronting_group) else fronters.joinToString { it.name }
@@ -168,6 +176,7 @@ class SubsystemGroupAdapter(
     class GroupViewHolder(v: View) : RecyclerView.ViewHolder(v) {
         val groupCard: MaterialCardView = v.findViewById(R.id.groupCard)
         val tvName: TextView = v.findViewById(R.id.tvGroupName)
+        val btnToggleGroupBodyFront: Button = v.findViewById(R.id.btnToggleGroupBodyFront)
         val tvFrontStatus: TextView = v.findViewById(R.id.tvGroupFrontStatus)
         val frontCard: MaterialCardView = v.findViewById(R.id.frontBarCard)
         val btnGroupStats: Button = v.findViewById(R.id.btnGroupStats)
@@ -176,244 +185,276 @@ class SubsystemGroupAdapter(
     }
 }
 
-    class SubsystemActivity : BaseActivity() {
-        val groups = mutableListOf<SubsystemGroup>()
-        var mainPeople = mutableListOf<Person>()
-        private var subsystemSessions = mutableListOf<FrontSession>()
-        private lateinit var groupAdapter: SubsystemGroupAdapter
+class SubsystemActivity : BaseActivity() {
+    val groups = mutableListOf<SubsystemGroup>()
+    var mainPeople = mutableListOf<Person>()
+    private var subsystemSessions = mutableListOf<FrontSession>()
+    private lateinit var groupAdapter: SubsystemGroupAdapter
 
-        override fun onCreate(savedInstanceState: Bundle?) {
-            super.onCreate(savedInstanceState)
-            setContentView(R.layout.activity_subsystems)
-            setupNavigationDrawer()
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_subsystems)
+        setupNavigationDrawer()
 
-            loadData()
+        loadData()
 
-            val rv = findViewById<RecyclerView>(R.id.rvSubsystemGroups)
-            rv.layoutManager = LinearLayoutManager(this)
+        val rv = findViewById<RecyclerView>(R.id.rvSubsystemGroups)
+        rv.layoutManager = LinearLayoutManager(this)
 
-            groupAdapter = SubsystemGroupAdapter(this, groups, {
+        groupAdapter = SubsystemGroupAdapter(this, groups, {
+            saveData()
+            groupAdapter.notifyDataSetChanged()
+        }, { group ->
+            showAddMemberDialog(group)
+        })
+        rv.adapter = groupAdapter
+
+        findViewById<Button>(R.id.btnAddGroup).setOnClickListener { showAddGroupDialog() }
+    }
+
+    fun loadData() {
+        mainPeople = MemberHelper.loadAllPeople(this)
+
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+
+        val jsonGroups = sharedPref.getString("subsystem_data", "[]")
+        val typeGroups = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
+        groups.clear()
+        groups.addAll(Gson().fromJson(jsonGroups, typeGroups) ?: mutableListOf())
+
+        val jsonSessions = sharedPref.getString("subsystem_sessions", "[]")
+        val typeSessions = object : TypeToken<MutableList<FrontSession>>() {}.type
+        subsystemSessions.clear()
+        subsystemSessions.addAll(Gson().fromJson(jsonSessions, typeSessions) ?: mutableListOf())
+    }
+
+    private fun saveData() {
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val gson = Gson()
+
+        val jsonGroups = gson.toJson(groups)
+        val jsonSessions = gson.toJson(subsystemSessions)
+
+        sharedPref.edit()
+            .putString("subsystem_data", jsonGroups)
+            .putString("subsystem_sessions", jsonSessions)
+            .apply()
+
+        com.interli.plural.widgets.SubsystemFronterWidget.sendRefreshBroadcast(this)
+    }
+
+    private fun showAddGroupDialog() {
+        val input = EditText(this)
+        val container = createDialogContainer(input)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.add_subsystem_group)
+            .setView(container)
+            .setPositiveButton(R.string.action_add) { _, _ ->
+                if (input.text.isNotEmpty()) {
+                    groups.add(SubsystemGroup(name = input.text.toString()))
+                    saveData()
+                    groupAdapter.notifyDataSetChanged()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    fun showGroupOptionsDialog(group: SubsystemGroup) {
+        val options = arrayOf(getString(R.string.edit), getString(R.string.delete))
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(group.name)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showRenameGroupDialog(group)
+                    1 -> showDeleteGroupConfirmationDialog(group)
+                }
+            }
+            .create()
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun showRenameGroupDialog(group: SubsystemGroup) {
+        val input = EditText(this)
+        input.setText(group.name)
+        val container = createDialogContainer(input)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_edit_group_title)
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                if (input.text.isNotEmpty()) {
+                    group.name = input.text.toString()
+                    saveData()
+                    groupAdapter.notifyDataSetChanged()
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun showDeleteGroupConfirmationDialog(group: SubsystemGroup) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_delete_group_title)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                groups.remove(group)
                 saveData()
                 groupAdapter.notifyDataSetChanged()
-            }, { group ->
-                showAddMemberDialog(group)
-            })
-            rv.adapter = groupAdapter
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
 
-            findViewById<Button>(R.id.btnAddGroup).setOnClickListener { showAddGroupDialog() }
-        }
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
 
-        fun loadData() {
-            mainPeople = MemberHelper.loadAllPeople(this)
+    fun toggleMemberFront(member: SubsystemMember) {
+        member.isFronting = !member.isFronting
+        val now = System.currentTimeMillis()
 
-            val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-
-            val jsonGroups = sharedPref.getString("subsystem_data", "[]")
-            val typeGroups = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
-            groups.clear()
-            groups.addAll(Gson().fromJson(jsonGroups, typeGroups) ?: mutableListOf())
-
-            val jsonSessions = sharedPref.getString("subsystem_sessions", "[]")
-            val typeSessions = object : TypeToken<MutableList<FrontSession>>() {}.type
-            subsystemSessions.clear()
-            subsystemSessions.addAll(Gson().fromJson(jsonSessions, typeSessions) ?: mutableListOf())
-        }
-
-        private fun saveData() {
-            val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
-            val gson = Gson()
-
-            val jsonGroups = gson.toJson(groups)
-            val jsonSessions = gson.toJson(subsystemSessions)
-
-            sharedPref.edit()
-                .putString("subsystem_data", jsonGroups)
-                .putString("subsystem_sessions", jsonSessions)
-                .apply()
-
-            com.interli.plural.widgets.SubsystemFronterWidget.sendRefreshBroadcast(this)
-        }
-
-        private fun showAddGroupDialog() {
-            val input = EditText(this)
-            val container = createDialogContainer(input)
-
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(R.string.add_subsystem_group)
-                .setView(container)
-                .setPositiveButton(R.string.action_add) { _, _ ->
-                    if (input.text.isNotEmpty()) {
-                        groups.add(SubsystemGroup(name = input.text.toString()))
-                        saveData()
-                        groupAdapter.notifyDataSetChanged()
-                    }
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .create()
-
-            dialog.show()
-            ColorHelper.styleAlertDialog(dialog, this)
-        }
-
-        fun showGroupOptionsDialog(group: SubsystemGroup) {
-            val options = arrayOf(getString(R.string.edit), getString(R.string.delete))
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(group.name)
-                .setItems(options) { _, which ->
-                    when (which) {
-                        0 -> showRenameGroupDialog(group)
-                        1 -> showDeleteGroupConfirmationDialog(group)
-                    }
-                }
-                .create()
-            dialog.show()
-            ColorHelper.styleAlertDialog(dialog, this)
-        }
-
-        private fun showRenameGroupDialog(group: SubsystemGroup) {
-            val input = EditText(this)
-            input.setText(group.name)
-            val container = createDialogContainer(input)
-
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_edit_group_title)
-                .setView(container)
-                .setPositiveButton(R.string.save) { _, _ ->
-                    if (input.text.isNotEmpty()) {
-                        group.name = input.text.toString()
-                        saveData()
-                        groupAdapter.notifyDataSetChanged()
-                    }
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .create()
-
-            dialog.show()
-            ColorHelper.styleAlertDialog(dialog, this)
-        }
-
-        private fun showDeleteGroupConfirmationDialog(group: SubsystemGroup) {
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(R.string.dialog_delete_group_title)
-                .setPositiveButton(R.string.delete) { _, _ ->
-                    groups.remove(group)
-                    saveData()
-                    groupAdapter.notifyDataSetChanged()
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .create()
-
-            dialog.show()
-            ColorHelper.styleAlertDialog(dialog, this)
-        }
-
-        fun toggleMemberFront(member: SubsystemMember) {
-            member.isFronting = !member.isFronting
-            val now = System.currentTimeMillis()
-
-            if (member.isFronting) {
-                subsystemSessions.add(
-                    FrontSession(
-                        personName = member.name,
-                        startTime = now,
-                        personId = member.personId ?: member.id
-                    )
+        if (member.isFronting) {
+            subsystemSessions.add(
+                FrontSession(
+                    personName = member.name,
+                    startTime = now,
+                    personId = member.personId ?: member.id
                 )
-            } else {
-                subsystemSessions.filter {
-                    (it.personId == (member.personId ?: member.id)) && it.endTime == null
-                }.forEach { it.endTime = now }
-            }
-            saveData()
-            groupAdapter.notifyDataSetChanged()
+            )
+        } else {
+            subsystemSessions.filter {
+                (it.personId == (member.personId ?: member.id)) && it.endTime == null
+            }.forEach { it.endTime = now }
+        }
+        saveData()
+        groupAdapter.notifyDataSetChanged()
+    }
+
+    fun toggleGroupBodyFront(group: SubsystemGroup) {
+        group.isBodyFronting = !group.isBodyFronting
+        saveData()
+
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val sessionsJson = sharedPref.getString("sessions_list", "[]") ?: "[]"
+        val typeSessions = object : TypeToken<MutableList<FrontSession>>() {}.type
+        val sessions: MutableList<FrontSession> = try {
+            Gson().fromJson(sessionsJson, typeSessions)
+        } catch (e: Exception) {
+            mutableListOf()
         }
 
-        private fun showAddMemberDialog(group: SubsystemGroup) {
-            val input = EditText(this)
-            val container = createDialogContainer(input)
-
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(R.string.add_subsystem_member)
-                .setView(container)
-                .setPositiveButton(R.string.action_add) { _, _ ->
-                    if (input.text.isNotEmpty()) {
-                        group.members.add(SubsystemMember(name = input.text.toString()))
-                        saveData()
-                        groupAdapter.notifyDataSetChanged()
-                    }
-                }
-                .setNegativeButton(R.string.cancel, null)
-                .create()
-
-            dialog.show()
-            ColorHelper.styleAlertDialog(dialog, this)
+        val subPersonId = "subsystem_${group.id}"
+        if (group.isBodyFronting) {
+            sessions.add(
+                FrontSession(
+                    personName = group.name,
+                    startTime = System.currentTimeMillis(),
+                    personId = subPersonId
+                )
+            )
+        } else {
+            sessions.filter { (it.personId == subPersonId || (it.personId == null && it.personName == group.name)) && it.endTime == null }
+                .forEach { it.endTime = System.currentTimeMillis() }
         }
+        sharedPref.edit().putString("sessions_list", Gson().toJson(sessions)).apply()
 
-        fun showMemberOptionsDialog(subMember: SubsystemMember) {
-            val options = mutableListOf<String>()
-            if (subMember.personId == null) {
-                options.add(getString(R.string.add_to_frontpage))
-            }
+        com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(this)
+        groupAdapter.notifyDataSetChanged()
+    }
 
-            options.add(getString(R.string.delete_from_subsystem))
+    private fun showAddMemberDialog(group: SubsystemGroup) {
+        val input = EditText(this)
+        val container = createDialogContainer(input)
 
-            val dialog = AlertDialog.Builder(this)
-                .setTitle(subMember.name)
-                .setItems(options.toTypedArray()) { _, which ->
-                    when (options[which]) {
-                        getString(R.string.add_to_frontpage) -> promoteToMain(subMember)
-                        getString(R.string.delete_from_subsystem) -> removeMemberFromSubsystem(
-                            subMember
-                        )
-                    }
-                }
-                .create()
-            dialog.show()
-            ColorHelper.styleAlertDialog(dialog, this)
-        }
-
-        private fun promoteToMain(subMember: SubsystemMember) {
-            val newPerson = Person(name = subMember.name, profileColor = subMember.profileColor)
-            mainPeople.add(newPerson)
-            MemberHelper.savePeople(this, mainPeople)
-
-            subMember.personId = newPerson.id
-            saveData()
-            groupAdapter.notifyDataSetChanged()
-            Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
-        }
-
-        private fun removeMemberFromSubsystem(subMember: SubsystemMember) {
-            for (group in groups) {
-                if (group.members.remove(subMember)) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.add_subsystem_member)
+            .setView(container)
+            .setPositiveButton(R.string.action_add) { _, _ ->
+                if (input.text.isNotEmpty()) {
+                    group.members.add(SubsystemMember(name = input.text.toString()))
                     saveData()
                     groupAdapter.notifyDataSetChanged()
-                    Toast.makeText(this, getString(R.string.member_deleted), Toast.LENGTH_SHORT)
-                        .show()
-                    break
                 }
             }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    fun showMemberOptionsDialog(subMember: SubsystemMember) {
+        val options = mutableListOf<String>()
+        if (subMember.personId == null) {
+            options.add(getString(R.string.add_to_frontpage))
         }
 
-        private fun createDialogContainer(input: EditText): LinearLayout {
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-            input.layoutParams = lp
-            return LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                val padding = (16 * resources.displayMetrics.density).toInt()
-                setPadding(padding, padding, padding, padding)
-                addView(input)
+        options.add(getString(R.string.delete_from_subsystem))
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(subMember.name)
+            .setItems(options.toTypedArray()) { _, which ->
+                when (options[which]) {
+                    getString(R.string.add_to_frontpage) -> promoteToMain(subMember)
+                    getString(R.string.delete_from_subsystem) -> removeMemberFromSubsystem(
+                        subMember
+                    )
+                }
             }
-        }
+            .create()
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
 
-        override fun onResume() {
-            super.onResume()
-            loadData()
-            if (::groupAdapter.isInitialized) {
+    private fun promoteToMain(subMember: SubsystemMember) {
+        val newPerson = Person(name = subMember.name, profileColor = subMember.profileColor)
+        mainPeople.add(newPerson)
+        MemberHelper.savePeople(this, mainPeople)
+
+        subMember.personId = newPerson.id
+        saveData()
+        groupAdapter.notifyDataSetChanged()
+        Toast.makeText(this, getString(R.string.entry_saved), Toast.LENGTH_SHORT).show()
+    }
+
+    private fun removeMemberFromSubsystem(subMember: SubsystemMember) {
+        for (group in groups) {
+            if (group.members.remove(subMember)) {
+                saveData()
                 groupAdapter.notifyDataSetChanged()
+                Toast.makeText(this, getString(R.string.member_deleted), Toast.LENGTH_SHORT)
+                    .show()
+                break
             }
         }
     }
+
+    private fun createDialogContainer(input: EditText): LinearLayout {
+        val lp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        input.layoutParams = lp
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = (16 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, padding)
+            addView(input)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadData()
+        if (::groupAdapter.isInitialized) {
+            groupAdapter.notifyDataSetChanged()
+        }
+    }
+}

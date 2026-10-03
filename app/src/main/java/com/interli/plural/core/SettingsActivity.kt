@@ -333,6 +333,30 @@ class SettingsActivity : BaseActivity() {
         findViewById<Button>(R.id.btnMemberRegistrationHistory).setOnClickListener {
             showMemberRegistrationHistoryDialog()
         }
+
+        val btnSubsystemFronts = findViewById<Button>(R.id.btnToggleSubsystemFronts)
+        fun updateSubsystemFrontsButton() {
+            val isEnabled = getSharedPreferences("my_app", MODE_PRIVATE)
+                .getBoolean("show_subsystem_fronts_frontpage", true)
+            btnSubsystemFronts?.text = if (isEnabled) {
+                getString(R.string.subsystem_fronts_btn_on)
+            } else {
+                getString(R.string.subsystem_fronts_btn_off)
+            }
+        }
+        updateSubsystemFrontsButton()
+        btnSubsystemFronts?.setOnClickListener {
+            val current = getSharedPreferences("my_app", MODE_PRIVATE)
+                .getBoolean("show_subsystem_fronts_frontpage", true)
+            val updated = !current
+            getSharedPreferences("my_app", MODE_PRIVATE).edit().putBoolean("show_subsystem_fronts_frontpage", updated).apply()
+            getSharedPreferences("settings_prefs", MODE_PRIVATE).edit().putBoolean("show_subsystem_fronts_frontpage", updated).apply()
+            updateSubsystemFrontsButton()
+            Toast.makeText(this, if (updated) R.string.subsystem_fronts_enabled_toast else R.string.subsystem_fronts_disabled_toast, Toast.LENGTH_SHORT).show()
+        }
+        findViewById<Button>(R.id.btnManageStatistics)?.setOnClickListener {
+            showManageStatisticsDialog()
+        }
     }
     private fun showMemberRegistrationHistoryDialog() {
         val people = MemberHelper.loadAllPeople(this)
@@ -2532,6 +2556,87 @@ private var pendingPdfSelections: BooleanArray? = null
             }
             .setNegativeButton(R.string.cancel, null)
             .create()
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private data class StatToggleItem(val section: String, val title: String, val key: String)
+
+    private fun showManageStatisticsDialog() {
+        val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+
+        val statItems = listOf(
+            // Front Statistics
+            StatToggleItem(getString(R.string.statistics), getString(R.string.stats_total_time), "stat_front_total_time"),
+            StatToggleItem(getString(R.string.statistics), getString(R.string.stats_co_fronting), "stat_front_co_fronting"),
+            StatToggleItem(getString(R.string.statistics), getString(R.string.timeline_visual_title), "stat_front_mini_timeline"),
+            StatToggleItem(getString(R.string.statistics), getString(R.string.stats_most_switches_total), "stat_front_most_switches"),
+            StatToggleItem(getString(R.string.statistics), getString(R.string.stats_front_density_perc), "stat_front_density"),
+            StatToggleItem(getString(R.string.statistics), getString(R.string.stats_avg_front_activity), "stat_front_avg_duration"),
+            StatToggleItem(getString(R.string.statistics), getString(R.string.stats_switch_frequency), "stat_front_switch_freq"),
+
+            // Mood Statistics
+            StatToggleItem(getString(R.string.mood_stats), getString(R.string.stats_mood_history), "stat_mood_history"),
+            StatToggleItem(getString(R.string.mood_stats), getString(R.string.stats_mood_average), "stat_mood_average"),
+            StatToggleItem(getString(R.string.mood_stats), getString(R.string.stats_mood_count), "stat_mood_counts"),
+            StatToggleItem(getString(R.string.mood_stats), getString(R.string.stats_top_activities), "stat_mood_activity_influence"),
+            StatToggleItem(getString(R.string.mood_stats), getString(R.string.stats_dot_calendar), "stat_mood_dot_calendar"),
+
+            // Mood Member Correlation
+            StatToggleItem(getString(R.string.mood_insights), getString(R.string.stats_popular_fronting_activities), "stat_corr_popular_activity"),
+            StatToggleItem(getString(R.string.mood_insights), getString(R.string.stats_average_mood_per_member), "stat_corr_avg_mood_per_member"),
+            StatToggleItem(getString(R.string.mood_insights), getString(R.string.mood_insights), "stat_corr_matrix")
+        )
+
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (16 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad, pad, pad)
+        }
+
+        val scrollView = ScrollView(this).apply {
+            addView(container)
+        }
+
+        var currentSection = ""
+        val checkBoxes = mutableListOf<Pair<String, CheckBox>>()
+
+        statItems.forEach { item ->
+            if (item.section != currentSection) {
+                currentSection = item.section
+                val header = TextView(this).apply {
+                    text = currentSection
+                    textSize = 16f
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    setTextColor(ColorHelper.getBtnColor(this@SettingsActivity))
+                    setPadding(0, 24, 0, 8)
+                }
+                container.addView(header)
+            }
+
+            val cb = CheckBox(this).apply {
+                text = item.title
+                isChecked = sp.getBoolean(item.key, true)
+                setTextColor(ColorHelper.getTextColor(this@SettingsActivity))
+            }
+            checkBoxes.add(Pair(item.key, cb))
+            container.addView(cb)
+        }
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.manage_statistics_title))
+            .setView(scrollView)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val editor = sp.edit()
+                checkBoxes.forEach { (key, cb) ->
+                    editor.putBoolean(key, cb.isChecked)
+                }
+                editor.apply()
+                Toast.makeText(this, R.string.entry_saved, Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
     }

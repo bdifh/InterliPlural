@@ -566,5 +566,24 @@
     <string name="action_indent_less">◀ Links</string>
     <string name="action_indent_more">Rechts ▶</string>
     <string name="action_delete_task">Taak verwijderen</string>
-
+    <string name="action_bulk_edit_lines">Connectielijnen massaal bewerken</string>
+    <string name="select_lines_to_edit">Selecteer de aan te passen lijnen:</string>
+    <string name="select_all">Alles selecteren</string>
+    <string name="deselect_all">Alles deselecteren</string>
+    <string name="modify_color">Lijnkleur aanpassen</string>
+    <string name="modify_thickness">Lijndikte aanpassen</string>
+    <string name="keep_unchanged">--- Onveranderd laten ---</string>
+    <string name="no_lines_available">Geen connectielijnen beschikbaar om te bewerken</string>
+    <string name="no_lines_selected">Geen lijnen geselecteerd</string>
+    <string name="unnamed_edge">Naamloze lijn</string>
+    <string name="lines_updated">lijnen bijgewerkt</string>
+    <string name="label_formatting">Vormgeving</string>
+    <string name="stats_selected">geselecteerd</string>
+    <string name="settings_show_subsystem_fronts">Subsystem fronts op hoofdpagina tonen</string>
+    <string name="subsystem_fronts_btn_on">Subsystem fronts op hoofdpagina: AAN</string>
+    <string name="subsystem_fronts_btn_off">Subsystem fronts op hoofdpagina: UIT</string>
+    <string name="subsystem_fronts_enabled_toast">Subsystem fronts zichtbaar op hoofdpagina</string>
+    <string name="subsystem_fronts_disabled_toast">Subsystem fronts verborgen van hoofdpagina</string>
+    <string name="manage_statistics_title">Statistieken beheren</string>
+    <string name="stats_popular_fronting_activities">Populaire front-activiteiten</string>
 </resources>

@@ -268,8 +268,18 @@
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="24dp"
+                        android:layout_marginBottom="8dp"
                         android:text="@string/action_manage_pages" />
+
+                    <Button
+                        android:id="@+id/btnManageStatistics"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="24dp"
+                        android:text="@string/manage_statistics_title"
+                        app:icon="@android:drawable/ic_menu_sort_by_size"
+                        app:iconGravity="textStart" />
 
                     <Button
                         android:id="@+id/btnChangeLanguage"
@@ -442,6 +452,14 @@
                         android:text="@string/member_registration_history"
                         app:icon="@android:drawable/ic_menu_recent_history"
                         app:iconGravity="textStart" />
+
+                    <Button
+                        android:id="@+id/btnToggleSubsystemFronts"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="@string/subsystem_fronts_btn_on" />
                 </LinearLayout>
 
                 <TextView

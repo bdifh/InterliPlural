@@ -697,4 +697,24 @@
     <string name="action_indent_less">◀ Left</string>
     <string name="action_indent_more">Right ▶</string>
     <string name="action_delete_task">Delete Task</string>
+    <string name="action_bulk_edit_lines">Mass Edit Connection Lines</string>
+    <string name="select_lines_to_edit">Select lines to edit:</string>
+    <string name="select_all">Select All</string>
+    <string name="deselect_all">Deselect All</string>
+    <string name="modify_color">Change line color</string>
+    <string name="modify_thickness">Change line thickness</string>
+    <string name="keep_unchanged">--- Keep unchanged ---</string>
+    <string name="no_lines_available">No connection lines available to edit</string>
+    <string name="no_lines_selected">No lines selected</string>
+    <string name="unnamed_edge">Unnamed line</string>
+    <string name="lines_updated">lines updated</string>
+    <string name="label_formatting">Formatting</string>
+    <string name="stats_selected">selected</string>
+    <string name="settings_show_subsystem_fronts">Show subsystem fronts on main page</string>
+    <string name="subsystem_fronts_btn_on">Show subsystem fronts on main page: ON</string>
+    <string name="subsystem_fronts_btn_off">Show subsystem fronts on main page: OFF</string>
+    <string name="subsystem_fronts_enabled_toast">Subsystem fronts shown on main page</string>
+    <string name="subsystem_fronts_disabled_toast">Subsystem fronts hidden from main page</string>
+    <string name="manage_statistics_title">Manage statistics</string>
+    <string name="stats_popular_fronting_activities">Populair Frontstatistics</string>
 </resources>

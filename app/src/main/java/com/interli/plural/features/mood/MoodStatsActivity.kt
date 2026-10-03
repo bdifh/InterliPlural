@@ -95,7 +95,17 @@ class MoodStatsActivity : BaseActivity() {
     }
     override fun onResume() {
         super.onResume()
+        updateCardVisibilities()
         loadAndRender()
+    }
+
+    private fun updateCardVisibilities() {
+        val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        findViewById<View>(R.id.cardMoodHistory)?.visibility = if (sp.getBoolean("stat_mood_history", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardMoodAverage)?.visibility = if (sp.getBoolean("stat_mood_average", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardMoodCount)?.visibility = if (sp.getBoolean("stat_mood_counts", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardActivityInfluence)?.visibility = if (sp.getBoolean("stat_mood_activity_influence", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardDotCalendar)?.visibility = if (sp.getBoolean("stat_mood_dot_calendar", true)) View.VISIBLE else View.GONE
     }
     private fun setupPeriodSpinner() {
         val spinner = findViewById<Spinner>(R.id.spinnerMoodPeriod)
@@ -166,24 +176,24 @@ class MoodStatsActivity : BaseActivity() {
         when (position) {
             0 -> currentPeriodStart = 0
             1 -> { val cal = Calendar.getInstance(); cal.add(Calendar.DAY_OF_YEAR, -30); currentPeriodStart = cal.timeInMillis }
-            2 -> { 
+            2 -> {
                 val cal = Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
-                currentPeriodStart = cal.timeInMillis 
+                currentPeriodStart = cal.timeInMillis
             }
-            3 -> { 
+            3 -> {
                 val calStart = Calendar.getInstance().apply { add(Calendar.MONTH, -1); set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
                 currentPeriodStart = calStart.timeInMillis
                 val calEnd = Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0); add(Calendar.MILLISECOND, -1) }
                 currentPeriodEnd = calEnd.timeInMillis
             }
             4 -> { val cal = Calendar.getInstance(); cal.add(Calendar.DAY_OF_YEAR, -7); currentPeriodStart = cal.timeInMillis }
-            5 -> { 
+            5 -> {
                 val cal = Calendar.getInstance().apply { set(Calendar.DAY_OF_WEEK, firstDayOfWeek); set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
-                currentPeriodStart = cal.timeInMillis 
+                currentPeriodStart = cal.timeInMillis
             }
-            6 -> { 
+            6 -> {
                 currentPeriodStart = customStartDate?.timeInMillis ?: 0L
-                currentPeriodEnd = customEndDate?.timeInMillis ?: Long.MAX_VALUE 
+                currentPeriodEnd = customEndDate?.timeInMillis ?: Long.MAX_VALUE
             }
         }
         loadAndRender()
@@ -199,7 +209,7 @@ class MoodStatsActivity : BaseActivity() {
             val excludedActivities = settingsPref.getStringSet("excluded_activities", emptySet()) ?: emptySet()
             val entries = rawEntries.filter { entry ->
                 (entry.memberIds.isEmpty() || entry.memberIds.any { !excludedIds.contains(it) }) &&
-                entry.timestamp in currentPeriodStart..currentPeriodEnd
+                        entry.timestamp in currentPeriodStart..currentPeriodEnd
             }
             allEntriesForCalendar = rawEntries.filter { entry ->
                 (entry.memberIds.isEmpty() || entry.memberIds.any { !excludedIds.contains(it) })
@@ -263,7 +273,7 @@ class MoodStatsActivity : BaseActivity() {
             val barContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 addView(bar)
-                addView(View(this@MoodStatsActivity).apply { 
+                addView(View(this@MoodStatsActivity).apply {
                     layoutParams = LinearLayout.LayoutParams(0, 1, 1f - (count / total))
                 })
             }
@@ -460,7 +470,7 @@ class MoodStatsActivity : BaseActivity() {
             val barContainer = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 addView(bar)
-                addView(View(this@MoodStatsActivity).apply { 
+                addView(View(this@MoodStatsActivity).apply {
                     layoutParams = LinearLayout.LayoutParams(0, 1, 1f - (count / maxCount))
                 })
             }
@@ -561,11 +571,11 @@ class MoodStatsActivity : BaseActivity() {
                 textSize = 12f; setTextColor(ColorHelper.getTextColor(this@MoodStatsActivity)); alpha = 0.7f
             })
             row.addView(header)
-                val bar = View(this).apply {
-                    val weight = count / maxCount
-                    layoutParams = LinearLayout.LayoutParams(0, 8.dpToPx(), weight).apply { topMargin = 4.dpToPx() }
-                    setBackgroundColor(ColorHelper.getMoodColorByScore(this@MoodStatsActivity, avg.toFloat()))
-                }
+            val bar = View(this).apply {
+                val weight = count / maxCount
+                layoutParams = LinearLayout.LayoutParams(0, 8.dpToPx(), weight).apply { topMargin = 4.dpToPx() }
+                setBackgroundColor(ColorHelper.getMoodColorByScore(this@MoodStatsActivity, avg.toFloat()))
+            }
             val barContainer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; addView(bar)
                 addView(View(this@MoodStatsActivity).apply { layoutParams = LinearLayout.LayoutParams(0, 1, 1f - (count / maxCount)) }) }
             row.addView(barContainer)

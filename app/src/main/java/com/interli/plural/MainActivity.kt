@@ -268,7 +268,8 @@ data class ChatGroup(
 data class SubsystemGroup(
     val id: String = java.util.UUID.randomUUID().toString(),
     var name: String,
-    val memberIds: MutableList<String> = mutableListOf()
+    val memberIds: MutableList<String> = mutableListOf(),
+    var isBodyFronting: Boolean = false
 )
 
 data class SubsystemMember(
@@ -350,13 +351,19 @@ class MainActivity : BaseActivity() {
                     val sub = settingsPref.getBoolean("sub_fronting_enabled", true)
                     if (master && sub) android.content.Intent(
                         this,
-                        StatisticsActivity::class.java) else null
+                        StatisticsActivity::class.java
+                    ) else null
                 }
+
                 "subsystem" -> {
                     val master = settingsPref.getBoolean("module_fronting_enabled", true)
                     val sub = settingsPref.getBoolean("sub_subsystems_enabled", true)
-                    if (master && sub) android.content.Intent(this, com.interli.plural.features.subsystem.SubsystemActivity::class.java) else null
+                    if (master && sub) android.content.Intent(
+                        this,
+                        com.interli.plural.features.subsystem.SubsystemActivity::class.java
+                    ) else null
                 }
+
                 else -> null
             }
             redirectIntent?.let {
@@ -432,12 +439,25 @@ class MainActivity : BaseActivity() {
         cardInfo.setOnClickListener {
             showQuickUnfrontDialog()
         }
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
+        val subType = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
+        val subGroups: List<SubsystemGroup> = try {
+            Gson().fromJson(subJson, subType)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        val activeSubGroups = subGroups.filter { it.isBodyFronting }
+
         val frontPeople = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
-        text.text = if (frontPeople.isEmpty()) {
+        val allFronterNames = frontPeople.map { it.name } + activeSubGroups.map { it.name }
+
+        text?.text = if (allFronterNames.isEmpty()) {
             getString(R.string.nobody_fronting)
         } else {
-            frontPeople.joinToString { it.name }
+            allFronterNames.joinToString(", ")
         }
+
         setupNavigationDrawer()
         if (savedInstanceState == null) {
             handleIntentDialogs(intent)
@@ -569,9 +589,23 @@ class MainActivity : BaseActivity() {
             NotificationManagerCompat.from(this).cancel(1)
             return
         }
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
+        val subType = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
+        val subGroups: List<SubsystemGroup> = try {
+            Gson().fromJson(subJson, subType)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        val activeSubGroups = subGroups.filter { it.isBodyFronting }
+
         val frontPeople = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
-        val statusText = if (frontPeople.isEmpty()) getString(R.string.nobody_fronting_notification)
-        else frontPeople.joinToString { it.name }
+        val allFronterNames = frontPeople.map { it.name } + activeSubGroups.map { it.name }
+
+        val statusText =
+            if (allFronterNames.isEmpty()) getString(R.string.nobody_fronting_notification)
+            else allFronterNames.joinToString(", ")
+
         val intent = android.content.Intent(this, MainActivity::class.java).apply {
             flags =
                 android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -681,11 +715,23 @@ class MainActivity : BaseActivity() {
             textColor
         )
         val text = findViewById<TextView>(R.id.myText)
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
+        val subType = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
+        val subGroups: List<SubsystemGroup> = try {
+            Gson().fromJson(subJson, subType)
+        } catch (e: Exception) {
+            emptyList()
+        }
+        val activeSubGroups = subGroups.filter { it.isBodyFronting }
+
         val frontPeople = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
-        text?.text = if (frontPeople.isEmpty()) {
+        val allFronterNames = frontPeople.map { it.name } + activeSubGroups.map { it.name }
+
+        text?.text = if (allFronterNames.isEmpty()) {
             getString(R.string.nobody_fronting)
         } else {
-            frontPeople.joinToString { it.name }
+            allFronterNames.joinToString(", ")
         }
         val adapter = findViewById<RecyclerView>(R.id.recyclerView).adapter as? PersonAdapter
         adapter?.updateItems()
@@ -696,18 +742,32 @@ class MainActivity : BaseActivity() {
     private fun updateSubsystemFrontTiles() {
         val rvTiles = findViewById<RecyclerView>(R.id.rvSubsystemFronts) ?: return
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val showSubsystemFronts = sharedPref.getBoolean("show_subsystem_fronts_frontpage", true)
+        if (!showSubsystemFronts) {
+            rvTiles.visibility = View.GONE
+            return
+        }
         val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
         val type = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
-        val subGroups: List<SubsystemGroup> = try { Gson().fromJson(subJson, type) } catch (e: Exception) { emptyList() }
+        val subGroups: List<SubsystemGroup> = try {
+            Gson().fromJson(subJson, type)
+        } catch (e: Exception) {
+            emptyList()
+        }
 
-        val activeSubMembers = mutableListOf<Pair<SubsystemGroup, SubsystemMember>>()
+        val tileItems = mutableListOf<Pair<SubsystemGroup, SubsystemMember?>>()
         subGroups.forEach { group ->
-            group.members.filter { it.isFronting }.forEach { member ->
-                activeSubMembers.add(Pair(group, member))
+            val activeMembers = group.members.filter { it.isFronting }
+            if (activeMembers.isNotEmpty()) {
+                activeMembers.forEach { member ->
+                    tileItems.add(Pair(group, member))
+                }
+            } else if (group.isBodyFronting) {
+                tileItems.add(Pair(group, null))
             }
         }
 
-        if (activeSubMembers.isEmpty()) {
+        if (tileItems.isEmpty()) {
             rvTiles.visibility = View.GONE
             return
         }
@@ -715,27 +775,33 @@ class MainActivity : BaseActivity() {
         rvTiles.visibility = View.VISIBLE
 
         val gridManager = androidx.recyclerview.widget.GridLayoutManager(this, 6)
-        gridManager.spanSizeLookup = object : androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup() {
-            override fun getSpanSize(position: Int): Int {
-                val total = activeSubMembers.size
-                if (total == 1) return 6
-                if (total == 2 || total == 4) return 3
-                if (total % 3 == 0) return 2
-                if (total % 3 == 2) {
-                    return if (position < total - 2) 2 else 3
+        gridManager.spanSizeLookup =
+            object : androidx.recyclerview.widget.GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    val total = tileItems.size
+                    if (total == 1) return 6
+                    if (total == 2 || total == 4) return 3
+                    if (total % 3 == 0) return 2
+                    if (total % 3 == 2) {
+                        return if (position < total - 2) 2 else 3
+                    }
+                    return if (position < total - 4) 2 else 3
                 }
-                return if (position < total - 4) 2 else 3
             }
-        }
         rvTiles.layoutManager = gridManager
 
         rvTiles.adapter = SubsystemTileAdapter(
             context = this,
-            items = activeSubMembers,
-            isBodyFronting = { subMember ->
-                people.any { p -> (p.id == subMember.personId || p.name.equals(subMember.name, ignoreCase = true)) && p.isFront }
+            items = tileItems,
+            isMemberBodyFronting = { subMember ->
+                people.any { p ->
+                    (p.id == subMember.personId || p.name.equals(
+                        subMember.name,
+                        ignoreCase = true
+                    )) && p.isFront
+                }
             },
-            onToggleBodyFront = { subMember ->
+            onToggleMemberBodyFront = { subMember ->
                 val targetPerson = people.find { it.id == subMember.personId }
                     ?: people.find { it.name.equals(subMember.name, ignoreCase = true) }
 
@@ -744,10 +810,50 @@ class MainActivity : BaseActivity() {
                     savePeople()
                     updateUI()
                 } else {
-                    Toast.makeText(this, getString(R.string.subsystem_member_not_in_main_list, subMember.name), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        getString(R.string.subsystem_member_not_in_main_list, subMember.name),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
+            },
+            onToggleGroupBodyFront = { group ->
+                toggleSubsystemGroupBodyFront(group)
             }
         )
+    }
+
+    private fun toggleSubsystemGroupBodyFront(group: SubsystemGroup) {
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
+        val type = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
+        val subGroups: MutableList<SubsystemGroup> = try {
+            Gson().fromJson(subJson, type)
+        } catch (e: Exception) {
+            mutableListOf()
+        }
+
+        val targetGroup = subGroups.find { it.id == group.id } ?: group
+        targetGroup.isBodyFronting = !targetGroup.isBodyFronting
+
+        sharedPref.edit().putString("subsystem_data", Gson().toJson(subGroups)).apply()
+
+        val subPersonId = "subsystem_${targetGroup.id}"
+        if (targetGroup.isBodyFronting) {
+            sessions.add(
+                FrontSession(
+                    personName = targetGroup.name,
+                    startTime = System.currentTimeMillis(),
+                    personId = subPersonId
+                )
+            )
+        } else {
+            sessions.filter { (it.personId == subPersonId || (it.personId == null && it.personName == targetGroup.name)) && it.endTime == null }
+                .forEach { it.endTime = System.currentTimeMillis() }
+        }
+        savePeople()
+        updateUI()
+        com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(this)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
@@ -1152,36 +1258,44 @@ class MainActivity : BaseActivity() {
     private fun copyGroupToSubsystem(group: Group) {
         val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
         val subJson = sharedPref.getString("subsystem_data", "[]")
-        val subType = object : com.google.gson.reflect.TypeToken<MutableList<com.interli.plural.features.subsystem.SubsystemGroup>>() {}.type
-        val subGroups: MutableList<com.interli.plural.features.subsystem.SubsystemGroup> = com.google.gson.Gson().fromJson(subJson, subType) ?: mutableListOf()
+        val subType = object :
+            com.google.gson.reflect.TypeToken<MutableList<com.interli.plural.features.subsystem.SubsystemGroup>>() {}.type
+        val subGroups: MutableList<com.interli.plural.features.subsystem.SubsystemGroup> =
+            com.google.gson.Gson().fromJson(subJson, subType) ?: mutableListOf()
         val newSubGroup = com.interli.plural.features.subsystem.SubsystemGroup(
             name = group.name,
             members = mutableListOf()
         )
         val groupMembers = people.filter { it.safeGroupIds.contains(group.id) }
         groupMembers.forEach { person ->
-            newSubGroup.members.add(com.interli.plural.features.subsystem.SubsystemMember(
-                personId = person.id,
-                name = person.name,
-                profileColor = person.profileColor,
-                isFronting = false
-            ))
+            newSubGroup.members.add(
+                com.interli.plural.features.subsystem.SubsystemMember(
+                    personId = person.id,
+                    name = person.name,
+                    profileColor = person.profileColor,
+                    isFronting = false
+                )
+            )
         }
 
         subGroups.add(newSubGroup)
-        sharedPref.edit().putString("subsystem_data", com.google.gson.Gson().toJson(subGroups)).apply()
-        Toast.makeText(this, "Groep ${group.name} gekopieerd naar Subsystems", Toast.LENGTH_SHORT).show()
+        sharedPref.edit().putString("subsystem_data", com.google.gson.Gson().toJson(subGroups))
+            .apply()
+        Toast.makeText(this, "Groep ${group.name} gekopieerd naar Subsystems", Toast.LENGTH_SHORT)
+            .show()
     }
 
     class SubsystemTileAdapter(
         private val context: android.content.Context,
-        private val items: List<Pair<SubsystemGroup, SubsystemMember>>,
-        private val isBodyFronting: (SubsystemMember) -> Boolean,
-        private val onToggleBodyFront: (SubsystemMember) -> Unit
+        private val items: List<Pair<SubsystemGroup, SubsystemMember?>>,
+        private val isMemberBodyFronting: (SubsystemMember) -> Boolean,
+        private val onToggleMemberBodyFront: (SubsystemMember) -> Unit,
+        private val onToggleGroupBodyFront: (SubsystemGroup) -> Unit
     ) : RecyclerView.Adapter<SubsystemTileAdapter.TileViewHolder>() {
 
         class TileViewHolder(v: View) : RecyclerView.ViewHolder(v) {
-            val card: com.google.android.material.card.MaterialCardView = v.findViewById(R.id.subsystemTileCard)
+            val card: com.google.android.material.card.MaterialCardView =
+                v.findViewById(R.id.subsystemTileCard)
             val tvGroupName: TextView = v.findViewById(R.id.tvSubsystemGroupName)
             val tvFronterName: TextView = v.findViewById(R.id.tvSubsystemFronterName)
             val btnToggle: Button = v.findViewById(R.id.btnToggleBodyFront)
@@ -1197,19 +1311,43 @@ class MainActivity : BaseActivity() {
             val (group, subMember) = items[position]
             val textColor = ColorHelper.getTextColor(context)
             val btnColor = ColorHelper.getBtnColor(context)
-            val isFrontOnBody = isBodyFronting(subMember)
+            val btnTextColor = ColorHelper.getBtnTextColor(context)
+            val frontColor = ColorHelper.getFrontColor(context)
 
             holder.card.setCardBackgroundColor(ColorHelper.getBgColor(context))
             holder.tvGroupName.text = group.name
-            holder.tvFronterName.text = subMember.name
-            holder.tvFronterName.setTextColor(textColor)
+            holder.card.setOnClickListener {
+                val intent = android.content.Intent(
+                    context,
+                    com.interli.plural.features.subsystem.SubsystemActivity::class.java
+                )
+                context.startActivity(intent)
+            }
 
-            holder.btnToggle.text = if (isFrontOnBody) "▼" else "▲"
-            holder.btnToggle.setBackgroundColor(if (isFrontOnBody) ColorHelper.getFrontColor(context) else btnColor)
-            holder.btnToggle.setTextColor(if (isFrontOnBody) textColor else ColorHelper.getBtnTextColor(context))
+            if (subMember != null) {
+                holder.tvFronterName.text = subMember.name
+                holder.tvFronterName.setTextColor(textColor)
 
-            holder.btnToggle.setOnClickListener {
-                onToggleBodyFront(subMember)
+                val isMemberFront = isMemberBodyFronting(subMember)
+                holder.btnToggle.text =
+                    if (isMemberFront) context.getString(R.string.unfront_arrow) else context.getString(
+                        R.string.front_arrow
+                    )
+                holder.btnToggle.setBackgroundColor(if (isMemberFront) frontColor else btnColor)
+                holder.btnToggle.setTextColor(if (isMemberFront) textColor else btnTextColor)
+                holder.btnToggle.setOnClickListener { onToggleMemberBodyFront(subMember) }
+            } else {
+                holder.tvFronterName.text = group.name
+                holder.tvFronterName.setTextColor(textColor)
+
+                val isGroupFront = group.isBodyFronting
+                holder.btnToggle.text =
+                    if (isGroupFront) context.getString(R.string.unfront_arrow) else context.getString(
+                        R.string.front_arrow
+                    )
+                holder.btnToggle.setBackgroundColor(if (isGroupFront) frontColor else btnColor)
+                holder.btnToggle.setTextColor(if (isGroupFront) textColor else btnTextColor)
+                holder.btnToggle.setOnClickListener { onToggleGroupBodyFront(group) }
             }
         }
 

@@ -64,6 +64,22 @@ class StatisticsActivity : BaseActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        updateCardVisibilities()
+    }
+
+    private fun updateCardVisibilities() {
+        val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        findViewById<View>(R.id.cardTotalTime)?.visibility = if (sp.getBoolean("stat_front_total_time", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardCoFronting)?.visibility = if (sp.getBoolean("stat_front_co_fronting", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardMiniTimeline)?.visibility = if (sp.getBoolean("stat_front_mini_timeline", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardMostSwitches)?.visibility = if (sp.getBoolean("stat_front_most_switches", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardFrontDensity)?.visibility = if (sp.getBoolean("stat_front_density", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardAvgDuration)?.visibility = if (sp.getBoolean("stat_front_avg_duration", true)) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.cardSwitchFreq)?.visibility = if (sp.getBoolean("stat_front_switch_freq", true)) View.VISIBLE else View.GONE
+    }
+
     private fun setupMiniTimelineLast24h() {
         val twentyFourHoursAgo = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
         val miniSessions = allSessions.filter {
@@ -232,12 +248,47 @@ class StatisticsActivity : BaseActivity() {
 
         val sessionsJson = sharedPref.getString(sessionKey, "[]")
         val peopleJson = sharedPref.getString("people_list", "[]")
+        val subJson = sharedPref.getString("subsystem_data", "[]") ?: "[]"
 
         Thread {
             try {
                 val gson = Gson()
                 val rawPeople: List<Person> = gson.fromJson(peopleJson, object : TypeToken<List<Person>>() {}.type) ?: emptyList()
                 val rawSessions: List<FrontSession> = gson.fromJson(sessionsJson, object : TypeToken<List<FrontSession>>() {}.type) ?: emptyList()
+
+                val subGroups: List<com.interli.plural.features.subsystem.SubsystemGroup> = try {
+                    gson.fromJson(subJson, object : TypeToken<List<com.interli.plural.features.subsystem.SubsystemGroup>>() {}.type) ?: emptyList()
+                } catch (_: Exception) {
+                    emptyList()
+                }
+
+                val subPeople = subGroups.map { group ->
+                    Person(
+                        id = "subsystem_${group.id}",
+                        name = group.name,
+                        profileColor = android.graphics.Color.parseColor("#8E24AA")
+                    )
+                }
+
+                val combinedPeople = (rawPeople + subPeople).toMutableList()
+
+                rawSessions.forEach { s ->
+                    val pId = s.personId
+                    if (pId != null && pId.startsWith("subsystem_") && combinedPeople.none { it.id == pId }) {
+                        val displayName = if (!s.personName.startsWith("subsystem_") && s.personName.isNotBlank()) {
+                            s.personName
+                        } else {
+                            "Subsystem"
+                        }
+                        combinedPeople.add(
+                            Person(
+                                id = pId,
+                                name = displayName,
+                                profileColor = android.graphics.Color.parseColor("#8E24AA")
+                            )
+                        )
+                    }
+                }
 
                 val filteredSessions = if (filterIds != null) {
                     rawSessions.filter { it.personId != null && filterIds.contains(it.personId) }
@@ -247,7 +298,7 @@ class StatisticsActivity : BaseActivity() {
                 }
 
                 runOnUiThread {
-                    people = rawPeople
+                    people = combinedPeople
                     allSessions = filteredSessions
                     val spinner = findViewById<Spinner>(R.id.spinnerStatsPeriod)
                     val settingsSp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
@@ -260,6 +311,7 @@ class StatisticsActivity : BaseActivity() {
             }
         }.start()
     }
+
 
     private fun renderAll() {
         renderTotalHours()

@@ -71,6 +71,9 @@ class TodoActivity : BaseActivity() {
     private fun setupItemTouchHelper() {
         val itemTouchHelper = ItemTouchHelper(object :
             ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+
+            override fun isLongPressDragEnabled(): Boolean = false
+
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
@@ -564,7 +567,13 @@ class TodoActivity : BaseActivity() {
                         }
                     }
                     taskTextContainer.addView(TextView(this@TodoActivity).apply {
-                        text = task.title; textSize = 15f; setTextColor(textColor)
+                        text = task.title
+                        textSize = 15f
+                        setTextColor(textColor)
+                        setOnLongClickListener {
+                            showTaskOptionsDialog(list, task)
+                            true
+                        }
                     })
                     val mediaContainer = LinearLayout(this@TodoActivity).apply {
                         orientation = LinearLayout.VERTICAL

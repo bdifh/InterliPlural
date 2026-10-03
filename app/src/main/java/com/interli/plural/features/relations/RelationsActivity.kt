@@ -44,6 +44,10 @@ class RelationsActivity : BaseActivity() {
         loadData()
         findViewById<View>(R.id.btnAddNode).setOnClickListener { showAddNodeDialog() }
         findViewById<View>(R.id.btnAddEdge).setOnClickListener { showAddEdgeDialog() }
+        findViewById<View>(R.id.btnAddEdge).setOnLongClickListener {
+            showBulkEditEdgesDialog()
+            true
+        }
         findViewById<View>(R.id.btnAddGroup).setOnClickListener { showGroupsListDialog() }
         findViewById<View>(R.id.btnSave).setOnClickListener { saveData() }
         findViewById<View>(R.id.btnExport).setOnClickListener { exportToPdf() }
@@ -149,6 +153,15 @@ class RelationsActivity : BaseActivity() {
         })
         layout.addView(tagInput)
         layout.addView(noteInput)
+
+        val btnBulkEdit = Button(this).apply {
+            text = getString(R.string.action_bulk_edit_lines)
+            setOnClickListener {
+                activeDialog?.dismiss()
+                showBulkEditEdgesDialog(preselectedEdgeId = edge.id)
+            }
+        }
+        layout.addView(btnBulkEdit)
 
         val scrollOuter = ScrollView(this).apply { addView(layout) }
 
@@ -1084,4 +1097,245 @@ class RelationsActivity : BaseActivity() {
         }
     }
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
+
+    private fun getEdgeDisplayName(edge: RelationEdge): String {
+        val nodeNames = edge.getSafeNodeIds().mapNotNull { id ->
+            relationsData.nodes.find { it.id == id }?.name
+        }
+        val groupNames = edge.groupIds.mapNotNull { id ->
+            relationsData.groups.find { it.id == id }?.let { "📁 ${it.name}" }
+        }
+        val allNames = nodeNames + groupNames
+        val label = if (allNames.isNotEmpty()) allNames.joinToString(" ↔ ") else getString(R.string.unnamed_edge)
+        return if (!edge.tag.isNullOrBlank()) "$label (${edge.tag})" else label
+    }
+
+    private fun showBulkEditEdgesDialog(preselectedEdgeId: String? = null) {
+        if (relationsData.edges.isEmpty()) {
+            Toast.makeText(this, getString(R.string.no_lines_available), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        activeDialog?.dismiss()
+
+        val checkedEdgeIds = mutableSetOf<String>()
+        if (preselectedEdgeId != null) {
+            checkedEdgeIds.add(preselectedEdgeId)
+        }
+
+        val textColor = ColorHelper.getTextColor(this)
+        val bgColor = ColorHelper.getBgColor(this)
+
+        val mainLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val p = 16.dpToPx()
+            setPadding(p, p, p, p)
+            setBackgroundColor(bgColor)
+        }
+
+        mapView.selectedEdgeIds = checkedEdgeIds.toSet()
+
+        mainLayout.addView(TextView(this).apply {
+            text = getString(R.string.select_lines_to_edit)
+            setTextColor(textColor)
+            setTypeface(null, Typeface.BOLD)
+        })
+
+        val tvCount = TextView(this).apply {
+            text = "${checkedEdgeIds.size} / ${relationsData.edges.size} ${getString(R.string.stats_selected)}"
+            setTextColor(textColor)
+            textSize = 12f
+            setPadding(0, 4.dpToPx(), 0, 8.dpToPx())
+        }
+
+        val btnRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 8.dpToPx() }
+        }
+
+        val checkBoxes = mutableListOf<CheckBox>()
+
+        val btnSelectAll = Button(this).apply {
+            text = getString(R.string.select_all)
+            textSize = 11f
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = 4.dpToPx() }
+            setOnClickListener {
+                checkedEdgeIds.clear()
+                checkedEdgeIds.addAll(relationsData.edges.map { it.id })
+                checkBoxes.forEach { it.isChecked = true }
+                mapView.selectedEdgeIds = checkedEdgeIds.toSet()
+                tvCount.text = "${checkedEdgeIds.size} / ${relationsData.edges.size} ${getString(R.string.stats_selected)}"
+            }
+        }
+
+        val btnDeselectAll = Button(this).apply {
+            text = getString(R.string.deselect_all)
+            textSize = 11f
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = 4.dpToPx() }
+            setOnClickListener {
+                checkedEdgeIds.clear()
+                checkBoxes.forEach { it.isChecked = false }
+                mapView.selectedEdgeIds = emptySet()
+                tvCount.text = "${checkedEdgeIds.size} / ${relationsData.edges.size} ${getString(R.string.stats_selected)}"
+            }
+        }
+
+        btnRow.addView(btnSelectAll)
+        btnRow.addView(btnDeselectAll)
+        mainLayout.addView(btnRow)
+        mainLayout.addView(tvCount)
+
+        val edgeListContainer = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val edgeListScroll = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(-1, 160.dpToPx())
+            addView(edgeListContainer)
+        }
+
+        relationsData.edges.forEach { edge ->
+            val cb = CheckBox(this).apply {
+                text = getEdgeDisplayName(edge)
+                isChecked = checkedEdgeIds.contains(edge.id)
+                setTextColor(textColor)
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        checkedEdgeIds.add(edge.id)
+                    } else {
+                        checkedEdgeIds.remove(edge.id)
+                    }
+                    mapView.selectedEdgeIds = checkedEdgeIds.toSet()
+                    tvCount.text = "${checkedEdgeIds.size} / ${relationsData.edges.size} ${getString(R.string.stats_selected)}"
+                }
+            }
+            checkBoxes.add(cb)
+            edgeListContainer.addView(cb)
+        }
+        mainLayout.addView(edgeListScroll)
+
+        mainLayout.addView(TextView(this).apply {
+            text = getString(R.string.label_formatting)
+            setTextColor(textColor)
+            setTypeface(null, Typeface.BOLD)
+            setPadding(0, 16.dpToPx(), 0, 8.dpToPx())
+        })
+
+        var changeColor = false
+        var selectedColor = Color.GRAY
+        val cbChangeColor = CheckBox(this).apply {
+            text = getString(R.string.modify_color)
+            setTextColor(textColor)
+        }
+        mainLayout.addView(cbChangeColor)
+
+        val colorPickerContainer = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val colorScrollView = HorizontalScrollView(this).apply {
+            addView(colorPickerContainer)
+            visibility = View.GONE
+        }
+        DialogHelper.setupColorPicker(this, colorPickerContainer, selectedColor) { color ->
+            selectedColor = color ?: Color.GRAY
+        }
+        cbChangeColor.setOnCheckedChangeListener { _, isChecked ->
+            changeColor = isChecked
+            colorScrollView.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+        mainLayout.addView(colorScrollView)
+
+        mainLayout.addView(TextView(this).apply {
+            text = getString(R.string.label_line_type)
+            setTextColor(textColor)
+            setPadding(0, 12.dpToPx(), 0, 4.dpToPx())
+        })
+        val typeOptions = listOf(
+            getString(R.string.keep_unchanged),
+            getString(R.string.line_type_solid),
+            getString(R.string.line_type_dashed),
+            getString(R.string.line_type_dotted),
+            getString(R.string.line_type_wavy)
+        )
+        val typeSpinner = Spinner(this).apply {
+            adapter = ColorHelper.createThemedAdapter(this@RelationsActivity, typeOptions)
+            setSelection(0)
+        }
+        mainLayout.addView(typeSpinner)
+
+        var changeThickness = false
+        val cbChangeThickness = CheckBox(this).apply {
+            text = getString(R.string.modify_thickness)
+            setTextColor(textColor)
+        }
+        mainLayout.addView(cbChangeThickness)
+
+        val thicknessSeek = SeekBar(this).apply {
+            max = 20
+            progress = 4
+            visibility = View.GONE
+        }
+        cbChangeThickness.setOnCheckedChangeListener { _, isChecked ->
+            changeThickness = isChecked
+            thicknessSeek.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+        mainLayout.addView(thicknessSeek)
+
+        mainLayout.addView(TextView(this).apply {
+            text = getString(R.string.label_arrow_direction)
+            setTextColor(textColor)
+            setPadding(0, 12.dpToPx(), 0, 4.dpToPx())
+        })
+        val arrowOptions = listOf(
+            getString(R.string.keep_unchanged),
+            getString(R.string.arrow_type_none),
+            getString(R.string.arrow_type_end),
+            getString(R.string.arrow_type_start),
+            getString(R.string.arrow_type_both)
+        )
+        val arrowSpinner = Spinner(this).apply {
+            adapter = ColorHelper.createThemedAdapter(this@RelationsActivity, arrowOptions)
+            setSelection(0)
+        }
+        mainLayout.addView(arrowSpinner)
+
+        val outerScroll = ScrollView(this).apply { addView(mainLayout) }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.action_bulk_edit_lines)
+            .setView(outerScroll)
+            .setPositiveButton(R.string.save) { _, _ ->
+                mapView.selectedEdgeIds = emptySet()
+                if (checkedEdgeIds.isEmpty()) {
+                    Toast.makeText(this, getString(R.string.no_lines_selected), Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                var count = 0
+                relationsData.edges.forEach { edge ->
+                    if (checkedEdgeIds.contains(edge.id)) {
+                        if (changeColor) edge.color = selectedColor
+                        if (typeSpinner.selectedItemPosition > 0) edge.lineType = typeSpinner.selectedItemPosition - 1
+                        if (changeThickness) edge.width = thicknessSeek.progress.toFloat().coerceAtLeast(1f)
+                        if (arrowSpinner.selectedItemPosition > 0) edge.arrowType = arrowSpinner.selectedItemPosition - 1
+                        count++
+                    }
+                }
+                mapView.invalidate()
+                saveData(silent = true)
+                Toast.makeText(this, "$count ${getString(R.string.lines_updated)}", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.cancel) { _, _ ->
+                mapView.selectedEdgeIds = emptySet()
+            }
+            .setNeutralButton(R.string.delete) { _, _ ->
+                mapView.selectedEdgeIds = emptySet()
+                if (checkedEdgeIds.isEmpty()) return@setNeutralButton
+                relationsData.edges.removeAll { checkedEdgeIds.contains(it.id) }
+                mapView.invalidate()
+                saveData(silent = true)
+            }
+            .setOnDismissListener {
+                mapView.selectedEdgeIds = emptySet()
+            }
+            .create()
+
+        activeDialog = dialog
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
 }
