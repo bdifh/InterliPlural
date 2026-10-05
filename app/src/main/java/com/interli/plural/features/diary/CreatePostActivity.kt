@@ -432,5 +432,6 @@ class CreatePostActivity : BaseActivity() {
             putString("sysmedia_posts", Gson().toJson(posts))
             putString("sysmedia_notifications", Gson().toJson(notifications))
         }
+        com.interli.plural.widgets.SysmediaTimelineWidgetProvider.sendRefreshBroadcast(this)
     }
 }

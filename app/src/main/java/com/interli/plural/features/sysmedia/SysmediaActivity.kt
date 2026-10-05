@@ -182,7 +182,9 @@ class SysmediaActivity : BaseActivity() {
         markTabAsRead(currentTab)
         filterTab()
         updateTabBadges()
+        handleWidgetLaunchIntent(intent)
     }
+
     private fun showDeleteAccountsDialog() {
         val sysmediaPeople = people.filter { !it.isArchived && (it.isSysmediaOnly || it.sysmediaProfile?.handle != null || it.sysmediaProfile?.profilePictureUri != null) }
         val names = sysmediaPeople.map { "${it.name}${if (it.sysmediaProfile?.handle != null) " (@${it.sysmediaProfile?.handle})" else ""}" }.toTypedArray()
@@ -437,6 +439,25 @@ class SysmediaActivity : BaseActivity() {
         val intent = android.content.Intent(this, SysmediaSwitchAccountActivity::class.java)
         switchAccountLauncher.launch(intent)
     }
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleWidgetLaunchIntent(intent)
+    }
+
+    private fun handleWidgetLaunchIntent(intent: android.content.Intent?) {
+        if (intent == null) return
+        val memberId = intent.getStringExtra("active_member_id")
+        if (memberId != null) {
+            activeMemberId = memberId
+            updateActiveMemberHeader()
+        }
+        val selectTab = intent.getIntExtra("SELECT_TAB", -1)
+        if (selectTab >= 0) {
+            val tabLayout = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayoutSysmedia)
+            tabLayout?.getTabAt(selectTab)?.select()
+        }
+    }
 
     override fun onResume() {
         super.onResume()
@@ -446,6 +467,7 @@ class SysmediaActivity : BaseActivity() {
         updateActiveMemberHeader()
         updateTabBadges()
         recyclerView.layoutManager?.onRestoreInstanceState(recyclerViewState)
+        com.interli.plural.widgets.SysmediaDmWidgetProvider.sendRefreshBroadcast(this)
     }
     private fun handleLike(post: SysmediaPost, onUpdate: () -> Unit) {
         val memberId = activeMemberId ?: return

@@ -586,4 +586,13 @@
     <string name="subsystem_fronts_disabled_toast">Subsystem fronts verborgen van hoofdpagina</string>
     <string name="manage_statistics_title">Statistieken beheren</string>
     <string name="stats_popular_fronting_activities">Populaire front-activiteiten</string>
+    <string name="sysmedia_timeline_widget_title">Sysmedia Tijdlijn</string>
+    <string name="sysmedia_timeline_widget_select_accounts">Selecteer accounts voor widget</string>
+    <string name="select_all_accounts">Alle accounts</string>
+    <string name="no_posts_yet">Nog geen berichten</string>
+    <string name="action_new_post">Nieuw bericht</string>
+    <string name="sysmedia_dm_widget_title">Sysmedia Ongelezen DMs</string>
+    <string name="sysmedia_dm_widget_select_accounts">Selecteer accounts voor ongelezen DM widget</string>
+    <string name="no_unread_dms">Geen ongelezen DMs</string>
+    <string name="unread_dms_count">%d ongelezen</string>
 </resources>

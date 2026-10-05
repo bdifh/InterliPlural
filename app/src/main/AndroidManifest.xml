@@ -401,6 +401,55 @@
                 android:resource="@xml/subsystem_fronter_widget_info" />
         </receiver>
 
+        <activity
+            android:name=".widgets.SysmediaTimelineWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.DayNight.Dialog">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widgets.SysmediaTimelineWidgetProvider"
+            android:label="@string/sysmedia_timeline_widget_title"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/sysmedia_timeline_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".widgets.SysmediaTimelineWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <activity
+            android:name=".widgets.SysmediaDmWidgetConfigureActivity"
+            android:exported="true"
+            android:theme="@style/Theme.AppCompat.DayNight.Dialog">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widgets.SysmediaDmWidgetProvider"
+            android:label="@string/sysmedia_dm_widget_title"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/sysmedia_dm_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".widgets.SysmediaDmWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
     </application>
 
 </manifest>

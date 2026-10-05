@@ -717,4 +717,13 @@
     <string name="subsystem_fronts_disabled_toast">Subsystem fronts hidden from main page</string>
     <string name="manage_statistics_title">Manage statistics</string>
     <string name="stats_popular_fronting_activities">Populair Frontstatistics</string>
+    <string name="sysmedia_timeline_widget_title">Sysmedia Timeline</string>
+    <string name="sysmedia_timeline_widget_select_accounts">Select Accounts for Widget</string>
+    <string name="select_all_accounts">All Accounts</string>
+    <string name="no_posts_yet">No posts yet</string>
+    <string name="action_new_post">New Post</string>
+    <string name="sysmedia_dm_widget_title">Sysmedia Unread DMs</string>
+    <string name="sysmedia_dm_widget_select_accounts">Select Accounts for Unread DMs Widget</string>
+    <string name="no_unread_dms">No unread DMs</string>
+    <string name="unread_dms_count">%d unread</string>
 </resources>
