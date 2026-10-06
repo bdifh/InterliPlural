@@ -1314,8 +1314,8 @@ class MainActivity : BaseActivity() {
                     if (isMemberFront) context.getString(R.string.unfront_arrow) else context.getString(
                         R.string.front_arrow
                     )
-                holder.btnToggle.setBackgroundColor(if (isMemberFront) frontColor else btnColor)
-                holder.btnToggle.setTextColor(if (isMemberFront) textColor else btnTextColor)
+                holder.btnToggle.setBackgroundColor(if (isMemberFront) btnTextColor else btnColor)
+                holder.btnToggle.setTextColor(if (isMemberFront) btnColor else btnTextColor)
                 holder.btnToggle.setOnClickListener { onToggleMemberBodyFront(subMember) }
             } else {
                 holder.tvFronterName.text = group.name
@@ -1326,8 +1326,8 @@ class MainActivity : BaseActivity() {
                     if (isGroupFront) context.getString(R.string.unfront_arrow) else context.getString(
                         R.string.front_arrow
                     )
-                holder.btnToggle.setBackgroundColor(if (isGroupFront) frontColor else btnColor)
-                holder.btnToggle.setTextColor(if (isGroupFront) textColor else btnTextColor)
+                holder.btnToggle.setBackgroundColor(if (isGroupFront) btnTextColor else btnColor)
+                holder.btnToggle.setTextColor(if (isGroupFront) btnColor else btnTextColor)
                 holder.btnToggle.setOnClickListener { onToggleGroupBodyFront(group) }
             }
         }

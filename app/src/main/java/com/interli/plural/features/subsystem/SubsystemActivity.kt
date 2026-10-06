@@ -93,8 +93,9 @@ class SubsystemMemberAdapter(
 
         holder.btnFront.text = if (subMember.isFronting) context.getString(R.string.unfront_arrow) else context.getString(R.string.front_arrow)
         holder.btnFront.setOnClickListener { onMemberClick(subMember) }
-        holder.btnFront.setBackgroundColor(if (subMember.isFronting) ColorHelper.getFrontColor(context) else btnColor)
-        holder.btnFront.setTextColor(if (subMember.isFronting) textColor else ColorHelper.getBtnTextColor(context))
+        val btnTextColor = ColorHelper.getBtnTextColor(context)
+        holder.btnFront.setBackgroundColor(if (subMember.isFronting) btnTextColor else btnColor)
+        holder.btnFront.setTextColor(if (subMember.isFronting) btnColor else btnTextColor)
     }
 
     override fun getItemCount() = members.size
@@ -129,8 +130,10 @@ class SubsystemGroupAdapter(
         holder.tvName.text = group.name
         holder.tvName.setTextColor(textColor)
         holder.btnToggleGroupBodyFront.text = if (group.isBodyFronting) context.getString(R.string.unfront_arrow) else context.getString(R.string.front_arrow)
-        holder.btnToggleGroupBodyFront.setBackgroundColor(if (group.isBodyFronting) ColorHelper.getFrontColor(context) else ColorHelper.getBtnColor(context))
-        holder.btnToggleGroupBodyFront.setTextColor(if (group.isBodyFronting) textColor else ColorHelper.getBtnTextColor(context))
+        val btnColor = ColorHelper.getBtnColor(context)
+        val btnTextColor = ColorHelper.getBtnTextColor(context)
+        holder.btnToggleGroupBodyFront.setBackgroundColor(if (group.isBodyFronting) btnTextColor else btnColor)
+        holder.btnToggleGroupBodyFront.setTextColor(if (group.isBodyFronting) btnColor else btnTextColor)
         holder.btnToggleGroupBodyFront.setOnClickListener {
             (context as? SubsystemActivity)?.toggleGroupBodyFront(group)
         }

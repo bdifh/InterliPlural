@@ -134,17 +134,14 @@ class PersonAdapter(
             val btnTextColor = ColorHelper.getBtnTextColor(context)
             if (person.isFront) {
                 holder.frontButton.text = context.getString(R.string.unfront_arrow)
-                val hsv = FloatArray(3)
-                Color.colorToHSV(baseBtnColor, hsv)
-                hsv[2] = 1.0f
-                hsv[1] = hsv[1] * 0.7f
-                holder.frontButton.setBackgroundColor(Color.HSVToColor(hsv))
-                holder.frontButton.setTextColor(Color.WHITE)
+                holder.frontButton.setBackgroundColor(btnTextColor)
+                holder.frontButton.setTextColor(baseBtnColor)
             } else {
                 holder.frontButton.text = context.getString(R.string.front_arrow)
                 holder.frontButton.setBackgroundColor(baseBtnColor)
                 holder.frontButton.setTextColor(btnTextColor)
             }
+
             holder.notificationDot.visibility = if (person.isFront && !person.frontMessage.isNullOrBlank() && !person.messageRead) View.VISIBLE else View.GONE
             val params = holder.card.layoutParams as ViewGroup.MarginLayoutParams
             params.marginStart = (item.depth * 24 * context.resources.displayMetrics.density).toInt() + (8 * context.resources.displayMetrics.density).toInt()
