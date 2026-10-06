@@ -93,7 +93,23 @@ class DiaryActivity : BaseActivity() {
         }
         filterTabVisibility()
         filterNotes()
+
+        val selectTab = intent.getIntExtra("SELECT_TAB", if (intent.getBooleanExtra("OPEN_SYSMAIL", false)) 1 else -1)
+        if (selectTab >= 0 && selectTab < tabLayout.tabCount) {
+            tabLayout.getTabAt(selectTab)?.select()
+        }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val tabLayout = findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayout)
+        val selectTab = intent.getIntExtra("SELECT_TAB", if (intent.getBooleanExtra("OPEN_SYSMAIL", false)) 1 else -1)
+        if (selectTab >= 0 && tabLayout != null && selectTab < tabLayout.tabCount) {
+            tabLayout.getTabAt(selectTab)?.select()
+        }
+    }
+
     private fun showAddBundleDialog() {
         val input = EditText(this).apply { hint = getString(R.string.hint_note_title) }
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)

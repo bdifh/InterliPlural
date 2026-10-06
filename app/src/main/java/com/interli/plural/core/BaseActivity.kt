@@ -60,10 +60,12 @@ abstract class BaseActivity : AppCompatActivity() {
         super.onResume()
         ColorHelper.applySettings(this)
     }
+
     protected fun setupNavigationDrawer() {
         val drawerLayout = findViewById<androidx.drawerlayout.widget.DrawerLayout>(R.id.drawerLayout)
         val navigationView = findViewById<com.google.android.material.navigation.NavigationView>(R.id.navigationView)
         val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar)
+
         if (drawerLayout != null && navigationView != null && toolbar != null) {
             ColorHelper.styleNavigationView(navigationView)
             toolbar.setTitleTextColor(ColorHelper.getTextColor(this))
@@ -72,6 +74,7 @@ abstract class BaseActivity : AppCompatActivity() {
             toolbar.setNavigationOnClickListener {
                 drawerLayout.openDrawer(androidx.core.view.GravityCompat.START)
             }
+
             val header = if (navigationView.headerCount > 0) navigationView.getHeaderView(0) else navigationView.inflateHeaderView(R.layout.nav_header)
             header?.findViewById<View>(R.id.btnNavAddMember)?.setOnClickListener {
                 drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START)
@@ -87,31 +90,14 @@ abstract class BaseActivity : AppCompatActivity() {
                 intent.putExtra("SHOW_DIALOG", R.id.action_add_group)
                 startActivity(intent)
             }
-            updateMenuVisibility(navigationView)
-            val menu = navigationView.menu
-            val idToGroup = mapOf(
-                R.id.action_add_person to 0, R.id.action_add_group to 0,
-                R.id.action_front_page to 1, R.id.action_statistics to 1, R.id.action_who_am_i to 1,
-                R.id.action_relations to 1,
-                R.id.action_subsystem to 1,
-                R.id.action_diary to 2, R.id.action_todo to 2, R.id.action_calendar to 2,
-                R.id.action_mood_tracker to 3, R.id.action_mood_stats to 3, R.id.action_mood_insights to 3,
-                R.id.action_sysmedia to 4, R.id.action_settings to 99
-            )
-            val items = mutableListOf<android.view.MenuItem>()
-            for (i in 0 until menu.size()) { items.add(menu.getItem(i)) }
-            val itemData = items.associateBy({ it.itemId }, { it.title to it.icon })
-            val itemVisibility = items.associateBy({ it.itemId }, { it.isVisible })
-            menu.clear()
-            idToGroup.forEach { (id, groupId) ->
-                itemData[id]?.let { data ->
-                    menu.add(groupId, id, Menu.NONE, data.first).apply {
-                        icon = data.second
-                        isVisible = itemVisibility[id] ?: true
-                    }
-                }
-            }
+
+            updateNavigationMenu(navigationView)
+
             navigationView.setNavigationItemSelectedListener { menuItem ->
+                if (handleCategoryClick(menuItem.itemId, navigationView)) {
+                    return@setNavigationItemSelectedListener true
+                }
+
                 when (menuItem.itemId) {
                     R.id.action_add_person, R.id.action_add_group -> {
                         val intent = android.content.Intent(this, MainActivity::class.java)
@@ -127,6 +113,17 @@ abstract class BaseActivity : AppCompatActivity() {
                     R.id.action_mood_insights -> if (this !is MemberMoodCorrelationActivity) startActivity(android.content.Intent(this, MemberMoodCorrelationActivity::class.java))
                     R.id.action_statistics -> if (this !is StatisticsActivity) startActivity(android.content.Intent(this, StatisticsActivity::class.java))
                     R.id.action_diary -> if (this !is DiaryActivity) startActivity(android.content.Intent(this, DiaryActivity::class.java))
+                    R.id.action_sysmail -> {
+                        if (this is DiaryActivity) {
+                            findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayout)?.getTabAt(1)?.select()
+                        } else {
+                            val intent = android.content.Intent(this, DiaryActivity::class.java).apply {
+                                putExtra("OPEN_SYSMAIL", true)
+                                putExtra("SELECT_TAB", 1)
+                            }
+                            startActivity(intent)
+                        }
+                    }
                     R.id.action_sysmedia -> if (this !is SysmediaActivity) startActivity(android.content.Intent(this, SysmediaActivity::class.java))
                     R.id.action_todo -> if (this !is TodoActivity) startActivity(android.content.Intent(this, TodoActivity::class.java))
                     R.id.action_calendar -> if (this !is CalendarActivity) startActivity(android.content.Intent(this, CalendarActivity::class.java))
@@ -138,42 +135,224 @@ abstract class BaseActivity : AppCompatActivity() {
             }
         }
     }
-    private fun updateMenuVisibility(navigationView: com.google.android.material.navigation.NavigationView) {
+
+    private class ButtonBoxSpan(
+        private val bgColor: Int,
+        private val textColor: Int,
+        private val cornerRadiusDp: Float = 8f,
+        private val paddingHorizontalDp: Float = 12f,
+        private val paddingVerticalDp: Float = 8f
+    ) : android.text.style.ReplacementSpan() {
+
+        override fun getSize(
+            paint: android.graphics.Paint,
+            text: CharSequence,
+            start: Int,
+            end: Int,
+            fm: android.graphics.Paint.FontMetricsInt?
+        ): Int {
+            val density = android.content.res.Resources.getSystem().displayMetrics.density
+            val paddingV = paddingVerticalDp * density
+            if (fm != null) {
+                val metrics = paint.fontMetricsInt
+                fm.top = metrics.top - paddingV.toInt()
+                fm.ascent = metrics.ascent - paddingV.toInt()
+                fm.descent = metrics.descent + paddingV.toInt()
+                fm.bottom = metrics.bottom + paddingV.toInt()
+            }
+            val textWidth = paint.measureText(text, start, end)
+            return (textWidth + paddingHorizontalDp * density * 2).toInt()
+        }
+
+        override fun draw(
+            canvas: android.graphics.Canvas,
+            text: CharSequence,
+            start: Int,
+            end: Int,
+            x: Float,
+            top: Int,
+            y: Int,
+            bottom: Int,
+            paint: android.graphics.Paint
+        ) {
+            val density = android.content.res.Resources.getSystem().displayMetrics.density
+            val paddingH = paddingHorizontalDp * density
+            val paddingV = paddingVerticalDp * density
+            val cornerRadius = cornerRadiusDp * density
+
+            val fontMetrics = paint.fontMetrics
+            val textTop = y + fontMetrics.ascent
+            val textBottom = y + fontMetrics.descent
+
+            val rectLeft = x
+            val rightMargin = if (x > 60f * density) x - 20f * density else x
+            val rectRight = kotlin.math.max(x + paint.measureText(text, start, end) + paddingH * 2, canvas.width.toFloat() - rightMargin)
+            val rectTop = textTop - paddingV
+            val rectBottom = textBottom + paddingV
+
+            val boxPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = bgColor
+                style = android.graphics.Paint.Style.FILL
+            }
+            val rect = android.graphics.RectF(rectLeft, rectTop, rectRight, rectBottom)
+            canvas.drawRoundRect(rect, cornerRadius, cornerRadius, boxPaint)
+
+            val origColor = paint.color
+            paint.color = textColor
+
+            val subText = text.subSequence(start, end).toString()
+            val lastSpaceIdx = subText.lastIndexOf("  ")
+            if (lastSpaceIdx != -1) {
+                val titlePart = subText.substring(0, lastSpaceIdx).trim()
+                val arrowPart = subText.substring(lastSpaceIdx).trim()
+
+                canvas.drawText(titlePart, rectLeft + paddingH, y.toFloat(), paint)
+
+                val arrowWidth = paint.measureText(arrowPart)
+                val arrowX = rectRight - paddingH - arrowWidth
+                canvas.drawText(arrowPart, arrowX, y.toFloat(), paint)
+            } else {
+                canvas.drawText(text, start, end, rectLeft + paddingH, y.toFloat(), paint)
+            }
+
+            paint.color = origColor
+        }
+    }
+
+    private fun formatCategoryTitle(titleResId: Int, expanded: Boolean, indent: String = ""): CharSequence {
+        val arrow = if (expanded) "▼" else "▶"
+        val fullText = "$indent${getString(titleResId)}  $arrow"
+        val spannable = android.text.SpannableString(fullText)
+        val btnColor = ColorHelper.getBtnColor(this)
+        val btnTextColor = ColorHelper.getBtnTextColor(this)
+
+        val span = ButtonBoxSpan(
+            bgColor = btnColor,
+            textColor = btnTextColor,
+            cornerRadiusDp = 8f,
+            paddingHorizontalDp = 12f,
+            paddingVerticalDp = 8f
+        )
+
+        val start = indent.length
+        val end = fullText.length
+        spannable.setSpan(span, start, end, android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
+        return spannable
+    }
+
+    companion object {
+        private const val ID_CAT_PLURAL = 10001
+        private const val ID_CAT_COMMUNICATION = 10002
+        private const val ID_CAT_MOOD = 10003
+        private const val ID_CAT_ADMIN = 10004
+        private const val ID_CAT_STATS = 10005
+    }
+
+    private fun handleCategoryClick(itemId: Int, navigationView: com.google.android.material.navigation.NavigationView): Boolean {
+        val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        val key = when (itemId) {
+            ID_CAT_PLURAL -> "nav_cat_plural_expanded"
+            ID_CAT_COMMUNICATION -> "nav_cat_comm_expanded"
+            ID_CAT_MOOD -> "nav_cat_mood_expanded"
+            ID_CAT_ADMIN -> "nav_cat_admin_expanded"
+            ID_CAT_STATS -> "nav_cat_stats_expanded"
+            else -> return false
+        }
+        val current = sp.getBoolean(key, true)
+        sp.edit().putBoolean(key, !current).apply()
+        
+        navigationView.post {
+            updateNavigationMenu(navigationView)
+        }
+        return true
+    }
+
+    protected fun updateNavigationMenu(navigationView: com.google.android.material.navigation.NavigationView) {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val menu = navigationView.menu
+
+        val pluralExpanded = sharedPref.getBoolean("nav_cat_plural_expanded", true)
+        val commExpanded = sharedPref.getBoolean("nav_cat_comm_expanded", true)
+        val moodExpanded = sharedPref.getBoolean("nav_cat_mood_expanded", true)
+        val adminExpanded = sharedPref.getBoolean("nav_cat_admin_expanded", true)
+        val statsExpanded = sharedPref.getBoolean("nav_cat_stats_expanded", true)
+
         val pluralMaster = sharedPref.getBoolean("module_fronting_enabled", true)
-        val subsystemSub = sharedPref.getBoolean("sub_subsystems_enabled", true) && pluralMaster
-        val moodMaster = sharedPref.getBoolean("module_mood_enabled", true)
-        val notesEnabled = sharedPref.getBoolean("module_notes_enabled", true)
-        val todoEnabled = sharedPref.getBoolean("module_todo_enabled", true)
-        val calendarEnabled = sharedPref.getBoolean("module_calendar_enabled", true)
         val frontSub = sharedPref.getBoolean("sub_front_page", true) && pluralMaster
-        val statsSub = sharedPref.getBoolean("sub_statistics", true) && pluralMaster
+        val subsystemSub = sharedPref.getBoolean("sub_subsystems_enabled", true) && pluralMaster
         val whoAmISub = sharedPref.getBoolean("sub_who_am_i", true) && pluralMaster
         val relationsSub = sharedPref.getBoolean("sub_relations_enabled", true) && pluralMaster
+        val sysmediaSub = sharedPref.getBoolean("module_sysmedia_enabled", true) && pluralMaster
+
+        val moodMaster = sharedPref.getBoolean("module_mood_enabled", true)
         val moodLogSub = sharedPref.getBoolean("sub_mood_log_enabled", true) && moodMaster
         val moodStatsSub = sharedPref.getBoolean("sub_mood_stats_enabled", true) && moodMaster
         val moodInsightsSub = sharedPref.getBoolean("sub_mood_insights", true) && moodMaster
-        val sysmediaSub = sharedPref.getBoolean("module_sysmedia_enabled", true) && pluralMaster
-        menu.findItem(R.id.action_add_person)?.isVisible = frontSub
-        menu.findItem(R.id.action_add_group)?.isVisible = frontSub
-        menu.findItem(R.id.action_front_page)?.isVisible = frontSub
-        menu.findItem(R.id.action_statistics)?.isVisible = statsSub
-        menu.findItem(R.id.action_who_am_i)?.isVisible = whoAmISub
-        menu.findItem(R.id.action_relations)?.isVisible = relationsSub
-        menu.findItem(R.id.action_mood_tracker)?.isVisible = moodLogSub
-        menu.findItem(R.id.action_mood_stats)?.isVisible = moodStatsSub
-        menu.findItem(R.id.action_mood_insights)?.isVisible = moodInsightsSub
-        menu.findItem(R.id.action_diary)?.isVisible = notesEnabled
-        menu.findItem(R.id.action_todo)?.isVisible = todoEnabled
-        menu.findItem(R.id.action_calendar)?.isVisible = calendarEnabled
-        menu.findItem(R.id.action_sysmedia)?.isVisible = sysmediaSub
-        menu.findItem(R.id.action_subsystem)?.isVisible = subsystemSub
-        val header = navigationView.getHeaderView(0)
+
+        val notesEnabled = sharedPref.getBoolean("module_notes_enabled", true)
+        val todoEnabled = sharedPref.getBoolean("module_todo_enabled", true)
+        val calendarEnabled = sharedPref.getBoolean("module_calendar_enabled", true)
+
+        val statsSub = sharedPref.getBoolean("sub_statistics", true) && pluralMaster
+
+        val header = if (navigationView.headerCount > 0) navigationView.getHeaderView(0) else navigationView.inflateHeaderView(R.layout.nav_header)
         header?.findViewById<View>(R.id.btnNavAddMember)?.visibility = if (frontSub) View.VISIBLE else View.GONE
         header?.findViewById<View>(R.id.btnNavAddGroup)?.visibility = if (frontSub) View.VISIBLE else View.GONE
-        menu.findItem(R.id.action_settings)?.isVisible = true
+
+        val menu = navigationView.menu
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            menu.setGroupDividerEnabled(true)
+        }
+        menu.clear()
+
+        val hasPluralChildren = frontSub || subsystemSub || whoAmISub || relationsSub || sysmediaSub
+        if (hasPluralChildren) {
+            menu.add(1, ID_CAT_PLURAL, Menu.NONE, formatCategoryTitle(R.string.nav_cat_plural, pluralExpanded))
+            if (pluralExpanded) {
+                if (frontSub) menu.add(1, R.id.action_front_page, Menu.NONE, "    ${getString(R.string.front_page)}")
+                if (subsystemSub) menu.add(1, R.id.action_subsystem, Menu.NONE, "    ${getString(R.string.subsystem_page)}")
+                if (whoAmISub) menu.add(1, R.id.action_who_am_i, Menu.NONE, "    ${getString(R.string.who_am_i)}")
+                if (relationsSub) menu.add(1, R.id.action_relations, Menu.NONE, "    ${getString(R.string.module_relations)}")
+
+                if (sysmediaSub) {
+                    menu.add(1, ID_CAT_COMMUNICATION, Menu.NONE, formatCategoryTitle(R.string.nav_cat_communication, commExpanded, "    "))
+                    if (commExpanded) {
+                        menu.add(1, R.id.action_sysmedia, Menu.NONE, "        ${getString(R.string.sysmedia)}")
+                        menu.add(1, R.id.action_sysmail, Menu.NONE, "        ${getString(R.string.tab_messages)}")
+                    }
+                }
+            }
+        }
+
+        if (moodLogSub) {
+            menu.add(2, ID_CAT_MOOD, Menu.NONE, formatCategoryTitle(R.string.nav_cat_mood, moodExpanded))
+            if (moodExpanded) {
+                menu.add(2, R.id.action_mood_tracker, Menu.NONE, "    ${getString(R.string.mood_tracker)}")
+            }
+        }
+
+        val hasAdminChildren = notesEnabled || todoEnabled || calendarEnabled
+        if (hasAdminChildren) {
+            menu.add(3, ID_CAT_ADMIN, Menu.NONE, formatCategoryTitle(R.string.nav_cat_administration, adminExpanded))
+            if (adminExpanded) {
+                if (notesEnabled) menu.add(3, R.id.action_diary, Menu.NONE, "    ${getString(R.string.diary)}")
+                if (todoEnabled) menu.add(3, R.id.action_todo, Menu.NONE, "    ${getString(R.string.todo)}")
+                if (calendarEnabled) menu.add(3, R.id.action_calendar, Menu.NONE, "    ${getString(R.string.calendar)}")
+            }
+        }
+
+        val hasStatsChildren = statsSub || moodStatsSub || moodInsightsSub
+        if (hasStatsChildren) {
+            menu.add(4, ID_CAT_STATS, Menu.NONE, formatCategoryTitle(R.string.nav_cat_statistics, statsExpanded))
+            if (statsExpanded) {
+                if (statsSub) menu.add(4, R.id.action_statistics, Menu.NONE, "    ${getString(R.string.statistics)}")
+                if (moodStatsSub) menu.add(4, R.id.action_mood_stats, Menu.NONE, "    ${getString(R.string.mood_stats)}")
+                if (moodInsightsSub) menu.add(4, R.id.action_mood_insights, Menu.NONE, "    ${getString(R.string.mood_insights)}")
+            }
+        }
+
+        menu.add(5, R.id.action_settings, Menu.NONE, getString(R.string.settings))
     }
+
     override fun setContentView(@LayoutRes layoutResID: Int) {
         super.setContentView(layoutResID)
         SilentUi.disableSoundEffects(window?.decorView)

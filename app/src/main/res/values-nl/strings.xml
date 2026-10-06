@@ -595,4 +595,9 @@
     <string name="sysmedia_dm_widget_select_accounts">Selecteer accounts voor ongelezen DM widget</string>
     <string name="no_unread_dms">Geen ongelezen DMs</string>
     <string name="unread_dms_count">%d ongelezen</string>
+    <string name="nav_cat_plural">Plural</string>
+    <string name="nav_cat_communication">Communicatie</string>
+    <string name="nav_cat_mood">Mood</string>
+    <string name="nav_cat_administration">Administratie</string>
+    <string name="nav_cat_statistics">Statistieken</string>
 </resources>

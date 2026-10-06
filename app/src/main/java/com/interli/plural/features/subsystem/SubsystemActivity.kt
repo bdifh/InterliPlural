@@ -55,7 +55,7 @@ class SubsystemMemberAdapter(
     override fun onBindViewHolder(holder: MemberViewHolder, position: Int) {
         val subMember = members[position]
         val activity = context as? SubsystemActivity
-        val linkedPerson = activity?.mainPeople?.find { it.id == subMember.personId }
+        val linkedPerson = activity?.mainPeople?.find { it.id == subMember.personId || it.id == subMember.id }
         val displayName = linkedPerson?.name ?: subMember.name
         val displayColor = linkedPerson?.profileColor ?: subMember.profileColor
         val avatarUri = linkedPerson?.profilePictureUri
@@ -128,8 +128,6 @@ class SubsystemGroupAdapter(
         holder.groupCard.setCardBackgroundColor(ColorHelper.getBgColor(context))
         holder.tvName.text = group.name
         holder.tvName.setTextColor(textColor)
-
-        // Subsystem Body Front Knop
         holder.btnToggleGroupBodyFront.text = if (group.isBodyFronting) context.getString(R.string.unfront_arrow) else context.getString(R.string.front_arrow)
         holder.btnToggleGroupBodyFront.setBackgroundColor(if (group.isBodyFronting) ColorHelper.getFrontColor(context) else ColorHelper.getBtnColor(context))
         holder.btnToggleGroupBodyFront.setTextColor(if (group.isBodyFronting) textColor else ColorHelper.getBtnTextColor(context))
@@ -138,7 +136,11 @@ class SubsystemGroupAdapter(
         }
 
         val fronters = group.members.filter { it.isFronting }
-        holder.tvFrontStatus.text = if (fronters.isEmpty()) context.getString(R.string.nobody_fronting_group) else fronters.joinToString { it.name }
+        val fronterNames = fronters.map { subMember ->
+            val linkedPerson = (context as? SubsystemActivity)?.mainPeople?.find { it.id == subMember.personId || it.id == subMember.id }
+            linkedPerson?.name ?: subMember.name
+        }
+        holder.tvFrontStatus.text = if (fronterNames.isEmpty()) context.getString(R.string.nobody_fronting_group) else fronterNames.joinToString(", ")
         holder.tvFrontStatus.setTextColor(textColor)
         holder.frontCard.setCardBackgroundColor(ColorHelper.getFrontColor(context))
 
@@ -221,6 +223,30 @@ class SubsystemActivity : BaseActivity() {
         val typeGroups = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
         groups.clear()
         groups.addAll(Gson().fromJson(jsonGroups, typeGroups) ?: mutableListOf())
+
+        var hasChanges = false
+        groups.forEach { group ->
+            group.members.forEach { member ->
+                val linked = mainPeople.find { it.id == member.personId || it.id == member.id }
+                if (linked != null) {
+                    if (member.personId == null) {
+                        member.personId = linked.id
+                        hasChanges = true
+                    }
+                    if (member.name != linked.name) {
+                        member.name = linked.name
+                        hasChanges = true
+                    }
+                    if (member.profileColor != linked.profileColor) {
+                        member.profileColor = linked.profileColor
+                        hasChanges = true
+                    }
+                }
+            }
+        }
+        if (hasChanges) {
+            saveData()
+        }
 
         val jsonSessions = sharedPref.getString("subsystem_sessions", "[]")
         val typeSessions = object : TypeToken<MutableList<FrontSession>>() {}.type
@@ -319,11 +345,13 @@ class SubsystemActivity : BaseActivity() {
     fun toggleMemberFront(member: SubsystemMember) {
         member.isFronting = !member.isFronting
         val now = System.currentTimeMillis()
+        val linkedPerson = mainPeople.find { it.id == member.personId }
+        val displayName = linkedPerson?.name ?: member.name
 
         if (member.isFronting) {
             subsystemSessions.add(
                 FrontSession(
-                    personName = member.name,
+                    personName = displayName,
                     startTime = now,
                     personId = member.personId ?: member.id
                 )

@@ -726,4 +726,9 @@
     <string name="sysmedia_dm_widget_select_accounts">Select Accounts for Unread DMs Widget</string>
     <string name="no_unread_dms">No unread DMs</string>
     <string name="unread_dms_count">%d unread</string>
+    <string name="nav_cat_plural">Plural</string>
+    <string name="nav_cat_communication">Communication</string>
+    <string name="nav_cat_mood">Mood</string>
+    <string name="nav_cat_administration">Administration</string>
+    <string name="nav_cat_statistics">Statistics</string>
 </resources>

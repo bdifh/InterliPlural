@@ -31,11 +31,18 @@ class SubsystemFronterWidget : AppWidgetProvider() {
             val type = object : TypeToken<MutableList<SubsystemGroup>>() {}.type
             val groups: List<SubsystemGroup> = try { Gson().fromJson(json, type) } catch (e: Exception) { emptyList() }
 
+            val peopleJson = sharedPref.getString("people_list", "[]") ?: "[]"
+            val peopleType = object : TypeToken<List<com.interli.plural.Person>>() {}.type
+            val people: List<com.interli.plural.Person> = try { Gson().fromJson(peopleJson, peopleType) } catch (_: Exception) { emptyList() }
+
             val group = groups.find { it.id == groupId }
             val fronters = group?.members?.filter { it.isFronting } ?: emptyList()
 
             val namesText = if (fronters.isEmpty()) context.getString(R.string.nobody_fronting)
-            else fronters.joinToString(", ") { it.name }
+            else fronters.joinToString(", ") { subMember ->
+                val linkedPerson = people.find { it.id == subMember.personId || it.id == subMember.id }
+                linkedPerson?.name ?: subMember.name
+            }
 
             views.setTextViewText(R.id.tvWidgetHeader, group?.name ?: "Subsystem")
             views.setTextViewText(R.id.tvWidgetFronterNames, namesText)

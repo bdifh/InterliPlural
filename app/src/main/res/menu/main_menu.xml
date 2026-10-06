@@ -60,6 +60,10 @@
             android:id="@+id/action_sysmedia"
             android:title="@string/sysmedia"
             app:showAsAction="never" />
+        <item
+            android:id="@+id/action_sysmail"
+            android:title="@string/tab_messages"
+            app:showAsAction="never" />
     </group>
 
     <group android:id="@+id/group_settings">

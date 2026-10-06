@@ -631,37 +631,14 @@ class MainActivity : BaseActivity() {
     private fun updateMenuVisibility() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val navigationView = findViewById<NavigationView>(R.id.navigationView)
-        val menu = navigationView.menu
+        if (navigationView != null) {
+            updateNavigationMenu(navigationView)
+        }
         val pluralMaster = sharedPref.getBoolean("module_fronting_enabled", true)
-        val moodMaster = sharedPref.getBoolean("module_mood_enabled", true)
-        val notesEnabled = sharedPref.getBoolean("module_notes_enabled", true)
-        val todoEnabled = sharedPref.getBoolean("module_todo_enabled", true)
-        val calendarEnabled = sharedPref.getBoolean("module_calendar_enabled", true)
         val frontSub = sharedPref.getBoolean("sub_front_page", true) && pluralMaster
-        val statsSub = sharedPref.getBoolean("sub_statistics", true) && pluralMaster
-        val whoAmISub = sharedPref.getBoolean("sub_who_am_i", true) && pluralMaster
-        val sysmediaSub = sharedPref.getBoolean("module_sysmedia_enabled", true) && pluralMaster
-        val moodLogSub = sharedPref.getBoolean("sub_mood_log_enabled", true) && moodMaster
-        val moodStatsSub = sharedPref.getBoolean("sub_mood_stats_enabled", true) && moodMaster
-        menu.findItem(R.id.action_front_page)?.isVisible = frontSub
-        menu.findItem(R.id.action_statistics)?.isVisible = statsSub
-        menu.findItem(R.id.action_who_am_i)?.isVisible = whoAmISub
-        menu.findItem(R.id.action_mood_tracker)?.isVisible = moodLogSub
-        menu.findItem(R.id.action_mood_stats)?.isVisible = moodStatsSub
-        menu.findItem(R.id.action_diary)?.isVisible = notesEnabled
-        menu.findItem(R.id.action_sysmedia)?.isVisible = sysmediaSub
-        menu.findItem(R.id.action_todo)?.isVisible = todoEnabled
-        menu.findItem(R.id.action_calendar)?.isVisible = calendarEnabled
-        val header = navigationView.getHeaderView(0)
-        header?.findViewById<View>(R.id.btnNavAddMember)?.visibility =
-            if (frontSub) View.VISIBLE else View.GONE
-        header?.findViewById<View>(R.id.btnNavAddGroup)?.visibility =
-            if (frontSub) View.VISIBLE else View.GONE
         findViewById<View>(R.id.cardInfo)?.visibility = if (frontSub) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.recyclerView)?.visibility =
-            if (frontSub) View.VISIBLE else View.GONE
-        findViewById<TextView>(R.id.tvModuleDisabled)?.visibility =
-            if (frontSub) View.GONE else View.VISIBLE
+        findViewById<View>(R.id.recyclerView)?.visibility = if (frontSub) View.VISIBLE else View.GONE
+        findViewById<TextView>(R.id.tvModuleDisabled)?.visibility = if (frontSub) View.GONE else View.VISIBLE
     }
 
     override fun onResume() {
@@ -793,6 +770,7 @@ class MainActivity : BaseActivity() {
         rvTiles.adapter = SubsystemTileAdapter(
             context = this,
             items = tileItems,
+            people = people,
             isMemberBodyFronting = { subMember ->
                 people.any { p ->
                     (p.id == subMember.personId || p.name.equals(
@@ -1288,6 +1266,7 @@ class MainActivity : BaseActivity() {
     class SubsystemTileAdapter(
         private val context: android.content.Context,
         private val items: List<Pair<SubsystemGroup, SubsystemMember?>>,
+        private val people: List<Person>,
         private val isMemberBodyFronting: (SubsystemMember) -> Boolean,
         private val onToggleMemberBodyFront: (SubsystemMember) -> Unit,
         private val onToggleGroupBodyFront: (SubsystemGroup) -> Unit
@@ -1325,7 +1304,9 @@ class MainActivity : BaseActivity() {
             }
 
             if (subMember != null) {
-                holder.tvFronterName.text = subMember.name
+                val linkedPerson = people.find { it.id == subMember.personId || it.id == subMember.id }
+                val displayName = linkedPerson?.name ?: subMember.name
+                holder.tvFronterName.text = displayName
                 holder.tvFronterName.setTextColor(textColor)
 
                 val isMemberFront = isMemberBodyFronting(subMember)
