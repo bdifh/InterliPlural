@@ -1,0 +1,1419 @@
+package com.interli.plural.features.health
+
+import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.os.Bundle
+import android.text.InputType
+import android.text.format.DateFormat
+import android.view.Gravity
+import android.view.View
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.SeekBar
+import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
+import com.interli.plural.Person
+import com.interli.plural.R
+import com.interli.plural.core.BaseActivity
+import com.interli.plural.core.ColorHelper
+import com.interli.plural.features.member.MemberHelper
+import com.interli.plural.features.member.WhoAmIActivity
+import java.util.Calendar
+import java.util.Date
+
+class HealthActivity : BaseActivity() {
+
+    private lateinit var container: LinearLayout
+    private var activeMemberName: String? = null
+    private var activeMemberId: String? = null
+    private var systemMembers: List<Person> = emptyList()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_health)
+        setupNavigationDrawer()
+
+        container = findViewById(R.id.healthContainer)
+        findViewById<MaterialButton>(R.id.btnHealthSettings).let { btn ->
+            styleMaterialButton(btn, primary = false)
+            btn.setOnClickListener {
+                startActivity(Intent(this, HealthSettingsActivity::class.java))
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        loadActiveMember()
+        renderHealthPage()
+    }
+
+    private fun loadActiveMember() {
+        systemMembers = MemberHelper.loadAllPeople(this).filter { !it.isArchived }
+        val frontPerson = systemMembers.find { it.isFront }
+        activeMemberId = frontPerson?.id
+        activeMemberName = frontPerson?.name ?: getString(R.string.unnamed_field)
+    }
+
+    private fun createCard(): MaterialCardView {
+        return MaterialCardView(this).apply {
+            radius = 16f
+            cardElevation = 2f
+            useCompatPadding = true
+            setCardBackgroundColor(ColorHelper.getBgColor(this@HealthActivity))
+            strokeColor = ColorHelper.getBtnColor(this@HealthActivity) and 0x44FFFFFF
+            strokeWidth = 2
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, 0, 0, 16) }
+        }
+    }
+
+    private fun styleMaterialButton(btn: MaterialButton, primary: Boolean = true) {
+        val btnBg = ColorHelper.getBtnColor(this)
+        val btnText = ColorHelper.getBtnTextColor(this)
+        val globalText = ColorHelper.getTextColor(this)
+        if (primary) {
+            btn.backgroundTintList = ColorStateList.valueOf(btnBg)
+            btn.setTextColor(btnText)
+            btn.strokeWidth = 0
+        } else {
+            btn.backgroundTintList = ColorStateList.valueOf(Color.TRANSPARENT)
+            btn.setTextColor(globalText)
+            btn.strokeColor = ColorStateList.valueOf(btnBg)
+            btn.strokeWidth = (1.5f * resources.displayMetrics.density).toInt()
+        }
+        btn.cornerRadius = (10 * resources.displayMetrics.density).toInt()
+    }
+
+    private fun createStyledButton(textStr: String, primary: Boolean = true): MaterialButton {
+        val btn = MaterialButton(this)
+        btn.text = textStr
+        btn.textSize = 12f
+        styleMaterialButton(btn, primary)
+        return btn
+    }
+
+    private fun getLastLogSubtitle(type: String, logs: List<HealthLogEntry>): TextView {
+        val log = logs.find { it.type == type }
+        val subtitleText = if (log != null) {
+            val timeStr = DateFormat.getTimeFormat(this).format(Date(log.timestamp)) + " " +
+                    DateFormat.getDateFormat(this).format(Date(log.timestamp))
+            val member = log.memberName ?: getString(R.string.unnamed_field)
+            getString(R.string.label_last_logged, timeStr, member)
+        } else {
+            getString(R.string.label_never_logged)
+        }
+        return TextView(this).apply {
+            text = subtitleText
+            textSize = 12f
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            alpha = 0.7f
+            setPadding(0, 2, 0, 12)
+        }
+    }
+
+    private fun renderHealthPage() {
+        val settings = HealthHelper.loadSettings(this)
+        val logs = HealthHelper.loadLogs(this)
+        container.removeAllViews()
+
+        renderActiveMemberHeader()
+
+        if (settings.showHydration) renderHydrationCard(logs)
+        if (settings.showEatenCheck) renderEatenCard()
+        if (settings.showNutritionSchedule) renderNutritionCard(logs)
+        if (settings.showEnergySlider) renderEnergyCard(logs)
+        if (settings.showRest) renderRestCard(logs)
+        if (settings.showWeight) renderWeightCard(logs)
+        if (settings.showMedication) renderMedicationCard(logs)
+        if (settings.showSensations) renderSensationsCard(logs)
+        if (settings.showCustomCounters) renderCustomCountersCard(logs)
+        if (settings.showCustomSliders) renderCustomSlidersCard(logs)
+
+        renderRecentLogsCard(logs)
+    }
+
+    private fun renderActiveMemberHeader() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 16)
+        }
+        val tvActive = TextView(this).apply {
+            text = getString(R.string.logged_in_as, activeMemberName)
+            textSize = 15f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val btnSwitch = createStyledButton(getString(R.string.select_member), primary = false).apply {
+            setOnClickListener { showMemberSelectDialog() }
+        }
+        layout.addView(tvActive)
+        layout.addView(btnSwitch)
+        container.addView(layout)
+    }
+
+    private fun showMemberSelectDialog() {
+        if (systemMembers.isEmpty()) return
+        val names = systemMembers.map { it.name }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.select_member))
+            .setItems(names) { _, which ->
+                val selected = systemMembers[which]
+                activeMemberId = selected.id
+                activeMemberName = selected.name
+                renderHealthPage()
+            }
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun renderHydrationCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.hydration_counter_title)
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+        val subtitle = getLastLogSubtitle(titleKey, logs)
+
+        var count = HealthHelper.getHydrationCount(this)
+        val target = 8
+        val tvStatus = TextView(this).apply {
+            text = "$count / $target"
+            textSize = 22f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, 8, 0, 12)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val btnLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        val btnMinus = createStyledButton("-", primary = false).apply {
+            setOnClickListener {
+                if (count > 0) {
+                    count--
+                    HealthHelper.setHydrationCount(this@HealthActivity, count)
+                    tvStatus.text = "$count / $target"
+                }
+            }
+        }
+        val btnPlus = createStyledButton("+", primary = true).apply {
+            setOnClickListener {
+                count++
+                HealthHelper.setHydrationCount(this@HealthActivity, count)
+                tvStatus.text = "$count / $target"
+                HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                    memberId = activeMemberId,
+                    memberName = activeMemberName,
+                    type = titleKey,
+                    value = "$count / $target"
+                ))
+                renderHealthPage()
+            }
+        }
+        val btnReset = createStyledButton(getString(R.string.btn_reset), primary = false).apply {
+            setOnClickListener {
+                count = 0
+                HealthHelper.setHydrationCount(this@HealthActivity, count)
+                tvStatus.text = "$count / $target"
+            }
+        }
+
+        btnLayout.addView(btnMinus)
+        btnLayout.addView(btnPlus)
+        btnLayout.addView(btnReset)
+
+        cardLayout.addView(title)
+        cardLayout.addView(subtitle)
+        cardLayout.addView(tvStatus)
+        cardLayout.addView(btnLayout)
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun renderEatenCard() {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.eaten_check_title)
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            setPadding(0, 0, 0, 12)
+        }
+        cardLayout.addView(title)
+
+        val meals = listOf(
+            getString(R.string.meal_breakfast),
+            getString(R.string.meal_lunch),
+            getString(R.string.meal_dinner)
+        )
+
+        val todayMillis = System.currentTimeMillis()
+        val allEatenRecords = HealthHelper.loadEatenRecords(this)
+        val density = resources.displayMetrics.density
+
+        meals.forEach { meal ->
+            val record = HealthHelper.getEatenRecordFromList(allEatenRecords, todayMillis, meal)
+            val isChecked = record != null && record.isChecked
+
+            val rowLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding((8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt(), (6 * density).toInt())
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(Color.TRANSPARENT)
+                    setStroke(1, ColorHelper.getBtnColor(this@HealthActivity) and 0x22FFFFFF)
+                    cornerRadius = 8f * density
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (4 * density).toInt(), 0, (4 * density).toInt()) }
+            }
+
+            // 1. Vinkje (Uiterst links)
+            val checkBox = androidx.appcompat.widget.AppCompatCheckBox(this).apply {
+                this.isChecked = isChecked
+                buttonTintList = ColorStateList.valueOf(ColorHelper.getBtnColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, (2 * density).toInt(), 0) }
+                setOnClickListener {
+                    val newChecked = this.isChecked
+                    if (newChecked) {
+                        val newRecord = record ?: EatenMealRecord(
+                            mealType = meal,
+                            timestamp = System.currentTimeMillis(),
+                            memberId = activeMemberId,
+                            memberName = activeMemberName,
+                            isChecked = true
+                        )
+                        newRecord.isChecked = true
+                        newRecord.timestamp = System.currentTimeMillis()
+                        newRecord.memberId = activeMemberId
+                        newRecord.memberName = activeMemberName
+                        HealthHelper.saveOrUpdateEatenRecord(this@HealthActivity, newRecord)
+                        HealthHelper.setLastEatenTime(this@HealthActivity, newRecord.timestamp, meal)
+                        HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                            memberId = activeMemberId,
+                            memberName = activeMemberName,
+                            type = titleKey,
+                            value = meal
+                        ))
+                    } else {
+                        record?.let {
+                            it.isChecked = false
+                            HealthHelper.saveOrUpdateEatenRecord(this@HealthActivity, it)
+                        }
+                    }
+                    renderHealthPage()
+                }
+            }
+
+            // 2. Benaming Maaltijd (Vaste breedte 75dp, direct naast vinkje)
+            val tvMealName = TextView(this).apply {
+                text = meal
+                textSize = 13f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams(
+                    (75 * density).toInt(),
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, (4 * density).toInt(), 0) }
+            }
+
+            // 3. De Knop (Pakken alle overgebleven ruimte: weight = 1f)
+            val foodText = if (record != null && record.eatenItems.isNotEmpty()) {
+                record.eatenItems.joinToString(", ")
+            } else {
+                "+"
+            }
+
+            val btnFood = createStyledButton(foodText, primary = false).apply {
+                textSize = 11f
+                isAllCaps = false
+                setPadding((8 * density).toInt(), (4 * density).toInt(), (8 * density).toInt(), (4 * density).toInt())
+                alpha = if (isChecked) 1.0f else 0.6f
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                ).apply { setMargins((4 * density).toInt(), 0, (4 * density).toInt(), 0) }
+                setOnClickListener {
+                    showFoodItemsDialog(meal, record, todayMillis) {
+                        renderHealthPage()
+                    }
+                }
+            }
+
+            // 4. Tijd (Vaste breedte 55dp)
+            val timeStr = if (isChecked && record != null) {
+                DateFormat.getTimeFormat(this).format(Date(record.timestamp))
+            } else {
+                "-"
+            }
+
+            val tvTime = TextView(this).apply {
+                text = timeStr
+                textSize = 11f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                alpha = if (isChecked) 1.0f else 0.5f
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    (55 * density).toInt(),
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            // 5. Lid (Vaste breedte 50dp, rechts uitgelijnd)
+            val mName = if (isChecked && record != null) {
+                record.memberName ?: activeMemberName ?: getString(R.string.unnamed_field)
+            } else {
+                "-"
+            }
+
+            val tvMember = TextView(this).apply {
+                text = mName
+                textSize = 11f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                alpha = if (isChecked) 1.0f else 0.5f
+                gravity = Gravity.END
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                maxLines = 1
+                layoutParams = LinearLayout.LayoutParams(
+                    (50 * density).toInt(),
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            }
+
+            val longClickListener = View.OnLongClickListener {
+                showEditEatenMealDialog(meal, record, todayMillis) {
+                    renderHealthPage()
+                }
+                true
+            }
+
+            tvTime.setOnLongClickListener(longClickListener)
+            tvMember.setOnLongClickListener(longClickListener)
+            rowLayout.setOnLongClickListener(longClickListener)
+
+            rowLayout.addView(checkBox)
+            rowLayout.addView(tvMealName)
+            rowLayout.addView(btnFood)
+            rowLayout.addView(tvTime)
+            rowLayout.addView(tvMember)
+
+            cardLayout.addView(rowLayout)
+        }
+
+        val btnTimeline = createStyledButton(getString(R.string.btn_eaten_timeline), primary = false).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { setMargins(0, (16 * density).toInt(), 0, 0) }
+            setOnClickListener {
+                startActivity(Intent(this@HealthActivity, EatenTimelineActivity::class.java))
+            }
+        }
+
+        cardLayout.addView(btnTimeline)
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun showEditEatenMealDialog(
+        mealName: String,
+        record: EatenMealRecord?,
+        defaultDateMillis: Long,
+        onSaved: () -> Unit
+    ) {
+        val existingRecord = record ?: EatenMealRecord(
+            mealType = mealName,
+            timestamp = defaultDateMillis,
+            memberId = activeMemberId,
+            memberName = activeMemberName,
+            isChecked = true
+        )
+
+        var selectedMemberId = existingRecord.memberId ?: activeMemberId
+        var selectedMemberName = existingRecord.memberName ?: activeMemberName ?: getString(R.string.unnamed_field)
+        var selectedTimestamp = existingRecord.timestamp
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val tvMember = TextView(this).apply {
+            text = getString(R.string.logged_in_as, selectedMemberName)
+            textSize = 14f
+            setPadding(0, 8, 0, 12)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val btnSelectMember = createStyledButton(getString(R.string.select_member), primary = false).apply {
+            setOnClickListener {
+                if (systemMembers.isNotEmpty()) {
+                    val names = systemMembers.map { it.name }.toTypedArray()
+                    AlertDialog.Builder(this@HealthActivity)
+                        .setTitle(getString(R.string.select_member))
+                        .setItems(names) { _, which ->
+                            val m = systemMembers[which]
+                            selectedMemberId = m.id
+                            selectedMemberName = m.name
+                            tvMember.text = getString(R.string.logged_in_as, selectedMemberName)
+                        }
+                        .show().let { ColorHelper.styleAlertDialog(it, this@HealthActivity) }
+                }
+            }
+        }
+
+        val dateFormat = DateFormat.getDateFormat(this)
+        val timeFormat = DateFormat.getTimeFormat(this)
+
+        val tvDateTime = TextView(this).apply {
+            text = "${dateFormat.format(Date(selectedTimestamp))} ${timeFormat.format(Date(selectedTimestamp))}"
+            textSize = 14f
+            setPadding(0, 16, 0, 12)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val btnSelectDateTime = createStyledButton(getString(R.string.label_select_date_time), primary = false).apply {
+            setOnClickListener {
+                val cal = Calendar.getInstance().apply { timeInMillis = selectedTimestamp }
+                android.app.DatePickerDialog(
+                    this@HealthActivity,
+                    { _, year, month, dayOfMonth ->
+                        cal.set(Calendar.YEAR, year)
+                        cal.set(Calendar.MONTH, month)
+                        cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                        android.app.TimePickerDialog(
+                            this@HealthActivity,
+                            { _, hourOfDay, minute ->
+                                cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                                cal.set(Calendar.MINUTE, minute)
+                                selectedTimestamp = cal.timeInMillis
+                                tvDateTime.text = "${dateFormat.format(Date(selectedTimestamp))} ${timeFormat.format(Date(selectedTimestamp))}"
+                            },
+                            cal.get(Calendar.HOUR_OF_DAY),
+                            cal.get(Calendar.MINUTE),
+                            true
+                        ).show()
+                    },
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH)
+                ).show()
+            }
+        }
+
+        layout.addView(tvMember)
+        layout.addView(btnSelectMember)
+        layout.addView(tvDateTime)
+        layout.addView(btnSelectDateTime)
+
+        val builder = AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_edit_eaten_meal, mealName))
+            .setView(layout)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                existingRecord.memberId = selectedMemberId
+                existingRecord.memberName = selectedMemberName
+                existingRecord.timestamp = selectedTimestamp
+                existingRecord.isChecked = true
+                HealthHelper.saveOrUpdateEatenRecord(this, existingRecord)
+                HealthHelper.setLastEatenTime(this, selectedTimestamp, mealName)
+                onSaved()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+
+        if (record != null) {
+            builder.setNeutralButton(getString(R.string.delete)) { _, _ ->
+                HealthHelper.deleteEatenRecord(this, record.id)
+                onSaved()
+            }
+        }
+
+        builder.show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun renderNutritionCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.nutrition_schedule_title)
+        val titleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val btnAdd = createStyledButton(getString(R.string.btn_add), primary = false).apply {
+            setOnClickListener { showAddNutritionDialog() }
+        }
+        titleLayout.addView(title)
+        titleLayout.addView(btnAdd)
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
+
+        val entries = HealthHelper.loadNutritionEntries(this)
+        entries.forEach { entry ->
+            val entryLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, 4, 0, 4)
+            }
+            val tv = TextView(this).apply {
+                text = "${entry.dayOfWeek} [${entry.mealType}]: ${entry.description}"
+                textSize = 13f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val btnDel = createStyledButton("✕", primary = false).apply {
+                setOnClickListener {
+                    entries.remove(entry)
+                    HealthHelper.saveNutritionEntries(this@HealthActivity, entries)
+                    renderHealthPage()
+                }
+            }
+            entryLayout.addView(tv)
+            entryLayout.addView(btnDel)
+            cardLayout.addView(entryLayout)
+        }
+
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun showAddNutritionDialog() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 16)
+        }
+        val etDay = EditText(this).apply { hint = getString(R.string.hint_nutrition_day) }
+        val etType = EditText(this).apply { hint = getString(R.string.hint_field_title) }
+        val etDesc = EditText(this).apply { hint = getString(R.string.hint_nutrition_description) }
+        layout.addView(etDay)
+        layout.addView(etType)
+        layout.addView(etDesc)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_add_nutrition))
+            .setView(layout)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val day = etDay.text.toString().trim()
+                val type = etType.text.toString().trim()
+                val desc = etDesc.text.toString().trim()
+                if (desc.isNotEmpty()) {
+                    val entries = HealthHelper.loadNutritionEntries(this)
+                    entries.add(NutritionScheduleEntry(dayOfWeek = day, mealType = type, description = desc))
+                    HealthHelper.saveNutritionEntries(this, entries)
+                    HealthHelper.addLogEntry(this, HealthLogEntry(
+                        memberId = activeMemberId,
+                        memberName = activeMemberName,
+                        type = getString(R.string.nutrition_schedule_title),
+                        value = "$day - $desc"
+                    ))
+                    renderHealthPage()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun renderEnergyCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.energy_level_title)
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+        val subtitle = getLastLogSubtitle(titleKey, logs)
+
+        var energyVal = 5
+        val tvVal = TextView(this).apply {
+            text = "$energyVal / 10"
+            textSize = 18f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, 4, 0, 4)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val seekBar = SeekBar(this).apply {
+            max = 10
+            progress = energyVal
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
+                    energyVal = p
+                    tvVal.text = "$energyVal / 10"
+                }
+                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStopTrackingTouch(sb: SeekBar?) {}
+            })
+        }
+
+        val btnLog = createStyledButton(getString(R.string.btn_log_entry), primary = true).apply {
+            setOnClickListener {
+                HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                    memberId = activeMemberId,
+                    memberName = activeMemberName,
+                    type = titleKey,
+                    value = "$energyVal / 10"
+                ))
+                renderHealthPage()
+            }
+        }
+
+        cardLayout.addView(title)
+        cardLayout.addView(subtitle)
+        cardLayout.addView(tvVal)
+        cardLayout.addView(seekBar)
+        cardLayout.addView(btnLog)
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun renderRestCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.rest_title)
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+        val subtitle = getLastLogSubtitle(titleKey, logs)
+
+        val startTs = HealthHelper.getRestStartTime(this)
+        val btnToggle = createStyledButton(
+            if (startTs > 0) getString(R.string.btn_stop_rest) else getString(R.string.btn_start_rest),
+            primary = true
+        ).apply {
+            setOnClickListener {
+                val now = System.currentTimeMillis()
+                if (startTs > 0) {
+                    val durationMin = ((now - startTs) / 60000).toInt()
+                    HealthHelper.setRestStartTime(this@HealthActivity, 0L)
+                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                        memberId = activeMemberId,
+                        memberName = activeMemberName,
+                        type = titleKey,
+                        value = "$durationMin min"
+                    ))
+                } else {
+                    HealthHelper.setRestStartTime(this@HealthActivity, now)
+                }
+                renderHealthPage()
+            }
+        }
+
+        val quickRestLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf(15, 30, 60).forEach { mins ->
+            val btnQuick = createStyledButton(getString(R.string.btn_log_rest, mins), primary = false).apply {
+                textSize = 10f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(4,0,4,0) }
+                setOnClickListener {
+                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                        memberId = activeMemberId,
+                        memberName = activeMemberName,
+                        type = titleKey,
+                        value = "$mins min"
+                    ))
+                    renderHealthPage()
+                }
+            }
+            quickRestLayout.addView(btnQuick)
+        }
+
+        cardLayout.addView(title)
+        cardLayout.addView(subtitle)
+        cardLayout.addView(btnToggle)
+        cardLayout.addView(quickRestLayout)
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun renderWeightCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.weight_tracker_title)
+        val titleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val btnLog = createStyledButton(getString(R.string.btn_add), primary = false).apply {
+            setOnClickListener { showLogWeightDialog() }
+        }
+        titleLayout.addView(title)
+        titleLayout.addView(btnLog)
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun showLogWeightDialog() {
+        val et = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+            hint = getString(R.string.hint_weight_kg)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_log_weight))
+            .setView(et)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val valStr = et.text.toString().trim()
+                if (valStr.isNotEmpty()) {
+                    HealthHelper.addLogEntry(this, HealthLogEntry(
+                        memberId = activeMemberId,
+                        memberName = activeMemberName,
+                        type = getString(R.string.weight_tracker_title),
+                        value = "$valStr kg"
+                    ))
+                    renderHealthPage()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun renderMedicationCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.medication_title)
+        val titleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val btnAdd = createStyledButton(getString(R.string.btn_add), primary = false).apply {
+            setOnClickListener { showAddMedicationDialog() }
+        }
+        titleLayout.addView(title)
+        titleLayout.addView(btnAdd)
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
+
+        val medications = HealthHelper.loadMedications(this)
+        medications.forEach { med ->
+            val itemLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, 4, 0, 4)
+            }
+            val tv = TextView(this).apply {
+                text = "${med.name} (${med.dosage})"
+                textSize = 13f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val btnTake = createStyledButton(getString(R.string.btn_take_medication), primary = true).apply {
+                setOnClickListener {
+                    med.isTakenToday = true
+                    med.lastTakenTimestamp = System.currentTimeMillis()
+                    HealthHelper.saveMedications(this@HealthActivity, medications)
+                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                        memberId = activeMemberId,
+                        memberName = activeMemberName,
+                        type = titleKey,
+                        value = "${med.name} (${med.dosage})"
+                    ))
+                    renderHealthPage()
+                }
+            }
+            val btnDel = createStyledButton("✕", primary = false).apply {
+                setOnClickListener {
+                    medications.remove(med)
+                    HealthHelper.saveMedications(this@HealthActivity, medications)
+                    renderHealthPage()
+                }
+            }
+            itemLayout.addView(tv)
+            itemLayout.addView(btnTake)
+            itemLayout.addView(btnDel)
+            cardLayout.addView(itemLayout)
+        }
+
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun showAddMedicationDialog() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 16)
+        }
+        val etName = EditText(this).apply { hint = getString(R.string.hint_medication_name) }
+        val etDosage = EditText(this).apply { hint = getString(R.string.hint_medication_dosage) }
+        layout.addView(etName)
+        layout.addView(etDosage)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_add_medication))
+            .setView(layout)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val name = etName.text.toString().trim()
+                val dosage = etDosage.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    val list = HealthHelper.loadMedications(this)
+                    list.add(MedicationItem(name = name, dosage = dosage))
+                    HealthHelper.saveMedications(this, list)
+                    renderHealthPage()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun renderSensationsCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.sensations_title)
+        val titleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val btnAdd = createStyledButton(getString(R.string.btn_add), primary = false).apply {
+            setOnClickListener { showAddSensationDialog() }
+        }
+        titleLayout.addView(title)
+        titleLayout.addView(btnAdd)
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
+
+        val sensations = HealthHelper.loadSensations(this)
+        sensations.forEach { sensation ->
+            val itemLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, 4, 0, 12)
+            }
+            val headerLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            var intensityVal = sensation.intensity
+            val tvName = TextView(this).apply {
+                text = "${sensation.name}: $intensityVal/10"
+                textSize = 13f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val btnLog = createStyledButton(getString(R.string.btn_log_entry), primary = true).apply {
+                setOnClickListener {
+                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                        memberId = activeMemberId,
+                        memberName = activeMemberName,
+                        type = sensation.name,
+                        value = "$intensityVal / 10"
+                    ))
+                    renderHealthPage()
+                }
+            }
+            val btnDel = createStyledButton("✕", primary = false).apply {
+                setOnClickListener {
+                    sensations.remove(sensation)
+                    HealthHelper.saveSensations(this@HealthActivity, sensations)
+                    renderHealthPage()
+                }
+            }
+            headerLayout.addView(tvName)
+            headerLayout.addView(btnLog)
+            headerLayout.addView(btnDel)
+
+            val seekBar = SeekBar(this).apply {
+                max = 10
+                progress = intensityVal
+                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
+                        intensityVal = p
+                        sensation.intensity = p
+                        tvName.text = "${sensation.name}: $intensityVal/10"
+                    }
+                    override fun onStartTrackingTouch(sb: SeekBar?) {}
+                    override fun onStopTrackingTouch(sb: SeekBar?) {
+                        HealthHelper.saveSensations(this@HealthActivity, sensations)
+                    }
+                })
+            }
+
+            itemLayout.addView(headerLayout)
+            itemLayout.addView(seekBar)
+            cardLayout.addView(itemLayout)
+        }
+
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun showAddSensationDialog() {
+        val et = EditText(this).apply { hint = getString(R.string.hint_sensation_name) }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_add_sensation))
+            .setView(et)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val name = et.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    val list = HealthHelper.loadSensations(this)
+                    list.add(PhysicalSensation(name = name))
+                    HealthHelper.saveSensations(this, list)
+                    renderHealthPage()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun renderCustomCountersCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.custom_counters_title)
+        val titleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val btnAdd = createStyledButton(getString(R.string.btn_add), primary = false).apply {
+            setOnClickListener { showAddCustomCounterDialog() }
+        }
+        titleLayout.addView(title)
+        titleLayout.addView(btnAdd)
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
+
+        val counters = HealthHelper.loadCustomCounters(this)
+        counters.forEach { counter ->
+            val itemLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, 4, 0, 4)
+            }
+            val tv = TextView(this).apply {
+                text = "${counter.name}: ${counter.count} / ${counter.target}"
+                textSize = 13f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val btnMinus = createStyledButton("-", primary = false).apply {
+                setOnClickListener {
+                    if (counter.count > 0) {
+                        counter.count--
+                        HealthHelper.saveCustomCounters(this@HealthActivity, counters)
+                        tv.text = "${counter.name}: ${counter.count} / ${counter.target}"
+                    }
+                }
+            }
+            val btnPlus = createStyledButton("+", primary = true).apply {
+                setOnClickListener {
+                    counter.count++
+                    HealthHelper.saveCustomCounters(this@HealthActivity, counters)
+                    tv.text = "${counter.name}: ${counter.count} / ${counter.target}"
+                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                        memberId = activeMemberId,
+                        memberName = activeMemberName,
+                        type = counter.name,
+                        value = "${counter.count}"
+                    ))
+                    renderHealthPage()
+                }
+            }
+            val btnDel = createStyledButton("✕", primary = false).apply {
+                setOnClickListener {
+                    counters.remove(counter)
+                    HealthHelper.saveCustomCounters(this@HealthActivity, counters)
+                    renderHealthPage()
+                }
+            }
+            itemLayout.addView(tv)
+            itemLayout.addView(btnMinus)
+            itemLayout.addView(btnPlus)
+            itemLayout.addView(btnDel)
+            cardLayout.addView(itemLayout)
+        }
+
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun showAddCustomCounterDialog() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 16)
+        }
+        val etName = EditText(this).apply { hint = getString(R.string.hint_counter_name) }
+        val etTarget = EditText(this).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = getString(R.string.hint_counter_target)
+        }
+        layout.addView(etName)
+        layout.addView(etTarget)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_add_counter))
+            .setView(layout)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val name = etName.text.toString().trim()
+                val target = etTarget.text.toString().toIntOrNull() ?: 8
+                if (name.isNotEmpty()) {
+                    val list = HealthHelper.loadCustomCounters(this)
+                    list.add(CustomCounter(name = name, target = target))
+                    HealthHelper.saveCustomCounters(this, list)
+                    renderHealthPage()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun renderCustomSlidersCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val titleKey = getString(R.string.custom_sliders_title)
+        val titleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this).apply {
+            text = titleKey
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val btnAdd = createStyledButton(getString(R.string.btn_add), primary = false).apply {
+            setOnClickListener { showAddCustomSliderDialog() }
+        }
+        titleLayout.addView(title)
+        titleLayout.addView(btnAdd)
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
+
+        val sliders = HealthHelper.loadCustomSliders(this)
+        sliders.forEach { slider ->
+            val itemLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(0, 4, 0, 12)
+            }
+            val headerLayout = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            var valProgress = slider.value
+            val tvName = TextView(this).apply {
+                text = "${slider.name}: $valProgress%"
+                textSize = 13f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val btnLog = createStyledButton(getString(R.string.btn_log_entry), primary = true).apply {
+                setOnClickListener {
+                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                        memberId = activeMemberId,
+                        memberName = activeMemberName,
+                        type = slider.name,
+                        value = "$valProgress%"
+                    ))
+                    renderHealthPage()
+                }
+            }
+            val btnDel = createStyledButton("✕", primary = false).apply {
+                setOnClickListener {
+                    sliders.remove(slider)
+                    HealthHelper.saveCustomSliders(this@HealthActivity, sliders)
+                    renderHealthPage()
+                }
+            }
+            headerLayout.addView(tvName)
+            headerLayout.addView(btnLog)
+            headerLayout.addView(btnDel)
+
+            val seekBar = SeekBar(this).apply {
+                max = 100
+                progress = valProgress
+                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                    override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
+                        valProgress = p
+                        slider.value = p
+                        tvName.text = "${slider.name}: $valProgress%"
+                    }
+                    override fun onStartTrackingTouch(sb: SeekBar?) {}
+                    override fun onStopTrackingTouch(sb: SeekBar?) {
+                        HealthHelper.saveCustomSliders(this@HealthActivity, sliders)
+                    }
+                })
+            }
+
+            itemLayout.addView(headerLayout)
+            itemLayout.addView(seekBar)
+            cardLayout.addView(itemLayout)
+        }
+
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun showAddCustomSliderDialog() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 16)
+        }
+        val etName = EditText(this).apply { hint = getString(R.string.hint_slider_name) }
+        val etMin = EditText(this).apply { hint = getString(R.string.hint_min_label) }
+        val etMax = EditText(this).apply { hint = getString(R.string.hint_max_label) }
+        layout.addView(etName)
+        layout.addView(etMin)
+        layout.addView(etMax)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_add_slider))
+            .setView(layout)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val name = etName.text.toString().trim()
+                val minL = etMin.text.toString().trim()
+                val maxL = etMax.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    val list = HealthHelper.loadCustomSliders(this)
+                    list.add(CustomSlider(name = name, minLabel = minL, maxLabel = maxL))
+                    HealthHelper.saveCustomSliders(this, list)
+                    renderHealthPage()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun renderRecentLogsCard(logs: List<HealthLogEntry>) {
+        val card = createCard()
+        val cardLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(20, 20, 20, 20)
+        }
+        val title = TextView(this).apply {
+            text = getString(R.string.health_recent_logs)
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+        cardLayout.addView(title)
+
+        if (logs.isEmpty()) {
+            val tvEmpty = TextView(this).apply {
+                text = getString(R.string.no_recent_logs)
+                textSize = 13f
+                setPadding(0, 8, 0, 8)
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            }
+            cardLayout.addView(tvEmpty)
+        } else {
+            logs.take(15).forEach { log ->
+                val timeStr = DateFormat.getTimeFormat(this).format(Date(log.timestamp)) + " " +
+                        DateFormat.getDateFormat(this).format(Date(log.timestamp))
+                val logText = "${log.memberName ?: getString(R.string.unnamed_field)}: ${log.type} (${log.value}) - $timeStr"
+
+                val tvLog = TextView(this).apply {
+                    text = logText
+                    textSize = 13f
+                    setPadding(0, 6, 0, 6)
+                    setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                    setOnClickListener {
+                        startActivity(Intent(this@HealthActivity, WhoAmIActivity::class.java))
+                    }
+                }
+                cardLayout.addView(tvLog)
+            }
+        }
+        card.addView(cardLayout)
+        container.addView(card)
+    }
+
+    private fun showFoodItemsDialog(
+        mealName: String,
+        record: EatenMealRecord?,
+        defaultDateMillis: Long,
+        onSaved: () -> Unit
+    ) {
+        val existingRecord = record ?: EatenMealRecord(
+            mealType = mealName,
+            timestamp = defaultDateMillis,
+            memberId = activeMemberId,
+            memberName = activeMemberName,
+            isChecked = true
+        )
+
+        val savedFoodList = HealthHelper.loadSavedFoodItems(this)
+        val selectedItems = existingRecord.eatenItems.toMutableSet()
+
+        // Automatisch herstellen: zorg dat ingevulde items die ontbreken in de optielijst
+        // toch in de lijst komen te staan zodat je ze kunt zien en uitvinken
+        var listChanged = false
+        selectedItems.forEach { item ->
+            if (!savedFoodList.contains(item)) {
+                savedFoodList.add(item)
+                listChanged = true
+            }
+        }
+        if (listChanged) {
+            HealthHelper.saveSavedFoodItems(this, savedFoodList)
+        }
+
+        fun openDialog() {
+            val checkedArray = BooleanArray(savedFoodList.size) { i ->
+                selectedItems.contains(savedFoodList[i])
+            }
+
+            val builder = AlertDialog.Builder(this)
+                .setTitle(getString(R.string.dialog_title_eaten_items, mealName))
+
+            if (savedFoodList.isNotEmpty()) {
+                builder.setMultiChoiceItems(savedFoodList.toTypedArray(), checkedArray) { _, which: Int, isChecked: Boolean ->
+                    val item = savedFoodList[which]
+                    if (isChecked) selectedItems.add(item) else selectedItems.remove(item)
+                }
+            }
+
+            builder.setPositiveButton(getString(R.string.save)) { _, _ ->
+                existingRecord.eatenItems = selectedItems.toList()
+                existingRecord.isChecked = true
+                HealthHelper.saveOrUpdateEatenRecord(this, existingRecord)
+                onSaved()
+            }
+                .setNeutralButton(getString(R.string.btn_add_food_item)) { _, _ ->
+                    showAddFoodItemDialog { openDialog() }
+                }
+                .setNegativeButton(getString(R.string.cancel)) { _, _ ->
+                    // Ook bij annuleren/sluiten de gewijzigde maaltijd opslaan
+                    existingRecord.eatenItems = selectedItems.toList()
+                    HealthHelper.saveOrUpdateEatenRecord(this, existingRecord)
+                    onSaved()
+                }
+
+            val dialog = builder.create()
+            dialog.show()
+            ColorHelper.styleAlertDialog(dialog, this)
+
+            // Voorkom crash: stel LongClick alleen in als de lijst NIET leeg is
+            if (savedFoodList.isNotEmpty()) {
+                dialog.listView?.setOnItemLongClickListener { _, _, position, _ ->
+                    val itemToRemove = savedFoodList[position]
+                    AlertDialog.Builder(this)
+                        .setTitle(itemToRemove)
+                        .setMessage(getString(R.string.delete) + "?")
+                        .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                            savedFoodList.removeAt(position)
+                            selectedItems.remove(itemToRemove)
+
+                            // Sla direct BEIDE lijsten op (optielijst én de maaltijd)
+                            HealthHelper.saveSavedFoodItems(this, savedFoodList)
+                            existingRecord.eatenItems = selectedItems.toList()
+                            HealthHelper.saveOrUpdateEatenRecord(this, existingRecord)
+
+                            dialog.dismiss()
+                            openDialog()
+                        }
+                        .setNegativeButton(getString(R.string.cancel), null)
+                        .show().let { ColorHelper.styleAlertDialog(it, this) }
+                    true
+                }
+            }
+        }
+
+        openDialog()
+    }
+
+    private fun showAddFoodItemDialog(onAdded: () -> Unit) {
+        val et = EditText(this).apply { hint = getString(R.string.hint_food_item_name) }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.dialog_title_add_food_item))
+            .setView(et)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val newItem = et.text.toString().trim()
+                if (newItem.isNotEmpty()) {
+                    val list = HealthHelper.loadSavedFoodItems(this)
+                    if (!list.contains(newItem)) {
+                        list.add(newItem)
+                        HealthHelper.saveSavedFoodItems(this, list)
+                    }
+                }
+                onAdded()
+            }
+            .setNegativeButton(getString(R.string.cancel)) { _, _ -> onAdded() }
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+}

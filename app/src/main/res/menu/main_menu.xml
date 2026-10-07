@@ -42,6 +42,10 @@
 
     <group android:id="@+id/group_mood">
         <item
+            android:id="@+id/action_health_tracker"
+            android:title="@string/health_title"
+            app:showAsAction="never" />
+        <item
             android:id="@+id/action_mood_tracker"
             android:title="@string/mood_tracker"
             app:showAsAction="never" />

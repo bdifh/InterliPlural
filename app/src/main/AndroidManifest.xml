@@ -284,6 +284,20 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".features.health.HealthActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".features.health.HealthSettingsActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".features.health.EatenTimelineActivity"
+            android:label="@string/eaten_timeline_title"
+            android:parentActivityName=".features.health.HealthActivity"
+            android:exported="false" />
+
         <receiver android:name=".widgets.CurrentFronterWidget"
             android:label="@string/widget_name_fronter"
             android:exported="false">

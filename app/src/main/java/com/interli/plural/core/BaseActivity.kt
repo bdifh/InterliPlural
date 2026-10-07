@@ -26,6 +26,7 @@ import com.interli.plural.MainActivity
 import com.interli.plural.Person
 import com.interli.plural.R
 import com.interli.plural.features.subsystem.SubsystemActivity
+import com.interli.plural.features.health.HealthActivity
 
 abstract class BaseActivity : AppCompatActivity() {
     private fun applyFixedDisplayScale(context: android.content.Context): android.content.Context {
@@ -111,6 +112,7 @@ abstract class BaseActivity : AppCompatActivity() {
                     R.id.action_mood_tracker -> if (this !is MoodActivity) startActivity(android.content.Intent(this, MoodActivity::class.java))
                     R.id.action_mood_stats -> if (this !is MoodStatsActivity) startActivity(android.content.Intent(this, MoodStatsActivity::class.java))
                     R.id.action_mood_insights -> if (this !is MemberMoodCorrelationActivity) startActivity(android.content.Intent(this, MemberMoodCorrelationActivity::class.java))
+                    R.id.action_health_tracker -> if (this !is HealthActivity) startActivity(android.content.Intent(this, HealthActivity::class.java))
                     R.id.action_statistics -> if (this !is StatisticsActivity) startActivity(android.content.Intent(this, StatisticsActivity::class.java))
                     R.id.action_diary -> if (this !is DiaryActivity) startActivity(android.content.Intent(this, DiaryActivity::class.java))
                     R.id.action_sysmail -> {
@@ -326,6 +328,7 @@ abstract class BaseActivity : AppCompatActivity() {
         if (moodLogSub) {
             menu.add(2, ID_CAT_MOOD, Menu.NONE, formatCategoryTitle(R.string.nav_cat_mood, moodExpanded))
             if (moodExpanded) {
+                menu.add(2, R.id.action_health_tracker, Menu.NONE, "    ${getString(R.string.health_title)}")
                 menu.add(2, R.id.action_mood_tracker, Menu.NONE, "    ${getString(R.string.mood_tracker)}")
             }
         }
