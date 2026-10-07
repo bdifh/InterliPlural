@@ -101,7 +101,7 @@
             android:exported="false" />
 
         <activity
-            android:name=".features.diary.CreatePostActivity"
+            android:name=".features.sysmedia.CreatePostActivity"
             android:label="@string/action_post"
             android:parentActivityName=".features.sysmedia.SysmediaActivity"
             android:exported="false"

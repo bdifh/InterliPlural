@@ -1,30 +1,45 @@
-package com.interli.plural.features.diary
+package com.interli.plural.features.sysmedia
 
-import android.content.Intent
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.edit
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
+import com.google.android.material.appbar.MaterialToolbar
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.interli.plural.core.BaseActivity
-import com.interli.plural.core.ColorHelper
-import com.interli.plural.features.member.MemberHelper
-import com.interli.plural.features.sysmedia.SysmediaNotificationHelper
-import com.interli.plural.Group
 import com.interli.plural.Person
 import com.interli.plural.R
 import com.interli.plural.SysmediaNotification
 import com.interli.plural.SysmediaPoll
 import com.interli.plural.SysmediaPost
-import com.interli.plural.SysmediaProfile
-import java.util.*
+import com.interli.plural.core.BaseActivity
+import com.interli.plural.core.ColorHelper
+import com.interli.plural.features.member.MemberHelper
+import com.interli.plural.widgets.SysmediaTimelineWidgetProvider
+import java.io.File
+import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.regex.Pattern
 
 class CreatePostActivity : BaseActivity() {
     data class SuggestionItem(val display: String, val value: String, val type: String)
@@ -42,8 +57,8 @@ class CreatePostActivity : BaseActivity() {
         uri?.let {
             try {
                 val inputStream = contentResolver.openInputStream(it)
-                val file = java.io.File(filesDir, "post_img_${System.currentTimeMillis()}.jpg")
-                val outputStream = java.io.FileOutputStream(file)
+                val file = File(filesDir, "post_img_${System.currentTimeMillis()}.jpg")
+                val outputStream = FileOutputStream(file)
                 inputStream?.copyTo(outputStream)
                 selectedImageUri = Uri.fromFile(file)
                 findViewById<ImageView>(R.id.ivPostImage).apply {
@@ -67,7 +82,7 @@ class CreatePostActivity : BaseActivity() {
         val ivAvatar = findViewById<ImageView>(R.id.ivAvatar)
         val etContent = findViewById<EditText>(R.id.etContent)
         val btnPost = findViewById<Button>(R.id.btnPostAction)
-        val btnSwitch = findViewById<android.widget.ImageButton>(R.id.btnSwitchUser)
+        val btnSwitch = findViewById<ImageButton>(R.id.btnSwitchUser)
         updateAvatar(ivAvatar)
         btnSwitch.setOnClickListener {
             showAccountSwitchDialog(ivAvatar)
@@ -75,28 +90,29 @@ class CreatePostActivity : BaseActivity() {
         ColorHelper.applySettings(this)
         val textColor = ColorHelper.getTextColor(this)
         btnSwitch.setColorFilter(textColor)
-        findViewById<android.widget.ImageButton>(R.id.btnAddImage).setOnClickListener {
+        findViewById<ImageButton>(R.id.btnAddImage).setOnClickListener {
             pickImage.launch("image/*")
         }
-        findViewById<android.widget.ImageButton>(R.id.btnAddImage).setColorFilter(ColorHelper.getBtnColor(this))
-        findViewById<android.widget.ImageButton>(R.id.btnSchedule).setOnClickListener {
+        findViewById<ImageButton>(R.id.btnAddImage).setColorFilter(ColorHelper.getBtnColor(this))
+        findViewById<ImageButton>(R.id.btnSchedule).setOnClickListener {
             showDateTimePicker()
         }
-        findViewById<android.widget.ImageButton>(R.id.btnSchedule).setColorFilter(ColorHelper.getBtnColor(this))
-        findViewById<android.widget.ImageButton>(R.id.btnPoll).setOnClickListener {
+        findViewById<ImageButton>(R.id.btnSchedule).setColorFilter(ColorHelper.getBtnColor(this))
+        findViewById<ImageButton>(R.id.btnPoll).setOnClickListener {
             togglePollLayout()
         }
-        findViewById<android.widget.ImageButton>(R.id.btnPoll).setColorFilter(ColorHelper.getBtnColor(this))
+        findViewById<ImageButton>(R.id.btnPoll).setColorFilter(ColorHelper.getBtnColor(this))
         findViewById<Button>(R.id.btnAddPollOption).setOnClickListener {
             addPollOptionRow("")
         }
         rvSuggestions = findViewById(R.id.rvSuggestions)
         rvSuggestions.layoutManager = LinearLayoutManager(this)
+        rvSuggestions.setBackgroundColor(ColorHelper.getBgColor(this))
         suggestionAdapter = SuggestionAdapter { selectedItem ->
             insertTag(selectedItem)
         }
         rvSuggestions.adapter = suggestionAdapter
-        etContent.addTextChangedListener(object : android.text.TextWatcher {
+        etContent.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val text = s.toString()
@@ -136,7 +152,7 @@ class CreatePostActivity : BaseActivity() {
                     rvSuggestions.visibility = View.GONE
                 }
             }
-            override fun afterTextChanged(s: android.text.Editable?) {}
+            override fun afterTextChanged(s: Editable?) {}
         })
         if (editPostId != null) {
             val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
@@ -163,7 +179,7 @@ class CreatePostActivity : BaseActivity() {
             val content = etContent.text.toString().trim()
             if (content.isNotEmpty() || selectedImageUri != null || reblogOfId != null) {
                 val tags = mutableSetOf<String>()
-                val matcher = java.util.regex.Pattern.compile("#([A-Za-z0-9_]+)").matcher(content)
+                val matcher = Pattern.compile("#([A-Za-z0-9_]+)").matcher(content)
                 while (matcher.find()) {
                     matcher.group(1)?.let { tags.add(it) }
                 }
@@ -178,7 +194,7 @@ class CreatePostActivity : BaseActivity() {
                 finish()
             }
         }
-        findViewById<com.google.android.material.appbar.MaterialToolbar>(R.id.topAppBar).setNavigationOnClickListener {
+        findViewById<MaterialToolbar>(R.id.topAppBar).setNavigationOnClickListener {
             finish()
         }
         ColorHelper.applySettings(this)
@@ -201,12 +217,12 @@ class CreatePostActivity : BaseActivity() {
     private fun updateAvatar(iv: ImageView) {
         val avatarUri = currentUser.sysmediaProfile?.profilePictureUri ?: currentUser.profilePictureUri
         if (avatarUri != null) iv.load(avatarUri)
-        else iv.setImageDrawable(android.graphics.drawable.ColorDrawable(if (currentUser.profileColor == -6934396) ColorHelper.getBtnColor(this) else currentUser.profileColor))
+        else iv.setImageDrawable(ColorDrawable(if (currentUser.profileColor == -6934396) ColorHelper.getBtnColor(this) else currentUser.profileColor))
     }
     private fun showAccountSwitchDialog(iv: ImageView) {
         val accounts = people.filter { !it.isArchived }
         val names = accounts.map { it.name }.toTypedArray()
-        androidx.appcompat.app.AlertDialog.Builder(this)
+        AlertDialog.Builder(this)
             .setTitle("Switch Account")
             .setItems(names) { _, which ->
                 currentUser = accounts[which]
@@ -215,13 +231,13 @@ class CreatePostActivity : BaseActivity() {
     }
     private fun showDateTimePicker() {
         val cal = Calendar.getInstance()
-        android.app.DatePickerDialog(this, { _, y, m, d ->
+        DatePickerDialog(this, { _, y, m, d ->
             cal.set(y, m, d)
-            android.app.TimePickerDialog(this, { _, h, min ->
+            TimePickerDialog(this, { _, h, min ->
                 cal.set(Calendar.HOUR_OF_DAY, h)
                 cal.set(Calendar.MINUTE, min)
                 scheduledTimestamp = cal.timeInMillis
-                Toast.makeText(this, "Scheduled for: " + java.text.SimpleDateFormat("dd/MM HH:mm").format(cal.time), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Scheduled for: " + SimpleDateFormat("dd/MM HH:mm").format(cal.time), Toast.LENGTH_SHORT).show()
             }, cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), true).show()
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
@@ -242,8 +258,8 @@ class CreatePostActivity : BaseActivity() {
         val container = findViewById<LinearLayout>(R.id.pollOptionsContainer)
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { 
-                setMargins(0, 0, 0, 8.dpToPx()) 
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, 0, 0, 8.dpToPx())
             }
         }
         val et = EditText(this).apply {
@@ -293,13 +309,14 @@ class CreatePostActivity : BaseActivity() {
             val tvName: TextView = view.findViewById(android.R.id.text1)
         }
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = android.view.LayoutInflater.from(parent.context).inflate(android.R.layout.simple_list_item_1, parent, false)
+            val view = LayoutInflater.from(parent.context).inflate(android.R.layout.simple_list_item_1, parent, false)
             return ViewHolder(view)
         }
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val item = items[position]
             holder.tvName.text = item.display
             holder.tvName.setTextColor(ColorHelper.getTextColor(this@CreatePostActivity))
+            holder.itemView.setBackgroundColor(ColorHelper.getBgColor(this@CreatePostActivity))
             holder.itemView.setOnClickListener { onClick(item) }
         }
         override fun getItemCount() = items.size
@@ -310,8 +327,8 @@ class CreatePostActivity : BaseActivity() {
     private fun saveImageToInternalStorage(uri: Uri, fileName: String): Uri? {
         return try {
             val inputStream = contentResolver.openInputStream(uri) ?: return null
-            val file = java.io.File(filesDir, "$fileName.png")
-            java.io.FileOutputStream(file).use { output -> inputStream.use { input -> input.copyTo(output) } }
+            val file = File(filesDir, "$fileName.png")
+            FileOutputStream(file).use { output -> inputStream.use { input -> input.copyTo(output) } }
             Uri.fromFile(file)
         } catch (e: Exception) { null }
     }
@@ -320,9 +337,9 @@ class CreatePostActivity : BaseActivity() {
         val postsJson = sharedPref.getString("sysmedia_posts", "[]")
         val typePosts = object : TypeToken<MutableList<SysmediaPost>>() {}.type
         val posts: MutableList<SysmediaPost> = Gson().fromJson(postsJson, typePosts) ?: mutableListOf()
-        posts.forEach { 
+        posts.forEach {
             @Suppress("SENSELESS_COMPARISON")
-            if (it.likedByMemberIds == null) it.likedByMemberIds = mutableMapOf() 
+            if (it.likedByMemberIds == null) it.likedByMemberIds = mutableMapOf()
         }
         val notifJson = sharedPref.getString("sysmedia_notifications", "[]")
         val typeNotifs = object : TypeToken<MutableList<SysmediaNotification>>() {}.type
@@ -350,7 +367,10 @@ class CreatePostActivity : BaseActivity() {
                     senderId = currentUser.id,
                     content = content,
                     imageUri = selectedImageUri?.let { uri ->
-                        saveImageToInternalStorage(uri, "post_${System.currentTimeMillis()}")?.toString()
+                        saveImageToInternalStorage(
+                            uri,
+                            "post_${System.currentTimeMillis()}"
+                        )?.toString()
                     },
                     poll = poll
                 )
@@ -363,7 +383,10 @@ class CreatePostActivity : BaseActivity() {
                 reblogOfId = reblogOfId,
                 replyToId = replyToId,
                 imageUri = selectedImageUri?.let { uri ->
-                    saveImageToInternalStorage(uri, "post_${System.currentTimeMillis()}")?.toString()
+                    saveImageToInternalStorage(
+                        uri,
+                        "post_${System.currentTimeMillis()}"
+                    )?.toString()
                 },
                 scheduledTime = scheduledTimestamp,
                 poll = poll
@@ -380,16 +403,17 @@ class CreatePostActivity : BaseActivity() {
                             senderId = currentUser.id,
                             type = "EVERYONE",
                             postId = newPost.id
-                        ))
+                        )
+                        )
                         SysmediaNotificationHelper.checkAndNotify(this@CreatePostActivity, person.id)
                     }
                 }
             }
             words.filter { it.startsWith("@") && it.length > 1 }.forEach { tag ->
                 val handle = tag.substring(1).lowercase().replace(Regex("[^a-z0-9_]"), "")
-                val taggedPerson = people.find { 
-                    it.sysmediaProfile?.handle?.lowercase() == handle || 
-                    it.name.replace(" ", "_").lowercase() == handle 
+                val taggedPerson = people.find {
+                    it.sysmediaProfile?.handle?.lowercase() == handle ||
+                    it.name.replace(" ", "_").lowercase() == handle
                 }
                 if (taggedPerson != null && taggedPerson.id != currentUser.id && !taggedIds.contains(taggedPerson.id)) {
                     taggedIds.add(taggedPerson.id)
@@ -398,7 +422,8 @@ class CreatePostActivity : BaseActivity() {
                         senderId = currentUser.id,
                         type = "TAG",
                         postId = newPost.id
-                    ))
+                    )
+                    )
                     SysmediaNotificationHelper.checkAndNotify(this@CreatePostActivity, taggedPerson.id)
                 }
             }
@@ -411,7 +436,8 @@ class CreatePostActivity : BaseActivity() {
                         senderId = currentUser.id,
                         type = "REBLOG",
                         postId = newPost.id
-                    ))
+                    )
+                    )
                 }
             }
             if (replyToId != null) {
@@ -423,7 +449,8 @@ class CreatePostActivity : BaseActivity() {
                         senderId = currentUser.id,
                         type = "REPLY",
                         postId = newPost.id
-                    ))
+                    )
+                    )
                     SysmediaNotificationHelper.checkAndNotify(this@CreatePostActivity, original.senderId)
                 }
             }
@@ -432,6 +459,6 @@ class CreatePostActivity : BaseActivity() {
             putString("sysmedia_posts", Gson().toJson(posts))
             putString("sysmedia_notifications", Gson().toJson(notifications))
         }
-        com.interli.plural.widgets.SysmediaTimelineWidgetProvider.sendRefreshBroadcast(this)
+        SysmediaTimelineWidgetProvider.sendRefreshBroadcast(this)
     }
 }

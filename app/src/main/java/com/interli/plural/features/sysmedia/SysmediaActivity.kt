@@ -27,7 +27,7 @@ import com.interli.plural.core.ColorHelper
 import com.interli.plural.core.DialogHelper
 import com.interli.plural.DirectMessage
 import com.interli.plural.features.diary.ChatActivity
-import com.interli.plural.features.diary.CreatePostActivity
+import com.interli.plural.features.sysmedia.CreatePostActivity
 import com.interli.plural.core.MediaEmbedHelper
 import com.interli.plural.features.member.MemberHelper
 import com.interli.plural.Group

@@ -25,7 +25,7 @@ import com.interli.plural.core.BaseActivity
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.core.CropImageActivity
 import com.interli.plural.core.ImageHelper
-import com.interli.plural.features.diary.CreatePostActivity
+import com.interli.plural.features.sysmedia.CreatePostActivity
 import com.interli.plural.core.MediaEmbedHelper
 import com.interli.plural.features.member.MemberHelper
 import com.interli.plural.features.sysmedia.SysmediaPostDetailActivity

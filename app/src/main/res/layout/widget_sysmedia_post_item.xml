@@ -47,5 +47,10 @@
         android:textSize="12sp"
         android:maxLines="3"
         android:ellipsize="end" />
+    <FrameLayout
+        android:id="@+id/vWidgetPostDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="6dp" />
 
 </LinearLayout>

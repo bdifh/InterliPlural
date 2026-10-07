@@ -227,7 +227,6 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="16dp"
-                android:background="#F0F0F0"
                 android:visibility="gone"
                 app:layout_constraintTop_toBottomOf="@id/etContent"
                 app:layout_constraintStart_toStartOf="parent"

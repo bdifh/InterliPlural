@@ -10,7 +10,7 @@ import android.net.Uri
 import android.widget.RemoteViews
 import com.interli.plural.R
 import com.interli.plural.core.ColorHelper
-import com.interli.plural.features.diary.CreatePostActivity
+import com.interli.plural.features.sysmedia.CreatePostActivity
 import com.interli.plural.features.sysmedia.SysmediaActivity
 import com.interli.plural.features.sysmedia.SysmediaPostDetailActivity
 

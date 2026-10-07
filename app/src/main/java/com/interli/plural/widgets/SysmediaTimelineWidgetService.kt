@@ -19,6 +19,7 @@ import com.interli.plural.R
 import com.interli.plural.SysmediaPost
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.features.member.MemberHelper
+import okhttp3.internal.http2.Header
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -46,7 +47,8 @@ class SysmediaTimelineRemoteViewsFactory(
         val content: String,
         val formattedTime: String,
         val avatarUri: String?,
-        val profileColor: Int
+        val profileColor: Int,
+        val reblogHeader: String? = null
     )
 
     private val postList = mutableListOf<PostItemInfo>()
@@ -90,11 +92,47 @@ class SysmediaTimelineRemoteViewsFactory(
         }.sortedByDescending { it.timestamp }
 
         filtered.forEach { post ->
-            val person = peopleMap[post.senderId]
-            val name = person?.sysmediaProfile?.displayName ?: person?.name ?: "Onbekend"
-            val handle = person?.sysmediaProfile?.handle?.let { "@$it" } ?: ""
-            val avatar = person?.sysmediaProfile?.profilePictureUri ?: person?.profilePictureUri
-            val color = person?.profileColor ?: -6934396
+            val isReblog = !post.reblogOfId.isNullOrEmpty()
+            val originalPost = if (isReblog) allPosts.find { it.id == post.reblogOfId } else null
+            val targetPost = originalPost ?: post
+
+            val reblogHeader = if (isReblog) {
+                val reblogger = peopleMap[post.senderId]
+                val rebloggerName = reblogger?.sysmediaProfile?.displayName ?: reblogger?.name ?: "Unknown"
+                "🔁 " + context.getString(R.string.reblogged_by, rebloggerName)
+            } else null
+
+            val authorPerson = peopleMap[targetPost.senderId]
+            val name = authorPerson?.sysmediaProfile?.displayName ?: authorPerson?.name ?: "Unknown"
+            val handle = authorPerson?.sysmediaProfile?.handle?.let { "@$it" } ?: ""
+            val avatar = authorPerson?.sysmediaProfile?.profilePictureUri ?: authorPerson?.profilePictureUri
+            val color = authorPerson?.profileColor ?: -6934396
+
+            val rawContent = targetPost.content
+
+            val hasImage = !targetPost.imageUri.isNullOrEmpty() || rawContent.contains("![")
+
+            val hasLink = rawContent.contains("http://") ||
+                    rawContent.contains("https://") ||
+                    rawContent.contains("www.") ||
+                    Regex("\\[.*?\\]\\(.*?\\)").containsMatchIn(rawContent)
+
+            var cleanedContent = rawContent
+                .replace(Regex("!\\[.*?\\]\\(.*?\\)"), "")
+                .replace(Regex("\\[(.*?)\\]\\(.*?\\)"), "$1")
+                .trim()
+
+            val indicators = mutableListOf<String>()
+            if (hasImage) indicators.add("📷")
+            if (hasLink) indicators.add("🔗")
+
+            if (indicators.isNotEmpty()) {
+                cleanedContent = if (cleanedContent.isEmpty()) {
+                    indicators.joinToString(" ")
+                } else {
+                    "$cleanedContent ${indicators.joinToString(" ")}"
+                }
+            }
 
             postList.add(
                 PostItemInfo(
@@ -102,10 +140,11 @@ class SysmediaTimelineRemoteViewsFactory(
                     senderId = post.senderId,
                     authorName = name,
                     authorHandle = handle,
-                    content = post.content,
+                    content = cleanedContent,
                     formattedTime = sdf.format(Date(post.timestamp)),
                     avatarUri = avatar,
-                    profileColor = color
+                    profileColor = color,
+                    reblogHeader = reblogHeader
                 )
             )
         }
@@ -123,14 +162,24 @@ class SysmediaTimelineRemoteViewsFactory(
             item.authorName
         }
 
+        val displayContent = if (!item.reblogHeader.isNullOrEmpty()) {
+            "${item.reblogHeader}\n${item.content}"
+        } else {
+            item.content
+        }
+
         views.setTextViewText(R.id.tvWidgetPostAuthor, authorDisplay)
         views.setTextViewText(R.id.tvWidgetPostTime, item.formattedTime)
-        views.setTextViewText(R.id.tvWidgetPostContent, item.content)
+        views.setTextViewText(R.id.tvWidgetPostContent, displayContent)
 
         val textColor = ColorHelper.getTextColor(context)
         val bgColor = ColorHelper.getBgColor(context)
 
+        val dividerColor = textColor and 0x33FFFFFF.toInt()
+
+
         views.setInt(R.id.widget_post_item_root, "setBackgroundColor", bgColor)
+        views.setInt(R.id.vWidgetPostDivider, "setBackgroundColor", dividerColor)
         views.setTextColor(R.id.tvWidgetPostAuthor, textColor)
         views.setTextColor(R.id.tvWidgetPostContent, textColor)
         views.setTextColor(R.id.tvWidgetPostTime, textColor)
