@@ -52,6 +52,8 @@ import org.commonmark.ext.gfm.tables.TableCell
 import org.commonmark.node.AbstractVisitor
 import org.commonmark.node.CustomNode
 import org.commonmark.node.Node
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
+
 
 class ProfileActivity : BaseActivity() {
     private var personIndex: Int = -1
@@ -119,6 +121,7 @@ class ProfileActivity : BaseActivity() {
             .usePlugin(TablePlugin.create(this))
             .usePlugin(CoilImagesPlugin.create(this))
             .usePlugin(LinkifyPlugin.create())
+            .usePlugin(StrikethroughPlugin.create())
             .usePlugin(object : AbstractMarkwonPlugin() {
                 override fun beforeRender(node: Node) {
                     node.accept(object : AbstractVisitor() {
