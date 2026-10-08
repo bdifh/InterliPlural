@@ -1,6 +1,7 @@
 package com.interli.plural.features.health
 
 import android.content.Context
+import android.icu.util.TimeZone
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.Calendar
@@ -91,13 +92,6 @@ object HealthHelper {
         return try { gson.fromJson(json, type) ?: mutableListOf() } catch (_: Exception) { mutableListOf() }
     }
 
-    fun addLogEntry(context: Context, entry: HealthLogEntry) {
-        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val logs = loadLogs(context)
-        logs.add(0, entry)
-        sp.edit().putString("logs", gson.toJson(logs)).apply()
-    }
-
     fun getLastLogForType(context: Context, type: String): HealthLogEntry? {
         val logs = loadLogs(context)
         return logs.find { it.type == type }
@@ -165,15 +159,25 @@ object HealthHelper {
         saveEatenRecords(context, list)
     }
 
-    fun isSameDay(ts1: Long, ts2: Long): Boolean {
-        val tz = java.util.TimeZone.getDefault()
+    fun addLogEntry(context: Context, entry: HealthLogEntry) {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val logs = loadLogs(context)
+        logs.add(0, entry)
+        if (logs.size > 100) {
+            logs.subList(100, logs.size).clear()
+        }
+        sp.edit().putString("logs", gson.toJson(logs)).apply()
+    }
+
+    fun isSameDay(ts1: Long, ts2: Long, tz: TimeZone = TimeZone.getDefault()): Boolean {
         val day1 = (ts1 + tz.getOffset(ts1)) / 86400000L
         val day2 = (ts2 + tz.getOffset(ts2)) / 86400000L
         return day1 == day2
     }
 
     fun getEatenRecordFromList(records: List<EatenMealRecord>, dayMillis: Long, mealType: String): EatenMealRecord? {
-        return records.filter { isSameDay(it.timestamp, dayMillis) && it.mealType.equals(mealType, ignoreCase = true) }
+        val tz = TimeZone.getDefault()
+        return records.filter { isSameDay(it.timestamp, dayMillis, tz) && it.mealType.equals(mealType, ignoreCase = true) }
             .maxByOrNull { it.timestamp }
     }
 

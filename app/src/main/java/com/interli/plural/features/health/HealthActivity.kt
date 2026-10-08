@@ -27,9 +27,16 @@ import java.util.Date
 class HealthActivity : BaseActivity() {
 
     private lateinit var container: LinearLayout
-    private var activeMemberName: String? = null
-    private var activeMemberId: String? = null
     private var systemMembers: List<Person> = emptyList()
+    private val selectedMemberIds: MutableList<String> = mutableListOf()
+    private val selectedMemberNames: MutableList<String> = mutableListOf()
+    private var isMemberSelectionInitialized = false
+
+    private val activeMemberIdString: String?
+        get() = if (selectedMemberIds.isNotEmpty()) selectedMemberIds.joinToString(",") else null
+
+    private val activeMemberNameString: String?
+        get() = if (selectedMemberNames.isNotEmpty()) selectedMemberNames.joinToString(", ") else null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,9 +60,17 @@ class HealthActivity : BaseActivity() {
 
     private fun loadActiveMember() {
         systemMembers = MemberHelper.loadAllPeople(this).filter { !it.isArchived }
-        val frontPerson = systemMembers.find { it.isFront }
-        activeMemberId = frontPerson?.id
-        activeMemberName = frontPerson?.name ?: getString(R.string.unnamed_field)
+
+        if (!isMemberSelectionInitialized) {
+            isMemberSelectionInitialized = true
+            val frontingMembers = systemMembers.filter { it.isFront }
+            if (frontingMembers.isNotEmpty()) {
+                selectedMemberIds.clear()
+                selectedMemberIds.addAll(frontingMembers.map { it.id })
+                selectedMemberNames.clear()
+                selectedMemberNames.addAll(frontingMembers.map { it.name })
+            }
+        }
     }
 
     private fun createCard(): MaterialCardView {
@@ -98,11 +113,16 @@ class HealthActivity : BaseActivity() {
         return btn
     }
 
-    private fun getLastLogSubtitle(type: String, logs: List<HealthLogEntry>): TextView {
-        val log = logs.find { it.type == type }
+    private fun getLastLogSubtitle(
+        type: String,
+        logs: List<HealthLogEntry>,
+        extraTypes: List<String> = emptyList()
+    ): TextView {
+        val todayMillis = System.currentTimeMillis()
+        val allTypes = listOf(type) + extraTypes
+        val log = logs.find { allTypes.contains(it.type) && HealthHelper.isSameDay(it.timestamp, todayMillis) }
         val subtitleText = if (log != null) {
-            val timeStr = DateFormat.getTimeFormat(this).format(Date(log.timestamp)) + " " +
-                    DateFormat.getDateFormat(this).format(Date(log.timestamp))
+            val timeStr = DateFormat.getTimeFormat(this).format(Date(log.timestamp))
             val member = log.memberName ?: getString(R.string.unnamed_field)
             getString(R.string.label_last_logged, timeStr, member)
         } else {
@@ -117,6 +137,40 @@ class HealthActivity : BaseActivity() {
         }
     }
 
+    private fun renderCardLogs(
+        cardLayout: LinearLayout,
+        logs: List<HealthLogEntry>,
+        predicate: (HealthLogEntry) -> Boolean
+    ) {
+        val todayMillis = System.currentTimeMillis()
+        val todayLogs = logs.filter { HealthHelper.isSameDay(it.timestamp, todayMillis) && predicate(it) }
+        if (todayLogs.isEmpty()) return
+
+        val divider = View(this).apply {
+            setBackgroundColor(ColorHelper.getBtnColor(this@HealthActivity) and 0x22FFFFFF)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (1 * resources.displayMetrics.density).toInt()
+            ).apply { setMargins(0, 16, 0, 8) }
+        }
+        cardLayout.addView(divider)
+
+        todayLogs.forEach { log ->
+            val timeStr = DateFormat.getTimeFormat(this).format(Date(log.timestamp))
+            val memberPrefix = if (!log.memberName.isNullOrEmpty()) "${log.memberName}: " else ""
+            val logText = "$memberPrefix${log.type}${if (log.value.isNotEmpty()) " (${log.value})" else ""} - $timeStr"
+
+            val tvLog = TextView(this).apply {
+                text = logText
+                textSize = 12f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                alpha = 0.85f
+                setPadding(0, 3, 0, 3)
+            }
+            cardLayout.addView(tvLog)
+        }
+    }
+
     private fun renderHealthPage() {
         val settings = HealthHelper.loadSettings(this)
         val logs = HealthHelper.loadLogs(this)
@@ -125,7 +179,7 @@ class HealthActivity : BaseActivity() {
         renderActiveMemberHeader()
 
         if (settings.showHydration) renderHydrationCard(logs)
-        if (settings.showEatenCheck) renderEatenCard()
+        if (settings.showEatenCheck) renderEatenCard(logs)
         if (settings.showNutritionSchedule) renderNutritionCard(logs)
         if (settings.showEnergySlider) renderEnergyCard(logs)
         if (settings.showRest) renderRestCard(logs)
@@ -134,8 +188,6 @@ class HealthActivity : BaseActivity() {
         if (settings.showSensations) renderSensationsCard(logs)
         if (settings.showCustomCounters) renderCustomCountersCard(logs)
         if (settings.showCustomSliders) renderCustomSlidersCard(logs)
-
-        renderRecentLogsCard(logs)
     }
 
     private fun renderActiveMemberHeader() {
@@ -144,8 +196,17 @@ class HealthActivity : BaseActivity() {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, 0, 0, 16)
         }
+
+        val displayNames = if (selectedMemberNames.isNotEmpty()) {
+            selectedMemberNames.joinToString(", ")
+        } else {
+            getString(R.string.group_general)
+        }
+
+        val headerText = getString(R.string.logged_in_as, displayNames)
+
         val tvActive = TextView(this).apply {
-            text = getString(R.string.logged_in_as, activeMemberName)
+            text = headerText
             textSize = 15f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(ColorHelper.getTextColor(this@HealthActivity))
@@ -160,17 +221,71 @@ class HealthActivity : BaseActivity() {
     }
 
     private fun showMemberSelectDialog() {
-        if (systemMembers.isEmpty()) return
-        val names = systemMembers.map { it.name }.toTypedArray()
-        AlertDialog.Builder(this)
+        val optionsList = mutableListOf(getString(R.string.no_member_general))
+        optionsList.addAll(systemMembers.map { it.name })
+
+        val checkedArray = BooleanArray(optionsList.size)
+        val tempSelectedIds = mutableListOf<String>()
+        val tempSelectedNames = mutableListOf<String>()
+
+        if (selectedMemberIds.isEmpty()) {
+            checkedArray[0] = true
+        } else {
+            systemMembers.forEachIndexed { index, person ->
+                if (selectedMemberIds.contains(person.id)) {
+                    checkedArray[index + 1] = true
+                    tempSelectedIds.add(person.id)
+                    tempSelectedNames.add(person.name)
+                }
+            }
+        }
+
+        var alertDialog: AlertDialog? = null
+
+        val builder = AlertDialog.Builder(this)
             .setTitle(getString(R.string.select_member))
-            .setItems(names) { _, which ->
-                val selected = systemMembers[which]
-                activeMemberId = selected.id
-                activeMemberName = selected.name
+            .setMultiChoiceItems(optionsList.toTypedArray(), checkedArray) { _, which, isChecked ->
+                val listView = alertDialog?.listView
+                if (which == 0) {
+                    if (isChecked) {
+                        tempSelectedIds.clear()
+                        tempSelectedNames.clear()
+                        for (i in 1 until checkedArray.size) {
+                            checkedArray[i] = false
+                            listView?.setItemChecked(i, false)
+                        }
+                    }
+                } else {
+                    val person = systemMembers[which - 1]
+                    if (isChecked) {
+                        checkedArray[0] = false
+                        listView?.setItemChecked(0, false)
+                        if (!tempSelectedIds.contains(person.id)) {
+                            tempSelectedIds.add(person.id)
+                            tempSelectedNames.add(person.name)
+                        }
+                    } else {
+                        tempSelectedIds.remove(person.id)
+                        tempSelectedNames.remove(person.name)
+                        if (tempSelectedIds.isEmpty()) {
+                            checkedArray[0] = true
+                            listView?.setItemChecked(0, true)
+                        }
+                    }
+                }
+            }
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                selectedMemberIds.clear()
+                selectedMemberIds.addAll(tempSelectedIds)
+                selectedMemberNames.clear()
+                selectedMemberNames.addAll(tempSelectedNames)
                 renderHealthPage()
             }
-            .show().let { ColorHelper.styleAlertDialog(it, this) }
+            .setNegativeButton(getString(R.string.cancel), null)
+
+        alertDialog = builder.create()
+        alertDialog.show()
+        ColorHelper.styleAlertDialog(alertDialog, this)
     }
 
     private fun renderHydrationCard(logs: List<HealthLogEntry>) {
@@ -218,8 +333,8 @@ class HealthActivity : BaseActivity() {
                 HealthHelper.setHydrationCount(this@HealthActivity, count)
                 tvStatus.text = "$count / $target"
                 HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                    memberId = activeMemberId,
-                    memberName = activeMemberName,
+                    memberId = activeMemberIdString,
+                    memberName = activeMemberNameString,
                     type = titleKey,
                     value = "$count / $target"
                 ))
@@ -242,11 +357,14 @@ class HealthActivity : BaseActivity() {
         cardLayout.addView(subtitle)
         cardLayout.addView(tvStatus)
         cardLayout.addView(btnLayout)
+
+        renderCardLogs(cardLayout, logs) { it.type == titleKey }
+
         card.addView(cardLayout)
         container.addView(card)
     }
 
-    private fun renderEatenCard() {
+    private fun renderEatenCard(logs: List<HealthLogEntry>) {
         val card = createCard()
         val cardLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -291,7 +409,6 @@ class HealthActivity : BaseActivity() {
                 ).apply { setMargins(0, (4 * density).toInt(), 0, (4 * density).toInt()) }
             }
 
-            // 1. Vinkje (Uiterst links)
             val checkBox = androidx.appcompat.widget.AppCompatCheckBox(this).apply {
                 this.isChecked = isChecked
                 buttonTintList = ColorStateList.valueOf(ColorHelper.getBtnColor(this@HealthActivity))
@@ -305,19 +422,19 @@ class HealthActivity : BaseActivity() {
                         val newRecord = record ?: EatenMealRecord(
                             mealType = meal,
                             timestamp = System.currentTimeMillis(),
-                            memberId = activeMemberId,
-                            memberName = activeMemberName,
+                            memberId = activeMemberIdString,
+                            memberName = activeMemberNameString,
                             isChecked = true
                         )
                         newRecord.isChecked = true
                         newRecord.timestamp = System.currentTimeMillis()
-                        newRecord.memberId = activeMemberId
-                        newRecord.memberName = activeMemberName
+                        newRecord.memberId = activeMemberIdString
+                        newRecord.memberName = activeMemberNameString
                         HealthHelper.saveOrUpdateEatenRecord(this@HealthActivity, newRecord)
                         HealthHelper.setLastEatenTime(this@HealthActivity, newRecord.timestamp, meal)
                         HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                            memberId = activeMemberId,
-                            memberName = activeMemberName,
+                            memberId = activeMemberIdString,
+                            memberName = activeMemberNameString,
                             type = titleKey,
                             value = meal
                         ))
@@ -331,7 +448,6 @@ class HealthActivity : BaseActivity() {
                 }
             }
 
-            // 2. Benaming Maaltijd (Vaste breedte 75dp, direct naast vinkje)
             val tvMealName = TextView(this).apply {
                 text = meal
                 textSize = 13f
@@ -343,7 +459,6 @@ class HealthActivity : BaseActivity() {
                 ).apply { setMargins(0, 0, (4 * density).toInt(), 0) }
             }
 
-            // 3. De Knop (Pakken alle overgebleven ruimte: weight = 1f)
             val foodText = if (record != null && record.eatenItems.isNotEmpty()) {
                 record.eatenItems.joinToString(", ")
             } else {
@@ -367,7 +482,6 @@ class HealthActivity : BaseActivity() {
                 }
             }
 
-            // 4. Tijd (Vaste breedte 55dp)
             val timeStr = if (isChecked && record != null) {
                 DateFormat.getTimeFormat(this).format(Date(record.timestamp))
             } else {
@@ -386,9 +500,8 @@ class HealthActivity : BaseActivity() {
                 )
             }
 
-            // 5. Lid (Vaste breedte 50dp, rechts uitgelijnd)
             val mName = if (isChecked && record != null) {
-                record.memberName ?: activeMemberName ?: getString(R.string.unnamed_field)
+                record.memberName ?: activeMemberNameString ?: "-"
             } else {
                 "-"
             }
@@ -438,6 +551,9 @@ class HealthActivity : BaseActivity() {
         }
 
         cardLayout.addView(btnTimeline)
+
+        renderCardLogs(cardLayout, logs) { it.type == titleKey }
+
         card.addView(cardLayout)
         container.addView(card)
     }
@@ -451,13 +567,21 @@ class HealthActivity : BaseActivity() {
         val existingRecord = record ?: EatenMealRecord(
             mealType = mealName,
             timestamp = defaultDateMillis,
-            memberId = activeMemberId,
-            memberName = activeMemberName,
+            memberId = activeMemberIdString,
+            memberName = activeMemberNameString,
             isChecked = true
         )
 
-        var selectedMemberId = existingRecord.memberId ?: activeMemberId
-        var selectedMemberName = existingRecord.memberName ?: activeMemberName ?: getString(R.string.unnamed_field)
+        val selectedMealMemberIds = mutableListOf<String>()
+        val selectedMealMemberNames = mutableListOf<String>()
+
+        if (!existingRecord.memberId.isNullOrEmpty()) {
+            selectedMealMemberIds.addAll(existingRecord.memberId!!.split(","))
+        }
+        if (!existingRecord.memberName.isNullOrEmpty()) {
+            selectedMealMemberNames.addAll(existingRecord.memberName!!.split(", "))
+        }
+
         var selectedTimestamp = existingRecord.timestamp
 
         val layout = LinearLayout(this).apply {
@@ -466,7 +590,8 @@ class HealthActivity : BaseActivity() {
         }
 
         val tvMember = TextView(this).apply {
-            text = getString(R.string.logged_in_as, selectedMemberName)
+            val displayName = if (selectedMealMemberNames.isNotEmpty()) selectedMealMemberNames.joinToString(", ") else getString(R.string.group_general)
+            text = getString(R.string.logged_in_as, displayName)
             textSize = 14f
             setPadding(0, 8, 0, 12)
             setTextColor(ColorHelper.getTextColor(this@HealthActivity))
@@ -474,18 +599,71 @@ class HealthActivity : BaseActivity() {
 
         val btnSelectMember = createStyledButton(getString(R.string.select_member), primary = false).apply {
             setOnClickListener {
-                if (systemMembers.isNotEmpty()) {
-                    val names = systemMembers.map { it.name }.toTypedArray()
-                    AlertDialog.Builder(this@HealthActivity)
-                        .setTitle(getString(R.string.select_member))
-                        .setItems(names) { _, which ->
-                            val m = systemMembers[which]
-                            selectedMemberId = m.id
-                            selectedMemberName = m.name
-                            tvMember.text = getString(R.string.logged_in_as, selectedMemberName)
+                val optionsList = mutableListOf(getString(R.string.no_member_general))
+                optionsList.addAll(systemMembers.map { it.name })
+
+                val checkedArray = BooleanArray(optionsList.size)
+                if (selectedMealMemberIds.isEmpty()) {
+                    checkedArray[0] = true
+                } else {
+                    systemMembers.forEachIndexed { index, person ->
+                        if (selectedMealMemberIds.contains(person.id)) {
+                            checkedArray[index + 1] = true
                         }
-                        .show().let { ColorHelper.styleAlertDialog(it, this@HealthActivity) }
+                    }
                 }
+
+                val tempMealIds = mutableListOf<String>().apply { addAll(selectedMealMemberIds) }
+                val tempMealNames = mutableListOf<String>().apply { addAll(selectedMealMemberNames) }
+
+                var alertDialog: AlertDialog? = null
+
+                val builder = AlertDialog.Builder(this@HealthActivity)
+                    .setTitle(getString(R.string.select_member))
+                    .setMultiChoiceItems(optionsList.toTypedArray(), checkedArray) { _, which, isChecked ->
+                        val listView = alertDialog?.listView
+                        if (which == 0) {
+                            if (isChecked) {
+                                tempMealIds.clear()
+                                tempMealNames.clear()
+                                for (i in 1 until checkedArray.size) {
+                                    checkedArray[i] = false
+                                    listView?.setItemChecked(i, false)
+                                }
+                            }
+                        } else {
+                            val person = systemMembers[which - 1]
+                            if (isChecked) {
+                                checkedArray[0] = false
+                                listView?.setItemChecked(0, false)
+                                if (!tempMealIds.contains(person.id)) {
+                                    tempMealIds.add(person.id)
+                                    tempMealNames.add(person.name)
+                                }
+                            } else {
+                                tempMealIds.remove(person.id)
+                                tempMealNames.remove(person.name)
+                                if (tempMealIds.isEmpty()) {
+                                    checkedArray[0] = true
+                                    listView?.setItemChecked(0, true)
+                                }
+                            }
+                        }
+                    }
+                    .setPositiveButton(getString(R.string.save)) { _, _ ->
+                        selectedMealMemberIds.clear()
+                        selectedMealMemberIds.addAll(tempMealIds)
+                        selectedMealMemberNames.clear()
+                        selectedMealMemberNames.addAll(tempMealNames)
+
+                        val displayName = if (selectedMealMemberNames.isNotEmpty()) selectedMealMemberNames.joinToString(", ") else getString(R.string.group_general)
+                        tvMember.text = getString(R.string.logged_in_as, displayName)
+                    }
+                    .setNegativeButton(getString(R.string.cancel), null)
+
+                alertDialog = builder.create()
+                alertDialog.show()
+                ColorHelper.styleAlertDialog(alertDialog, this@HealthActivity)
             }
         }
 
@@ -537,8 +715,8 @@ class HealthActivity : BaseActivity() {
             .setTitle(getString(R.string.dialog_edit_eaten_meal, mealName))
             .setView(layout)
             .setPositiveButton(getString(R.string.save)) { _, _ ->
-                existingRecord.memberId = selectedMemberId
-                existingRecord.memberName = selectedMemberName
+                existingRecord.memberId = if (selectedMealMemberIds.isNotEmpty()) selectedMealMemberIds.joinToString(",") else null
+                existingRecord.memberName = if (selectedMealMemberNames.isNotEmpty()) selectedMealMemberNames.joinToString(", ") else null
                 existingRecord.timestamp = selectedTimestamp
                 existingRecord.isChecked = true
                 HealthHelper.saveOrUpdateEatenRecord(this, existingRecord)
@@ -608,6 +786,8 @@ class HealthActivity : BaseActivity() {
             cardLayout.addView(entryLayout)
         }
 
+        renderCardLogs(cardLayout, logs) { it.type == titleKey }
+
         card.addView(cardLayout)
         container.addView(card)
     }
@@ -636,8 +816,8 @@ class HealthActivity : BaseActivity() {
                     entries.add(NutritionScheduleEntry(dayOfWeek = day, mealType = type, description = desc))
                     HealthHelper.saveNutritionEntries(this, entries)
                     HealthHelper.addLogEntry(this, HealthLogEntry(
-                        memberId = activeMemberId,
-                        memberName = activeMemberName,
+                        memberId = activeMemberIdString,
+                        memberName = activeMemberNameString,
                         type = getString(R.string.nutrition_schedule_title),
                         value = "$day - $desc"
                     ))
@@ -689,8 +869,8 @@ class HealthActivity : BaseActivity() {
         val btnLog = createStyledButton(getString(R.string.btn_log_entry), primary = true).apply {
             setOnClickListener {
                 HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                    memberId = activeMemberId,
-                    memberName = activeMemberName,
+                    memberId = activeMemberIdString,
+                    memberName = activeMemberNameString,
                     type = titleKey,
                     value = "$energyVal / 10"
                 ))
@@ -703,6 +883,9 @@ class HealthActivity : BaseActivity() {
         cardLayout.addView(tvVal)
         cardLayout.addView(seekBar)
         cardLayout.addView(btnLog)
+
+        renderCardLogs(cardLayout, logs) { it.type == titleKey }
+
         card.addView(cardLayout)
         container.addView(card)
     }
@@ -733,8 +916,8 @@ class HealthActivity : BaseActivity() {
                     val durationMin = ((now - startTs) / 60000).toInt()
                     HealthHelper.setRestStartTime(this@HealthActivity, 0L)
                     HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberId,
-                        memberName = activeMemberName,
+                        memberId = activeMemberIdString,
+                        memberName = activeMemberNameString,
                         type = titleKey,
                         value = "$durationMin min"
                     ))
@@ -752,8 +935,8 @@ class HealthActivity : BaseActivity() {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(4,0,4,0) }
                 setOnClickListener {
                     HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberId,
-                        memberName = activeMemberName,
+                        memberId = activeMemberIdString,
+                        memberName = activeMemberNameString,
                         type = titleKey,
                         value = "$mins min"
                     ))
@@ -767,6 +950,9 @@ class HealthActivity : BaseActivity() {
         cardLayout.addView(subtitle)
         cardLayout.addView(btnToggle)
         cardLayout.addView(quickRestLayout)
+
+        renderCardLogs(cardLayout, logs) { it.type == titleKey }
+
         card.addView(cardLayout)
         container.addView(card)
     }
@@ -796,6 +982,9 @@ class HealthActivity : BaseActivity() {
         titleLayout.addView(btnLog)
         cardLayout.addView(titleLayout)
         cardLayout.addView(getLastLogSubtitle(titleKey, logs))
+
+        renderCardLogs(cardLayout, logs) { it.type == titleKey }
+
         card.addView(cardLayout)
         container.addView(card)
     }
@@ -812,8 +1001,8 @@ class HealthActivity : BaseActivity() {
                 val valStr = et.text.toString().trim()
                 if (valStr.isNotEmpty()) {
                     HealthHelper.addLogEntry(this, HealthLogEntry(
-                        memberId = activeMemberId,
-                        memberName = activeMemberName,
+                        memberId = activeMemberIdString,
+                        memberName = activeMemberNameString,
                         type = getString(R.string.weight_tracker_title),
                         value = "$valStr kg"
                     ))
@@ -869,8 +1058,8 @@ class HealthActivity : BaseActivity() {
                     med.lastTakenTimestamp = System.currentTimeMillis()
                     HealthHelper.saveMedications(this@HealthActivity, medications)
                     HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberId,
-                        memberName = activeMemberName,
+                        memberId = activeMemberIdString,
+                        memberName = activeMemberNameString,
                         type = titleKey,
                         value = "${med.name} (${med.dosage})"
                     ))
@@ -889,6 +1078,8 @@ class HealthActivity : BaseActivity() {
             itemLayout.addView(btnDel)
             cardLayout.addView(itemLayout)
         }
+
+        renderCardLogs(cardLayout, logs) { it.type == titleKey }
 
         card.addView(cardLayout)
         container.addView(card)
@@ -944,10 +1135,12 @@ class HealthActivity : BaseActivity() {
         }
         titleLayout.addView(title)
         titleLayout.addView(btnAdd)
-        cardLayout.addView(titleLayout)
-        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
 
         val sensations = HealthHelper.loadSensations(this)
+        val sensationNames = sensations.map { it.name }
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs, sensationNames))
+
         sensations.forEach { sensation ->
             val itemLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -967,8 +1160,8 @@ class HealthActivity : BaseActivity() {
             val btnLog = createStyledButton(getString(R.string.btn_log_entry), primary = true).apply {
                 setOnClickListener {
                     HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberId,
-                        memberName = activeMemberName,
+                        memberId = activeMemberIdString,
+                        memberName = activeMemberNameString,
                         type = sensation.name,
                         value = "$intensityVal / 10"
                     ))
@@ -1006,6 +1199,8 @@ class HealthActivity : BaseActivity() {
             itemLayout.addView(seekBar)
             cardLayout.addView(itemLayout)
         }
+
+        renderCardLogs(cardLayout, logs) { it.type == titleKey || sensationNames.contains(it.type) }
 
         card.addView(cardLayout)
         container.addView(card)
@@ -1052,10 +1247,12 @@ class HealthActivity : BaseActivity() {
         }
         titleLayout.addView(title)
         titleLayout.addView(btnAdd)
-        cardLayout.addView(titleLayout)
-        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
 
         val counters = HealthHelper.loadCustomCounters(this)
+        val counterNames = counters.map { it.name }
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs, counterNames))
+
         counters.forEach { counter ->
             val itemLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
@@ -1083,8 +1280,8 @@ class HealthActivity : BaseActivity() {
                     HealthHelper.saveCustomCounters(this@HealthActivity, counters)
                     tv.text = "${counter.name}: ${counter.count} / ${counter.target}"
                     HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberId,
-                        memberName = activeMemberName,
+                        memberId = activeMemberIdString,
+                        memberName = activeMemberNameString,
                         type = counter.name,
                         value = "${counter.count}"
                     ))
@@ -1104,6 +1301,8 @@ class HealthActivity : BaseActivity() {
             itemLayout.addView(btnDel)
             cardLayout.addView(itemLayout)
         }
+
+        renderCardLogs(cardLayout, logs) { it.type == titleKey || counterNames.contains(it.type) }
 
         card.addView(cardLayout)
         container.addView(card)
@@ -1162,10 +1361,12 @@ class HealthActivity : BaseActivity() {
         }
         titleLayout.addView(title)
         titleLayout.addView(btnAdd)
-        cardLayout.addView(titleLayout)
-        cardLayout.addView(getLastLogSubtitle(titleKey, logs))
 
         val sliders = HealthHelper.loadCustomSliders(this)
+        val sliderNames = sliders.map { it.name }
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(getLastLogSubtitle(titleKey, logs, sliderNames))
+
         sliders.forEach { slider ->
             val itemLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -1185,8 +1386,8 @@ class HealthActivity : BaseActivity() {
             val btnLog = createStyledButton(getString(R.string.btn_log_entry), primary = true).apply {
                 setOnClickListener {
                     HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberId,
-                        memberName = activeMemberName,
+                        memberId = activeMemberIdString,
+                        memberName = activeMemberNameString,
                         type = slider.name,
                         value = "$valProgress%"
                     ))
@@ -1225,6 +1426,8 @@ class HealthActivity : BaseActivity() {
             cardLayout.addView(itemLayout)
         }
 
+        renderCardLogs(cardLayout, logs) { it.type == titleKey || sliderNames.contains(it.type) }
+
         card.addView(cardLayout)
         container.addView(card)
     }
@@ -1259,50 +1462,6 @@ class HealthActivity : BaseActivity() {
             .show().let { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    private fun renderRecentLogsCard(logs: List<HealthLogEntry>) {
-        val card = createCard()
-        val cardLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(20, 20, 20, 20)
-        }
-        val title = TextView(this).apply {
-            text = getString(R.string.health_recent_logs)
-            textSize = 16f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
-        }
-        cardLayout.addView(title)
-
-        if (logs.isEmpty()) {
-            val tvEmpty = TextView(this).apply {
-                text = getString(R.string.no_recent_logs)
-                textSize = 13f
-                setPadding(0, 8, 0, 8)
-                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
-            }
-            cardLayout.addView(tvEmpty)
-        } else {
-            logs.take(15).forEach { log ->
-                val timeStr = DateFormat.getTimeFormat(this).format(Date(log.timestamp)) + " " +
-                        DateFormat.getDateFormat(this).format(Date(log.timestamp))
-                val logText = "${log.memberName ?: getString(R.string.unnamed_field)}: ${log.type} (${log.value}) - $timeStr"
-
-                val tvLog = TextView(this).apply {
-                    text = logText
-                    textSize = 13f
-                    setPadding(0, 6, 0, 6)
-                    setTextColor(ColorHelper.getTextColor(this@HealthActivity))
-                    setOnClickListener {
-                        startActivity(Intent(this@HealthActivity, WhoAmIActivity::class.java))
-                    }
-                }
-                cardLayout.addView(tvLog)
-            }
-        }
-        card.addView(cardLayout)
-        container.addView(card)
-    }
-
     private fun showFoodItemsDialog(
         mealName: String,
         record: EatenMealRecord?,
@@ -1312,16 +1471,14 @@ class HealthActivity : BaseActivity() {
         val existingRecord = record ?: EatenMealRecord(
             mealType = mealName,
             timestamp = defaultDateMillis,
-            memberId = activeMemberId,
-            memberName = activeMemberName,
+            memberId = activeMemberIdString,
+            memberName = activeMemberNameString,
             isChecked = true
         )
 
         val savedFoodList = HealthHelper.loadSavedFoodItems(this)
         val selectedItems = existingRecord.eatenItems.toMutableSet()
 
-        // Automatisch herstellen: zorg dat ingevulde items die ontbreken in de optielijst
-        // toch in de lijst komen te staan zodat je ze kunt zien en uitvinken
         var listChanged = false
         selectedItems.forEach { item ->
             if (!savedFoodList.contains(item)) {
@@ -1358,7 +1515,6 @@ class HealthActivity : BaseActivity() {
                     showAddFoodItemDialog { openDialog() }
                 }
                 .setNegativeButton(getString(R.string.cancel)) { _, _ ->
-                    // Ook bij annuleren/sluiten de gewijzigde maaltijd opslaan
                     existingRecord.eatenItems = selectedItems.toList()
                     HealthHelper.saveOrUpdateEatenRecord(this, existingRecord)
                     onSaved()
@@ -1368,7 +1524,6 @@ class HealthActivity : BaseActivity() {
             dialog.show()
             ColorHelper.styleAlertDialog(dialog, this)
 
-            // Voorkom crash: stel LongClick alleen in als de lijst NIET leeg is
             if (savedFoodList.isNotEmpty()) {
                 dialog.listView?.setOnItemLongClickListener { _, _, position, _ ->
                     val itemToRemove = savedFoodList[position]
@@ -1378,8 +1533,6 @@ class HealthActivity : BaseActivity() {
                         .setPositiveButton(getString(R.string.delete)) { _, _ ->
                             savedFoodList.removeAt(position)
                             selectedItems.remove(itemToRemove)
-
-                            // Sla direct BEIDE lijsten op (optielijst én de maaltijd)
                             HealthHelper.saveSavedFoodItems(this, savedFoodList)
                             existingRecord.eatenItems = selectedItems.toList()
                             HealthHelper.saveOrUpdateEatenRecord(this, existingRecord)

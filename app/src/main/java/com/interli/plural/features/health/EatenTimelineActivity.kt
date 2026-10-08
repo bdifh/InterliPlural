@@ -209,7 +209,6 @@ class EatenTimelineActivity : BaseActivity() {
                     ).apply { setMargins(0, (4 * density).toInt(), 0, (4 * density).toInt()) }
                 }
 
-                // 1. Vinkje
                 val checkBox = androidx.appcompat.widget.AppCompatCheckBox(this).apply {
                     this.isChecked = isChecked
                     buttonTintList = ColorStateList.valueOf(ColorHelper.getBtnColor(this@EatenTimelineActivity))
@@ -238,7 +237,6 @@ class EatenTimelineActivity : BaseActivity() {
                     }
                 }
 
-                // 2. Benaming Maaltijd (75dp)
                 val tvMealName = TextView(this).apply {
                     text = meal
                     textSize = 13f
@@ -250,7 +248,6 @@ class EatenTimelineActivity : BaseActivity() {
                     ).apply { setMargins(0, 0, (4 * density).toInt(), 0) }
                 }
 
-                // 3. De Knop (weight = 1f)
                 val foodText = if (record != null && record.eatenItems.isNotEmpty()) {
                     record.eatenItems.joinToString(", ")
                 } else {
@@ -276,7 +273,6 @@ class EatenTimelineActivity : BaseActivity() {
                     }
                 }
 
-                // 4. Tijd (55dp)
                 val timeStr = if (isChecked && record != null) {
                     DateFormat.getTimeFormat(this).format(Date(record.timestamp))
                 } else {
@@ -295,7 +291,6 @@ class EatenTimelineActivity : BaseActivity() {
                     )
                 }
 
-                // 5. Lid (50dp)
                 val mName = if (isChecked && record != null) {
                     record.memberName ?: getString(R.string.unnamed_field)
                 } else {

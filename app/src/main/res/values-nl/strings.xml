@@ -674,4 +674,7 @@
     <string name="dialog_title_add_food_item">Voedseloptie toevoegen</string>
     <string name="hint_food_item_name">Bijv. Boterham, Soep...</string>
     <string name="label_eaten_items">Gegeten: %1$s</string>
+    <string name="no_member_general">Geen lid (Algemeen)</string>
+    <string name="no_active_fronter">Geen actieve fronter</string>
+    <string name="label_front_prefix">Front: %1$s</string>
 </resources>

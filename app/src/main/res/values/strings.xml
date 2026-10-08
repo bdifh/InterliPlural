@@ -805,4 +805,8 @@
     <string name="dialog_title_add_food_item">Add food option</string>
     <string name="hint_food_item_name">e.g. Bread, Soup...</string>
     <string name="label_eaten_items">Eaten: %1$s</string>
+    <string name="no_member_general">No member (General)</string>
+    <string name="no_active_fronter">No active fronter</string>
+    <string name="label_front_prefix">Front: %1$s</string>
+
 </resources>
