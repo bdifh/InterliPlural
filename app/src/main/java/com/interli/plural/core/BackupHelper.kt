@@ -1,24 +1,17 @@
 package com.interli.plural.core
 
 import android.content.Context
-import android.net.Uri
-import android.util.Base64
 import androidx.work.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonWriter
-import com.interli.plural.core.BackupWorker
-import com.interli.plural.features.member.MemberHelper
-import com.interli.plural.Person
-import com.interli.plural.SysmediaProfile
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
 
 object BackupHelper {
     fun updateAutoBackupSchedule(context: Context) {
@@ -35,9 +28,11 @@ object BackupHelper {
             }
             val backupRequest = PeriodicWorkRequestBuilder<BackupWorker>(repeatInterval, TimeUnit.DAYS)
                 .addTag("AUTO_BACKUP")
-                .setConstraints(Constraints.Builder()
-                    .setRequiresStorageNotLow(true)
-                    .build())
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiresStorageNotLow(true)
+                        .build()
+                )
                 .build()
             workManager.enqueueUniquePeriodicWork(
                 "AUTO_BACKUP_TASK",
@@ -46,12 +41,15 @@ object BackupHelper {
             )
         }
     }
+
     fun createBackupJson(context: Context, selections: BooleanArray? = null): String {
         val stringWriter = StringWriter()
         val writer = JsonWriter(stringWriter)
         writer.setIndent("  ")
         val dataPrefs = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val settingsPrefs = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
+        val healthPrefs = context.getSharedPreferences("health_prefs", Context.MODE_PRIVATE)
+
         writer.beginObject()
         writer.name("data")
         writer.beginObject()
@@ -65,10 +63,17 @@ object BackupHelper {
         val exportSettings = exportAll || selections!![5]
         val exportImages = exportAll || selections!![6]
         val exportCalendar = exportAll || (selections != null && selections.size > 7 && selections[7])
+        val exportHealth = exportAll || (selections != null && selections.size > 8 && selections[8])
 
-
-        val frontKeys = listOf("people_list", "sysmedia_people_list", "groups_list", "sessions_list", "last_fronter_name", "current_fronters", "subsystem_data", "subsystem_sessions")
-        val moodKeys = listOf("mood_entries", "mood_color_1", "mood_color_2", "mood_color_3", "mood_color_4", "mood_color_5", "activity_groups")
+        val frontKeys = listOf(
+            "people_list", "sysmedia_people_list", "groups_list", "sessions_list",
+            "last_fronter_name", "current_fronters", "subsystem_data", "subsystem_sessions",
+            "identity_groups", "collapsed_mood_groups"
+        )
+        val moodKeys = listOf(
+            "mood_entries", "mood_color_1", "mood_color_2", "mood_color_3",
+            "mood_color_4", "mood_color_5", "activity_groups", "identity_groups", "collapsed_mood_groups"
+        )
         val notesKeys = listOf("diary_notes", "diary_bundles", "sysmedia_posts", "sysmedia_notifications", "sysmedia_dms", "sysmedia_chat_groups")
         val todoKeys = listOf("todo_lists", "todo_bundles")
         val relationsKeys = listOf("relations_environments", "relations_data")
@@ -76,6 +81,7 @@ object BackupHelper {
 
         dataPrefs.all.forEach { (k, v) ->
             val shouldExport = when {
+                frontKeys.contains(k) && moodKeys.contains(k) -> exportFront || exportMood
                 frontKeys.contains(k) -> exportFront
                 moodKeys.contains(k) -> exportMood
                 notesKeys.contains(k) -> exportNotes
@@ -87,17 +93,7 @@ object BackupHelper {
 
             if (shouldExport) {
                 writer.name(k)
-                when (v) {
-                    is String -> writer.value(v)
-                    is Boolean -> writer.value(v)
-                    is Number -> writer.value(v)
-                    is Set<*> -> {
-                        writer.beginArray()
-                        v.forEach { item -> writer.value(item.toString()) }
-                        writer.endArray()
-                    }
-                    else -> writer.value(v.toString())
-                }
+                writeJsonValue(writer, v)
             }
         }
         writer.endObject()
@@ -107,25 +103,21 @@ object BackupHelper {
             writer.beginObject()
             settingsPrefs.all.forEach { (k, v) ->
                 writer.name(k)
-                when (v) {
-                    is String -> writer.value(v)
-                    is Boolean -> writer.value(v)
-                    is Number -> writer.value(v)
-                    is Set<*> -> {
-                        writer.beginArray()
-                        v.forEach { item -> writer.value(item.toString()) }
-                        writer.endArray()
-                    }
-                    else -> writer.value(v.toString())
-                }
+                writeJsonValue(writer, v)
             }
             writer.endObject()
         }
 
-        /* 
-         * Afbeeldingen worden niet meer als Base64 in de JSON gezet om OOM crashes te voorkomen.
-         * Ze worden al als losse bestanden in de ZIP opgeslagen via createBackupZip.
-         */
+        if (exportHealth) {
+            writer.name("health")
+            writer.beginObject()
+            healthPrefs.all.forEach { (k, v) ->
+                writer.name(k)
+                writeJsonValue(writer, v)
+            }
+            writer.endObject()
+        }
+
         writer.name("images")
         writer.beginObject()
         writer.endObject()
@@ -133,6 +125,34 @@ object BackupHelper {
         writer.endObject()
         writer.close()
         return stringWriter.toString()
+    }
+
+    private fun writeJsonValue(writer: JsonWriter, v: Any?) {
+        when (v) {
+            null -> writer.nullValue()
+            is String -> writer.value(v)
+            is Boolean -> writer.value(v)
+            is Number -> writer.value(v)
+            is Set<*> -> {
+                writer.beginArray()
+                v.forEach { item -> writer.value(item.toString()) }
+                writer.endArray()
+            }
+            is List<*> -> {
+                writer.beginArray()
+                v.forEach { item -> writeJsonValue(writer, item) }
+                writer.endArray()
+            }
+            is Map<*, *> -> {
+                writer.beginObject()
+                v.forEach { (key, value) ->
+                    writer.name(key.toString())
+                    writeJsonValue(writer, value)
+                }
+                writer.endObject()
+            }
+            else -> writer.value(v.toString())
+        }
     }
 
     fun createBackupZip(context: Context, outStream: java.io.OutputStream, selections: BooleanArray? = null) {
@@ -157,6 +177,7 @@ object BackupHelper {
         }
         zipOut.close()
     }
+
     fun saveAutoBackup(context: Context): Boolean {
         try {
             val folder = File(context.getExternalFilesDir(null), "backups")
@@ -178,10 +199,12 @@ object BackupHelper {
             return false
         }
     }
+
     fun getAutoBackups(context: Context): List<File> {
         val folder = File(context.getExternalFilesDir(null), "backups")
         return folder.listFiles { f -> f.name.endsWith(".json") || f.name.endsWith(".zip") }?.toList()?.sortedByDescending { it.lastModified() } ?: emptyList()
     }
+
     fun restoreBackup(context: Context, inputStream: InputStream) {
         val bis = BufferedInputStream(inputStream)
         bis.mark(1024)
@@ -211,11 +234,13 @@ object BackupHelper {
             restoreFromJson(context, bis)
         }
     }
+
     private fun restoreFromJson(context: Context, inputStream: InputStream) {
         val reader = JsonReader(InputStreamReader(inputStream))
         val gson = Gson()
         val dataPrefs = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val settingsPrefs = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
+        val healthPrefs = context.getSharedPreferences("health_prefs", Context.MODE_PRIVATE)
 
         reader.beginObject()
         while (reader.hasNext()) {
@@ -227,28 +252,7 @@ object BackupHelper {
                     while (reader.hasNext()) {
                         val key = reader.nextName()
                         try {
-                            val value = gson.fromJson<Any>(reader, object : TypeToken<Any>() {}.type)
-                            when (value) {
-                                is String -> editor.putString(key, value)
-                                is Boolean -> editor.putBoolean(key, value)
-                                is Double -> {
-                                    val l = value.toLong()
-                                    if (value == l.toDouble()) {
-                                        if (key == "font_size_multiplier") {
-                                            editor.putFloat(key, value.toFloat())
-                                        } else if (key.startsWith("last_viewed_") || key.endsWith("_timestamp")) {
-                                            editor.putLong(key, l)
-                                        } else if (l in Int.MIN_VALUE..Int.MAX_VALUE) {
-                                            editor.putInt(key, l.toInt())
-                                        } else {
-                                            editor.putLong(key, l)
-                                        }
-                                    } else {
-                                        editor.putFloat(key, value.toFloat())
-                                    }
-                                }
-                                is List<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
-                            }
+                            restorePreferenceValue(editor, key, reader, gson)
                         } catch (e: Exception) {
                             reader.skipValue()
                         }
@@ -263,28 +267,22 @@ object BackupHelper {
                     while (reader.hasNext()) {
                         val key = reader.nextName()
                         try {
-                            val value = gson.fromJson<Any>(reader, object : TypeToken<Any>() {}.type)
-                            when (value) {
-                                is String -> editor.putString(key, value)
-                                is Boolean -> editor.putBoolean(key, value)
-                                is Double -> {
-                                    val l = value.toLong()
-                                    if (value == l.toDouble()) {
-                                        if (key == "font_size_multiplier") {
-                                            editor.putFloat(key, value.toFloat())
-                                        } else if (key.startsWith("last_viewed_") || key.endsWith("_timestamp")) {
-                                            editor.putLong(key, l)
-                                        } else if (l in Int.MIN_VALUE..Int.MAX_VALUE) {
-                                            editor.putInt(key, l.toInt())
-                                        } else {
-                                            editor.putLong(key, l)
-                                        }
-                                    } else {
-                                        editor.putFloat(key, value.toFloat())
-                                    }
-                                }
-                                is List<*> -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
-                            }
+                            restorePreferenceValue(editor, key, reader, gson)
+                        } catch (e: Exception) {
+                            reader.skipValue()
+                        }
+                    }
+                    editor.commit()
+                    reader.endObject()
+                }
+                "health" -> {
+                    reader.beginObject()
+                    val editor = healthPrefs.edit()
+                    editor.clear()
+                    while (reader.hasNext()) {
+                        val key = reader.nextName()
+                        try {
+                            restorePreferenceValue(editor, key, reader, gson)
                         } catch (e: Exception) {
                             reader.skipValue()
                         }
@@ -297,5 +295,64 @@ object BackupHelper {
         }
         reader.endObject()
         reader.close()
+
+        com.interli.plural.widgets.CurrentFronterWidget.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.MoodAverageWidget.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.MoodLogWidget.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.TodoWidgetProvider.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.CalendarDayWidgetProvider.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.CalendarWeekWidgetProvider.sendRefreshBroadcast(context)
+        com.interli.plural.widgets.CalendarMonthWidgetProvider.sendRefreshBroadcast(context)
+    }
+
+    private fun restorePreferenceValue(
+        editor: android.content.SharedPreferences.Editor,
+        key: String,
+        reader: JsonReader,
+        gson: Gson
+    ) {
+        when (reader.peek()) {
+            com.google.gson.stream.JsonToken.STRING -> {
+                editor.putString(key, reader.nextString())
+            }
+            com.google.gson.stream.JsonToken.BOOLEAN -> {
+                editor.putBoolean(key, reader.nextBoolean())
+            }
+            com.google.gson.stream.JsonToken.NUMBER -> {
+                val numStr = reader.nextString()
+                if (numStr.contains(".")) {
+                    val f = numStr.toFloatOrNull() ?: 0f
+                    editor.putFloat(key, f)
+                } else {
+                    val l = numStr.toLongOrNull() ?: 0L
+                    if (key == "font_size_multiplier") {
+                        editor.putFloat(key, l.toFloat())
+                    } else if (key.startsWith("last_viewed_") || key.endsWith("_timestamp") || key.endsWith("_ts")) {
+                        editor.putLong(key, l)
+                    } else if (l in Int.MIN_VALUE..Int.MAX_VALUE) {
+                        editor.putInt(key, l.toInt())
+                    } else {
+                        editor.putLong(key, l)
+                    }
+                }
+            }
+            com.google.gson.stream.JsonToken.BEGIN_ARRAY -> {
+                val parsed = gson.fromJson<Any>(reader, object : TypeToken<List<Any?>>() {}.type)
+                if (key == "collapsed_mood_groups" && parsed is List<*>) {
+                    editor.putStringSet(key, parsed.filterIsInstance<String>().toSet())
+                } else {
+                    editor.putString(key, gson.toJson(parsed))
+                }
+            }
+            com.google.gson.stream.JsonToken.BEGIN_OBJECT -> {
+                val parsed = gson.fromJson<Any>(reader, object : TypeToken<Map<String, Any?>>() {}.type)
+                editor.putString(key, gson.toJson(parsed))
+            }
+            com.google.gson.stream.JsonToken.NULL -> {
+                reader.nextNull()
+                editor.remove(key)
+            }
+            else -> reader.skipValue()
+        }
     }
 }

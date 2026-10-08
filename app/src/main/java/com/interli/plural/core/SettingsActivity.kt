@@ -2466,6 +2466,7 @@ private var pendingPdfSelections: BooleanArray? = null
             getString(R.string.delete_todo),
             getString(R.string.module_relations),
             getString(R.string.delete_settings),
+            getString(R.string.physical_health_title)
         )
         val checked = BooleanArray(labels.size) { false }
         val dialog = AlertDialog.Builder(this)
@@ -2497,11 +2498,14 @@ private var pendingPdfSelections: BooleanArray? = null
     private fun performBulkDelete(checked: BooleanArray) {
         val spApp = getSharedPreferences("my_app", MODE_PRIVATE)
         val spSettings = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        val spHealth = getSharedPreferences("health_prefs", MODE_PRIVATE)
         spApp.edit().apply {
             if (checked[0]) { // Members & Groups
                 remove("people_list")
                 remove("sysmedia_people_list")
                 remove("groups_list")
+                remove("identity_groups")
+                remove("collapsed_mood_groups")
             }
             if (checked[1]) { // History
                 remove("sessions_list")
@@ -2529,6 +2533,9 @@ private var pendingPdfSelections: BooleanArray? = null
         if (checked[6]) { // settings
             spSettings.edit().clear().apply()
         }
+        if (checked.size > 7 && checked[7]) { // health
+            spHealth.edit().clear().apply()
+        }
         Toast.makeText(this, "Selected data deleted", Toast.LENGTH_SHORT).show()
         recreate()
     }
@@ -2541,9 +2548,10 @@ private var pendingPdfSelections: BooleanArray? = null
             getString(R.string.module_relations),
             getString(R.string.settings),
             getString(R.string.export_images),
-            getString(R.string.export_calendar_events)
+            getString(R.string.export_calendar_events),
+            getString(R.string.physical_health_title)
         )
-        val selected = booleanArrayOf(true, true, true, true, true, true, true, true)
+        val selected = booleanArrayOf(true, true, true, true, true, true, true, true, true)
 
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.action_export)
