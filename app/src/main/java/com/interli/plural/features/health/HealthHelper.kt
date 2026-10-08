@@ -99,12 +99,30 @@ object HealthHelper {
 
     fun getHydrationCount(context: Context): Int {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val lastDate = sp.getLong("hydration_last_date", 0L)
+        val today = System.currentTimeMillis()
+        if (lastDate == 0L) {
+            sp.edit().putLong("hydration_last_date", today).apply()
+        } else if (!isSameDay(lastDate, today)) {
+            sp.edit().putInt("hydration_count", 0).putLong("hydration_last_date", today).apply()
+            return 0
+        }
         return sp.getInt("hydration_count", 0)
     }
 
     fun setHydrationCount(context: Context, count: Int) {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        sp.edit().putInt("hydration_count", count).apply()
+        sp.edit().putInt("hydration_count", count).putLong("hydration_last_date", System.currentTimeMillis()).apply()
+    }
+
+    fun getHydrationTarget(context: Context): Int {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return sp.getInt("hydration_target", 8)
+    }
+
+    fun setHydrationTarget(context: Context, target: Int) {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sp.edit().putInt("hydration_target", target).apply()
     }
 
     fun getLastEatenTime(context: Context): Pair<Long, String>? {
@@ -170,8 +188,10 @@ object HealthHelper {
     }
 
     fun isSameDay(ts1: Long, ts2: Long, tz: TimeZone = TimeZone.getDefault()): Boolean {
-        val day1 = (ts1 + tz.getOffset(ts1)) / 86400000L
-        val day2 = (ts2 + tz.getOffset(ts2)) / 86400000L
+        val offset1 = tz.getOffset(ts1)
+        val offset2 = tz.getOffset(ts2)
+        val day1 = (ts1 + offset1) / 86400000L
+        val day2 = (ts2 + offset2) / 86400000L
         return day1 == day2
     }
 

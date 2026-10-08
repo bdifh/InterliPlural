@@ -33,7 +33,7 @@ class EatenTimelineActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         val rootDrawer = DrawerLayout(this).apply {
-            id = View.generateViewId()
+            id = R.id.drawerLayout
             fitsSystemWindows = true
         }
 
@@ -58,8 +58,6 @@ class EatenTimelineActivity : BaseActivity() {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 actionBarHeight
             )
-            setNavigationIcon(androidx.appcompat.R.drawable.abc_ic_ab_back_material)
-            setNavigationOnClickListener { finish() }
         }
 
         val scrollView = NestedScrollView(this).apply {
@@ -175,11 +173,7 @@ class EatenTimelineActivity : BaseActivity() {
             }
 
             val formattedDate = daySdf.format(Date(dayMillis))
-            val dayTitleStr = when {
-                isToday -> "Vandaag, $formattedDate"
-                isYesterday -> "Gisteren, $formattedDate"
-                else -> formattedDate
-            }
+            val dayTitleStr = formattedDate
 
             val tvDayHeader = TextView(this).apply {
                 text = dayTitleStr
