@@ -39,70 +39,41 @@ This is the app for plural systems to encourage communication, discover roles an
 
 ## Screenshots
 ### Memberpage in asigned colorthemes:
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontpage1.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontpage2.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontpage3.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontpage4.png" width="20%" alt="Main Screen">
+ <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontpage1.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontpage2.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontpage3.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontpage4.png" width="20%" alt="Main Screen">
  
 ### Menu 
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Menu1.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Menu2.png" width="20%" alt="Main Screen">
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Menu3.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Menu1.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Menu2.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Menu3.png" width="20%" alt="Main Screen">
  
 ### Subsystempage & Who Am I & Relationshippage
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Subsys.png" width="20%" alt="Main Screen">
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_WhoAmI.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_WhoAmI2.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Relationships.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Subsys.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_WhoAmI.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_WhoAmI2.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Relationships.png" width="20%" alt="Main Screen">
  
 ### Sysmedia
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia4.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia5.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia2.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia3.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia4.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia5.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia2.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia3.png" width="20%" alt="Main Screen">
  <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Sysmedia1.png" width="20%" alt="Main Screen">
 
 ### physical health & Moodtracker
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Health1.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_moodtracker1.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Moodtracker2.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Health1.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_moodtracker1.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Moodtracker2.png" width="20%" alt="Main Screen">
  
 ### Notes & To Do
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Notes.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_ToDo2.png" width="20%" alt="Main Screen">
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_ToDo1.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Notes.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_ToDo2.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_ToDo1.png" width="20%" alt="Main Screen">
  
 
 ### Calendar
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar2.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar1.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar6.png" width="20%" alt="Main Screen">
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar3.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar4.png" width="20%" alt="Main Screen">
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar5.png" width="20%" alt="Main Screen">
+ <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar2.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar1.png" width="20%" alt="Main Screen">  <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar6.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar3.png" width="20%" alt="Main Screen">
+ <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar4.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Calendar5.png" width="20%" alt="Main Screen">
 
 ### Front statistics 
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontstats4.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontstats3.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_FrontStats1.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontstats2.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontstats4.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontstats3.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_FrontStats1.png" width="20%" alt="Main Screen">  <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Frontstats2.png" width="20%" alt="Main Screen">
  
 ### Mood statistics 
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Moodstats3.png" width="20%" alt="Main Screen">
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Moodstats2.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_MoodStats1.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Moodstats3.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Moodstats2.png" width="20%" alt="Main Screen">  <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_MoodStats1.png" width="20%" alt="Main Screen">
  
 ### Member-Mood Correlation 
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_MemberMoodCorrelation2.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_MemberMoodCorrelation1.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_MemberMoodCorrelation2.png" width="20%" alt="Main Screen">  <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_MemberMoodCorrelation1.png" width="20%" alt="Main Screen">
 
 ### Settings
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings1.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings3.png" width="20%" alt="Main Screen">
-<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings2.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings4.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings5.png" width="20%" alt="Main Screen">
- <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings6.png" width="20%" alt="Main Screen">
+<img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings1.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings3.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings2.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings4.png" width="20%" alt="Main Screen">
+ <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings5.png" width="20%" alt="Main Screen"> <img src="https://file.garden/Z2x0IY5m1itW8nt9/Github%20README/V002-6a_Settings6.png" width="20%" alt="Main Screen">
 
 ##  Technical Details
 - **Platform**: Android (Min SDK 24)
