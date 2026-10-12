@@ -900,7 +900,7 @@ class MainActivity : BaseActivity() {
                     val fieldsJson = settingsPref.getString("custom_fields", "[]")
                     val type = object : TypeToken<List<CustomField>>() {}.type
                     val customFieldsList: List<CustomField> = Gson().fromJson(fieldsJson, type)
-                    val hiddenFields = customFieldsList.asSequence().map { it.name }.toMutableList()
+                    val hiddenFields = customFieldsList.map { it.getUniqueId() }.toMutableList()
                     val newPerson = Person(name = name, hiddenFields = hiddenFields)
                     newPerson.addedTimestamp = System.currentTimeMillis()
                     people.add(newPerson)

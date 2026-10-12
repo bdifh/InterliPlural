@@ -92,6 +92,28 @@ object HealthHelper {
         return try { gson.fromJson(json, type) ?: mutableListOf() } catch (_: Exception) { mutableListOf() }
     }
 
+    fun saveLogs(context: Context, list: List<HealthLogEntry>) {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sp.edit().putString("logs", gson.toJson(list)).apply()
+    }
+
+    fun deleteLogEntry(context: Context, logId: String) {
+        val logs = loadLogs(context)
+        logs.removeAll { it.id == logId }
+        saveLogs(context, logs)
+    }
+
+    fun saveOrUpdateLogEntry(context: Context, entry: HealthLogEntry) {
+        val logs = loadLogs(context)
+        val idx = logs.indexOfFirst { it.id == entry.id }
+        if (idx >= 0) {
+            logs[idx] = entry
+        } else {
+            logs.add(0, entry)
+        }
+        saveLogs(context, logs)
+    }
+
     fun getLastLogForType(context: Context, type: String): HealthLogEntry? {
         val logs = loadLogs(context)
         return logs.find { it.type == type }

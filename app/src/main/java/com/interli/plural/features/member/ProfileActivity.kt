@@ -185,14 +185,8 @@ class ProfileActivity : BaseActivity() {
         }
         customFieldsSettings.forEach { field ->
             val fieldId = field.getUniqueId()
-            val hasValue = person.safeCustomFields.containsKey(fieldId) || person.safeCustomFields.containsKey(field.name)
             val isExplicitlyHidden = person.safeHiddenFields.contains(fieldId) || person.safeHiddenFields.contains(field.name)
-            val isVisible = if (!hasValue && !isExplicitlyHidden) {
-                false
-            } else {
-                !isExplicitlyHidden
-            }
-            customFieldVisibilities[fieldId] = isVisible
+            customFieldVisibilities[fieldId] = !isExplicitlyHidden
         }
         updateColorPreview(colorPreview)
         updateGroupsText(selectedGroupsText)
@@ -300,7 +294,7 @@ class ProfileActivity : BaseActivity() {
         initialGroupIds = selectedGroupIds.toList()
         initialThemeId = selectedThemeId
         initialCustomFields = person.safeCustomFields.toMap()
-        initialHiddenFields = person.safeHiddenFields.toList()
+        initialHiddenFields = customFieldVisibilities.filterValues { !it }.keys.toList()
         initialIncludeInStats = findViewById<SwitchCompat>(R.id.switchIncludeInStats).isChecked
     }
     private fun hasChanges(): Boolean {

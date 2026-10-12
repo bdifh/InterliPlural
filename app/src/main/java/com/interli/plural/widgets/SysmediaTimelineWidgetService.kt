@@ -19,7 +19,6 @@ import com.interli.plural.R
 import com.interli.plural.SysmediaPost
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.features.member.MemberHelper
-import okhttp3.internal.http2.Header
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -48,7 +47,7 @@ class SysmediaTimelineRemoteViewsFactory(
         val formattedTime: String,
         val avatarUri: String?,
         val profileColor: Int,
-        val reblogHeader: String? = null
+        val headerText: String? = null
     )
 
     private val postList = mutableListOf<PostItemInfo>()
@@ -57,8 +56,13 @@ class SysmediaTimelineRemoteViewsFactory(
     override fun onDestroy() {}
     override fun getCount(): Int = postList.size
     override fun getViewTypeCount(): Int = 1
-    override fun getItemId(position: Int): Long = position.toLong()
-    override fun hasStableIds(): Boolean = true
+    override fun getItemId(position: Int): Long {
+        if (position in postList.indices) {
+            return postList[position].postId.hashCode().toLong()
+        }
+        return position.toLong()
+    }
+    override fun hasStableIds(): Boolean = false
     override fun getLoadingView(): RemoteViews? = null
 
     override fun onDataSetChanged() {
@@ -67,7 +71,7 @@ class SysmediaTimelineRemoteViewsFactory(
         val typePosts = object : TypeToken<List<SysmediaPost>>() {}.type
         val allPosts: List<SysmediaPost> = try {
             Gson().fromJson(postsJson, typePosts) ?: emptyList()
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
 
@@ -96,11 +100,28 @@ class SysmediaTimelineRemoteViewsFactory(
             val originalPost = if (isReblog) allPosts.find { it.id == post.reblogOfId } else null
             val targetPost = originalPost ?: post
 
-            val reblogHeader = if (isReblog) {
-                val reblogger = peopleMap[post.senderId]
-                val rebloggerName = reblogger?.sysmediaProfile?.displayName ?: reblogger?.name ?: "Unknown"
-                "🔁 " + context.getString(R.string.reblogged_by, rebloggerName)
-            } else null
+            val headerText = when {
+                isReblog -> {
+                    val reblogger = peopleMap[post.senderId]
+                    val rebloggerName = reblogger?.sysmediaProfile?.displayName ?: reblogger?.name ?: "Unknown"
+                    val reblogStr = "🔁 " + context.getString(R.string.reblogged_by, rebloggerName)
+                    if (!targetPost.replyToId.isNullOrEmpty()) {
+                        val parentPost = allPosts.find { it.id == targetPost.replyToId }
+                        val parentSender = if (parentPost != null) peopleMap[parentPost.senderId] else null
+                        val parentName = parentSender?.sysmediaProfile?.displayName ?: parentSender?.name ?: "Unknown"
+                        "$reblogStr\n💬 ${context.getString(R.string.label_reply_to)} $parentName"
+                    } else {
+                        reblogStr
+                    }
+                }
+                !targetPost.replyToId.isNullOrEmpty() -> {
+                    val parentPost = allPosts.find { it.id == targetPost.replyToId }
+                    val parentSender = if (parentPost != null) peopleMap[parentPost.senderId] else null
+                    val parentName = parentSender?.sysmediaProfile?.displayName ?: parentSender?.name ?: "Unknown"
+                    "💬 ${context.getString(R.string.label_reply_to)} $parentName"
+                }
+                else -> null
+            }
 
             val authorPerson = peopleMap[targetPost.senderId]
             val name = authorPerson?.sysmediaProfile?.displayName ?: authorPerson?.name ?: "Unknown"
@@ -109,13 +130,14 @@ class SysmediaTimelineRemoteViewsFactory(
             val color = authorPerson?.profileColor ?: -6934396
 
             val rawContent = targetPost.content
-
             val hasImage = !targetPost.imageUri.isNullOrEmpty() || rawContent.contains("![")
-
             val hasLink = rawContent.contains("http://") ||
                     rawContent.contains("https://") ||
                     rawContent.contains("www.") ||
                     Regex("\\[.*?\\]\\(.*?\\)").containsMatchIn(rawContent)
+
+            val poll = targetPost.poll
+            val hasPoll = poll != null && poll.options.isNotEmpty()
 
             var cleanedContent = rawContent
                 .replace(Regex("!\\[.*?\\]\\(.*?\\)"), "")
@@ -125,12 +147,31 @@ class SysmediaTimelineRemoteViewsFactory(
             val indicators = mutableListOf<String>()
             if (hasImage) indicators.add("📷")
             if (hasLink) indicators.add("🔗")
+            if (hasPoll) indicators.add("📊")
 
             if (indicators.isNotEmpty()) {
                 cleanedContent = if (cleanedContent.isEmpty()) {
                     indicators.joinToString(" ")
                 } else {
                     "$cleanedContent ${indicators.joinToString(" ")}"
+                }
+            }
+
+            if (hasPoll) {
+                val pollObj = poll!!
+                val totalVotes = pollObj.votes.size
+                val optionsList = pollObj.options.mapIndexed { idx, option ->
+                    val votesForThis = pollObj.votes.values.count { it == idx }
+                    val percentage = if (totalVotes > 0) (votesForThis * 100 / totalVotes) else 0
+                    if (totalVotes > 0) "• $option ($percentage%)" else "• $option"
+                }.joinToString("\n")
+                val votesStr = context.getString(R.string.poll_votes_count, totalVotes)
+                val pollText = "📊 Poll:\n$optionsList\n($votesStr)"
+
+                cleanedContent = if (cleanedContent.isEmpty()) {
+                    pollText
+                } else {
+                    "$cleanedContent\n\n$pollText"
                 }
             }
 
@@ -144,7 +185,7 @@ class SysmediaTimelineRemoteViewsFactory(
                     formattedTime = sdf.format(Date(post.timestamp)),
                     avatarUri = avatar,
                     profileColor = color,
-                    reblogHeader = reblogHeader
+                    headerText = headerText
                 )
             )
         }
@@ -162,8 +203,8 @@ class SysmediaTimelineRemoteViewsFactory(
             item.authorName
         }
 
-        val displayContent = if (!item.reblogHeader.isNullOrEmpty()) {
-            "${item.reblogHeader}\n${item.content}"
+        val displayContent = if (!item.headerText.isNullOrEmpty()) {
+            "${item.headerText}\n${item.content}"
         } else {
             item.content
         }
@@ -174,9 +215,7 @@ class SysmediaTimelineRemoteViewsFactory(
 
         val textColor = ColorHelper.getTextColor(context)
         val bgColor = ColorHelper.getBgColor(context)
-
-        val dividerColor = textColor and 0x33FFFFFF.toInt()
-
+        val dividerColor = textColor and 0x33FFFFFF
 
         views.setInt(R.id.widget_post_item_root, "setBackgroundColor", bgColor)
         views.setInt(R.id.vWidgetPostDivider, "setBackgroundColor", dividerColor)
@@ -210,9 +249,7 @@ class SysmediaTimelineRemoteViewsFactory(
                         return createCircularBitmap(scaled)
                     }
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (_: Exception) {}
         }
         return createColoredCircleBitmap(profileColor)
     }

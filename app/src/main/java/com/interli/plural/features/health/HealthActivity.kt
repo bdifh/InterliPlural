@@ -217,6 +217,9 @@ class HealthActivity : BaseActivity() {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 setPadding(0, 6, 0, 6)
+                setOnClickListener {
+                    showEditLogEntryDialog(log)
+                }
             }
 
             val memberNameStr = if (!log.memberName.isNullOrEmpty()) log.memberName else getString(R.string.group_general)
@@ -230,7 +233,9 @@ class HealthActivity : BaseActivity() {
                 layoutParams = LinearLayout.LayoutParams((110 * density).toInt(), LinearLayout.LayoutParams.WRAP_CONTENT)
             }
 
-            val valStr = if (log.value.isNotEmpty()) "${log.type} (${log.value})" else log.type
+            val logVal = log.value ?: ""
+            val logTypeName = log.type ?: ""
+            val valStr = if (logVal.isNotEmpty()) "$logTypeName ($logVal)" else logTypeName
 
             val tvValue = TextView(this).apply {
                 text = valStr
@@ -864,7 +869,7 @@ class HealthActivity : BaseActivity() {
         }
 
         val dateFormat = DateFormat.getDateFormat(this)
-        val timeFormat = DateFormat.getTimeFormat(this)
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
         val tvDateTime = TextView(this).apply {
             text = "${dateFormat.format(Date(selectedTimestamp))} ${timeFormat.format(Date(selectedTimestamp))}"
@@ -967,7 +972,6 @@ class HealthActivity : BaseActivity() {
                 setPadding(0, (6 * density).toInt(), 0, (6 * density).toInt())
             }
 
-            // Kolom 1: Dag
             val tvDay = TextView(this).apply {
                 text = entry.dayOfWeek.ifEmpty { "-" }
                 textSize = 12f
@@ -978,7 +982,6 @@ class HealthActivity : BaseActivity() {
                 ellipsize = android.text.TextUtils.TruncateAt.END
             }
 
-            // Kolom 2: Type maaltijd
             val tvMealType = TextView(this).apply {
                 text = entry.mealType.ifEmpty { "-" }
                 textSize = 12f
@@ -989,7 +992,6 @@ class HealthActivity : BaseActivity() {
                 ellipsize = android.text.TextUtils.TruncateAt.END
             }
 
-            // Kolom 3: Maaltijd zelf
             val tvDesc = TextView(this).apply {
                 text = entry.description.ifEmpty { "-" }
                 textSize = 12f
@@ -998,7 +1000,6 @@ class HealthActivity : BaseActivity() {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
 
-            // Long-click op de rij opent het bewerkingsscherm
             val longClickListener = View.OnLongClickListener {
                 showEditNutritionDialog(entry)
                 true
@@ -1008,7 +1009,6 @@ class HealthActivity : BaseActivity() {
             tvMealType.setOnLongClickListener(longClickListener)
             tvDesc.setOnLongClickListener(longClickListener)
 
-            // Vierkante X knop met 8-tap countdown
             var deleteCountdown = 8
             val btnDel = createStyledButton("✕", primary = false).apply {
                 isAllCaps = false
@@ -1802,6 +1802,7 @@ class HealthActivity : BaseActivity() {
         val titleLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 8)
         }
         val title = TextView(this).apply {
             text = titleKey
@@ -1819,43 +1820,149 @@ class HealthActivity : BaseActivity() {
         cardLayout.addView(getLastLogSubtitle(titleKey, logs))
 
         val medications = HealthHelper.loadMedications(this)
+        val todayMillis = System.currentTimeMillis()
+        val tz = java.util.TimeZone.getDefault()
+        val density = resources.displayMetrics.density
+
         medications.forEach { med ->
-            val itemLayout = LinearLayout(this).apply {
+            val isTakenToday = med.isTakenToday && med.lastTakenTimestamp != null && HealthHelper.isSameDay(med.lastTakenTimestamp!!, todayMillis, tz)
+            if (med.isTakenToday != isTakenToday) {
+                med.isTakenToday = isTakenToday
+                HealthHelper.saveMedications(this, medications)
+            }
+
+            val rowLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, 4, 0, 4)
+                setPadding((8 * density).toInt(), (6 * density).toInt(), (8 * density).toInt(), (6 * density).toInt())
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(Color.TRANSPARENT)
+                    setStroke(1, ColorHelper.getBtnColor(this@HealthActivity) and 0x22FFFFFF)
+                    cornerRadius = 8f * density
+                }
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, (4 * density).toInt(), 0, (4 * density).toInt()) }
             }
-            val tv = TextView(this).apply {
-                text = "${med.name} (${med.dosage})"
-                textSize = 13f
+
+            val checkBox = androidx.appcompat.widget.AppCompatCheckBox(this).apply {
+                isChecked = isTakenToday
+                buttonTintList = ColorStateList.valueOf(ColorHelper.getBtnColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, (2 * density).toInt(), 0) }
+                setOnClickListener {
+                    val newChecked = this.isChecked
+                    med.isTakenToday = newChecked
+                    if (newChecked) {
+                        med.lastTakenTimestamp = System.currentTimeMillis()
+                        HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                            memberId = activeMemberIdString,
+                            memberName = activeMemberNameString,
+                            type = titleKey,
+                            value = "${med.name ?: ""}${if (!med.dosage.isNullOrEmpty()) " (${med.dosage})" else ""}"
+                        ))
+                    }
+                    HealthHelper.saveMedications(this@HealthActivity, medications)
+                    renderHealthPage()
+                }
+            }
+
+            val timeDisplayStr = if (isTakenToday && med.lastTakenTimestamp != null) {
+                SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(med.lastTakenTimestamp!!))
+            } else if (!med.scheduledTime.isNullOrEmpty()) {
+                med.scheduledTime!!
+            } else {
+                "-"
+            }
+
+            val tvTime = TextView(this).apply {
+                text = timeDisplayStr
+                textSize = 11f
                 setTextColor(ColorHelper.getTextColor(this@HealthActivity))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            val btnTake = createStyledButton(getString(R.string.btn_take_medication), primary = true).apply {
+                alpha = if (isTakenToday) 1.0f else 0.7f
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    (52 * density).toInt(),
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, (6 * density).toInt(), 0) }
                 setOnClickListener {
-                    med.isTakenToday = true
-                    med.lastTakenTimestamp = System.currentTimeMillis()
-                    HealthHelper.saveMedications(this@HealthActivity, medications)
-                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberIdString,
-                        memberName = activeMemberNameString,
-                        type = titleKey,
-                        value = "${med.name} (${med.dosage})"
-                    ))
-                    renderHealthPage()
+                    if (isTakenToday) {
+                        showLogMedicationCustomTimeDialog(med)
+                    } else {
+                        showAddMedicationDialog(existingMed = med)
+                    }
                 }
             }
+
+            val tvName = TextView(this).apply {
+                text = med.name ?: ""
+                textSize = 13f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                alpha = if (isTakenToday) 0.6f else 1.0f
+                layoutParams = LinearLayout.LayoutParams(
+                    (105 * density).toInt(),
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, (6 * density).toInt(), 0) }
+                setOnClickListener { showAddMedicationDialog(existingMed = med) }
+            }
+
+            val tvDosage = TextView(this).apply {
+                text = if (!med.dosage.isNullOrEmpty()) med.dosage else "-"
+                textSize = 12f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                alpha = if (isTakenToday) 0.5f else 0.85f
+                layoutParams = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                )
+                setOnClickListener { showAddMedicationDialog(existingMed = med) }
+            }
+
+            var deleteCountdown = 8
             val btnDel = createStyledButton("✕", primary = false).apply {
+                isAllCaps = false
+                insetTop = 0
+                insetBottom = 0
+                setPadding(0, 0, 0, 0)
+                textSize = 12f
+                layoutParams = LinearLayout.LayoutParams(
+                    (32 * density).toInt(),
+                    (32 * density).toInt()
+                )
                 setOnClickListener {
-                    medications.remove(med)
-                    HealthHelper.saveMedications(this@HealthActivity, medications)
-                    renderHealthPage()
+                    deleteCountdown--
+                    if (deleteCountdown <= 0) {
+                        medications.remove(med)
+                        HealthHelper.saveMedications(this@HealthActivity, medications)
+                        renderHealthPage()
+                    } else {
+                        text = "$deleteCountdown"
+                    }
                 }
             }
-            itemLayout.addView(tv)
-            itemLayout.addView(btnTake)
-            itemLayout.addView(btnDel)
-            cardLayout.addView(itemLayout)
+
+            val longClickListener = View.OnLongClickListener {
+                showAddMedicationDialog(existingMed = med)
+                true
+            }
+
+            rowLayout.setOnLongClickListener(longClickListener)
+            tvName.setOnLongClickListener(longClickListener)
+            tvDosage.setOnLongClickListener(longClickListener)
+            tvTime.setOnLongClickListener(longClickListener)
+
+            rowLayout.addView(checkBox)
+            rowLayout.addView(tvTime)
+            rowLayout.addView(tvName)
+            rowLayout.addView(tvDosage)
+            rowLayout.addView(btnDel)
+
+            cardLayout.addView(rowLayout)
         }
 
         renderCardLogs(cardLayout, logs) { it.type == titleKey }
@@ -1864,28 +1971,316 @@ class HealthActivity : BaseActivity() {
         container.addView(card)
     }
 
-    private fun showAddMedicationDialog() {
+    private fun showAddMedicationDialog(existingMed: MedicationItem? = null) {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(32, 16, 32, 16)
         }
-        val etName = EditText(this).apply { hint = getString(R.string.hint_medication_name) }
-        val etDosage = EditText(this).apply { hint = getString(R.string.hint_medication_dosage) }
+        val etName = EditText(this).apply {
+            hint = getString(R.string.hint_medication_name)
+            setText(existingMed?.name ?: "")
+        }
+        val etDosage = EditText(this).apply {
+            hint = getString(R.string.hint_medication_dosage)
+            setText(existingMed?.dosage ?: "")
+        }
+
+        var selectedTimeStr = existingMed?.scheduledTime ?: ""
+        val btnSelectTime = createStyledButton(
+            if (selectedTimeStr.isNotEmpty()) "⏰ $selectedTimeStr" else "⏰ ${getString(R.string.label_select_date_time)}",
+            primary = false
+        ).apply {
+            setOnClickListener {
+                val initHour = if (selectedTimeStr.contains(":")) selectedTimeStr.split(":")[0].toIntOrNull() ?: 8 else 8
+                val initMin = if (selectedTimeStr.contains(":")) selectedTimeStr.split(":")[1].toIntOrNull() ?: 0 else 0
+                android.app.TimePickerDialog(
+                    this@HealthActivity,
+                    { _, hourOfDay, minute ->
+                        selectedTimeStr = String.format(Locale.getDefault(), "%02d:%02d", hourOfDay, minute)
+                        text = "⏰ $selectedTimeStr"
+                    },
+                    initHour,
+                    initMin,
+                    true
+                ).show()
+            }
+        }
+
         layout.addView(etName)
         layout.addView(etDosage)
+        layout.addView(btnSelectTime)
 
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.dialog_add_medication))
+        val builder = AlertDialog.Builder(this)
+            .setTitle(if (existingMed == null) getString(R.string.dialog_add_medication) else getString(R.string.dialog_add_medication))
             .setView(layout)
             .setPositiveButton(getString(R.string.save)) { _, _ ->
                 val name = etName.text.toString().trim()
                 val dosage = etDosage.text.toString().trim()
                 if (name.isNotEmpty()) {
                     val list = HealthHelper.loadMedications(this)
-                    list.add(MedicationItem(name = name, dosage = dosage))
+                    if (existingMed != null) {
+                        val idx = list.indexOfFirst { it.id == existingMed.id }
+                        if (idx >= 0) {
+                            list[idx].name = name
+                            list[idx].dosage = dosage
+                            list[idx].scheduledTime = selectedTimeStr
+                        }
+                    } else {
+                        list.add(MedicationItem(name = name, dosage = dosage, scheduledTime = selectedTimeStr))
+                    }
                     HealthHelper.saveMedications(this, list)
                     renderHealthPage()
                 }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+
+        val dialog = builder.create()
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun showLogMedicationCustomTimeDialog(med: MedicationItem) {
+        var logTimestamp = System.currentTimeMillis()
+        val cal = Calendar.getInstance()
+        val dateTimeFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 16)
+        }
+        val tvInfo = TextView(this).apply {
+            text = "${med.name}${if (med.dosage.isNotEmpty()) " (${med.dosage})" else ""}"
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+        val btnSelectDateTime = createStyledButton(dateTimeFormat.format(Date(logTimestamp)), primary = false).apply {
+            setOnClickListener {
+                android.app.DatePickerDialog(
+                    this@HealthActivity,
+                    { _, year, month, dayOfMonth ->
+                        cal.set(Calendar.YEAR, year)
+                        cal.set(Calendar.MONTH, month)
+                        cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                        android.app.TimePickerDialog(
+                            this@HealthActivity,
+                            { _, hourOfDay, minute ->
+                                cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                                cal.set(Calendar.MINUTE, minute)
+                                logTimestamp = cal.timeInMillis
+                                text = dateTimeFormat.format(Date(logTimestamp))
+                            },
+                            cal.get(Calendar.HOUR_OF_DAY),
+                            cal.get(Calendar.MINUTE),
+                            true
+                        ).show()
+                    },
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH)
+                ).show()
+            }
+        }
+        layout.addView(tvInfo)
+        layout.addView(btnSelectDateTime)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.btn_take_medication))
+            .setView(layout)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                med.isTakenToday = true
+                med.lastTakenTimestamp = logTimestamp
+                val medications = HealthHelper.loadMedications(this)
+                val idx = medications.indexOfFirst { it.id == med.id }
+                if (idx >= 0) medications[idx] = med
+                HealthHelper.saveMedications(this, medications)
+
+                val titleKey = getString(R.string.medication_title)
+                HealthHelper.addLogEntry(this, HealthLogEntry(
+                    timestamp = logTimestamp,
+                    memberId = activeMemberIdString,
+                    memberName = activeMemberNameString,
+                    type = titleKey,
+                    value = "${med.name}${if (med.dosage.isNotEmpty()) " (${med.dosage})" else ""}"
+                ))
+                renderHealthPage()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show().let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun showEditLogEntryDialog(log: HealthLogEntry) {
+        var selectedTimestamp = log.timestamp
+        val selectedLogMemberIds = mutableListOf<String>()
+        val selectedLogMemberNames = mutableListOf<String>()
+
+        if (!log.memberId.isNullOrEmpty()) {
+            selectedLogMemberIds.addAll(log.memberId!!.split(","))
+        }
+        if (!log.memberName.isNullOrEmpty()) {
+            selectedLogMemberNames.addAll(log.memberName!!.split(", "))
+        }
+
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
+        }
+
+        val tvMember = TextView(this).apply {
+            val displayName = if (selectedLogMemberNames.isNotEmpty()) selectedLogMemberNames.joinToString(", ") else getString(R.string.group_general)
+            text = getString(R.string.logged_in_as, displayName)
+            textSize = 14f
+            setPadding(0, 8, 0, 12)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val btnSelectMember = createStyledButton(getString(R.string.select_member), primary = false).apply {
+            setOnClickListener {
+                val optionsList = mutableListOf(getString(R.string.no_member_general))
+                optionsList.addAll(systemMembers.map { it.name })
+
+                val checkedArray = BooleanArray(optionsList.size)
+                if (selectedLogMemberIds.isEmpty()) {
+                    checkedArray[0] = true
+                } else {
+                    systemMembers.forEachIndexed { index, person ->
+                        if (selectedLogMemberIds.contains(person.id)) {
+                            checkedArray[index + 1] = true
+                        }
+                    }
+                }
+
+                val tempIds = mutableListOf<String>().apply { addAll(selectedLogMemberIds) }
+                val tempNames = mutableListOf<String>().apply { addAll(selectedLogMemberNames) }
+
+                var alertDialog: AlertDialog? = null
+                var isUpdatingListView = false
+
+                val builder = AlertDialog.Builder(this@HealthActivity)
+                    .setTitle(getString(R.string.select_member))
+                    .setMultiChoiceItems(optionsList.toTypedArray(), checkedArray) { _, which, isChecked ->
+                        if (isUpdatingListView) return@setMultiChoiceItems
+                        isUpdatingListView = true
+                        try {
+                            val listView = alertDialog?.listView
+                            if (which == 0) {
+                                if (isChecked) {
+                                    tempIds.clear()
+                                    tempNames.clear()
+                                    for (i in 1 until checkedArray.size) {
+                                        checkedArray[i] = false
+                                        listView?.setItemChecked(i, false)
+                                    }
+                                } else {
+                                    if (tempIds.isEmpty()) {
+                                        checkedArray[0] = true
+                                        listView?.setItemChecked(0, true)
+                                    }
+                                }
+                            } else {
+                                val person = systemMembers[which - 1]
+                                if (isChecked) {
+                                    checkedArray[0] = false
+                                    listView?.setItemChecked(0, false)
+                                    if (!tempIds.contains(person.id)) {
+                                        tempIds.add(person.id)
+                                        tempNames.add(person.name)
+                                    }
+                                } else {
+                                    tempIds.remove(person.id)
+                                    tempNames.remove(person.name)
+                                    if (tempIds.isEmpty()) {
+                                        checkedArray[0] = true
+                                        listView?.setItemChecked(0, true)
+                                    }
+                                }
+                            }
+                        } finally {
+                            isUpdatingListView = false
+                        }
+                    }
+                    .setPositiveButton(getString(R.string.save)) { _, _ ->
+                        selectedLogMemberIds.clear()
+                        selectedLogMemberIds.addAll(tempIds)
+                        selectedLogMemberNames.clear()
+                        selectedLogMemberNames.addAll(tempNames)
+
+                        val displayName = if (selectedLogMemberNames.isNotEmpty()) selectedLogMemberNames.joinToString(", ") else getString(R.string.group_general)
+                        tvMember.text = getString(R.string.logged_in_as, displayName)
+                    }
+                    .setNegativeButton(getString(R.string.cancel), null)
+
+                alertDialog = builder.create()
+                alertDialog.show()
+                ColorHelper.styleAlertDialog(alertDialog, this@HealthActivity)
+            }
+        }
+
+        val dateTimeFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+
+        val tvDateTime = TextView(this).apply {
+            text = dateTimeFormat.format(Date(selectedTimestamp))
+            textSize = 14f
+            setPadding(0, 16, 0, 12)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val btnSelectDateTime = createStyledButton(getString(R.string.label_select_date_time), primary = false).apply {
+            setOnClickListener {
+                val cal = Calendar.getInstance().apply { timeInMillis = selectedTimestamp }
+                android.app.DatePickerDialog(
+                    this@HealthActivity,
+                    { _, year, month, dayOfMonth ->
+                        cal.set(Calendar.YEAR, year)
+                        cal.set(Calendar.MONTH, month)
+                        cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                        android.app.TimePickerDialog(
+                            this@HealthActivity,
+                            { _, hourOfDay, minute ->
+                                cal.set(Calendar.HOUR_OF_DAY, hourOfDay)
+                                cal.set(Calendar.MINUTE, minute)
+                                selectedTimestamp = cal.timeInMillis
+                                tvDateTime.text = dateTimeFormat.format(Date(selectedTimestamp))
+                            },
+                            cal.get(Calendar.HOUR_OF_DAY),
+                            cal.get(Calendar.MINUTE),
+                            true
+                        ).show()
+                    },
+                    cal.get(Calendar.YEAR),
+                    cal.get(Calendar.MONTH),
+                    cal.get(Calendar.DAY_OF_MONTH)
+                ).show()
+            }
+        }
+
+        val etValue = EditText(this).apply {
+            setText(log.value)
+            hint = "Details / Value"
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            setHintTextColor(ColorHelper.getTextColor(this@HealthActivity) and 0x88FFFFFF.toInt())
+        }
+
+        layout.addView(tvMember)
+        layout.addView(btnSelectMember)
+        layout.addView(tvDateTime)
+        layout.addView(btnSelectDateTime)
+        layout.addView(etValue)
+
+        AlertDialog.Builder(this)
+            .setTitle(log.type)
+            .setView(layout)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                log.memberId = if (selectedLogMemberIds.isNotEmpty()) selectedLogMemberIds.joinToString(",") else null
+                log.memberName = if (selectedLogMemberNames.isNotEmpty()) selectedLogMemberNames.joinToString(", ") else null
+                log.timestamp = selectedTimestamp
+                log.value = etValue.text.toString().trim()
+                HealthHelper.saveOrUpdateLogEntry(this, log)
+                renderHealthPage()
+            }
+            .setNeutralButton(getString(R.string.delete)) { _, _ ->
+                HealthHelper.deleteLogEntry(this, log.id)
+                renderHealthPage()
             }
             .setNegativeButton(getString(R.string.cancel), null)
             .show().let { ColorHelper.styleAlertDialog(it, this) }

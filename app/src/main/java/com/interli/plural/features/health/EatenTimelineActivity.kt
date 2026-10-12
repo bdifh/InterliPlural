@@ -23,6 +23,8 @@ import com.interli.plural.core.ColorHelper
 import com.interli.plural.features.member.MemberHelper
 import java.util.Calendar
 import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class EatenTimelineActivity : BaseActivity() {
 
@@ -268,7 +270,7 @@ class EatenTimelineActivity : BaseActivity() {
                 }
 
                 val timeStr = if (isChecked && record != null) {
-                    DateFormat.getTimeFormat(this).format(Date(record.timestamp))
+                    SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(record.timestamp))
                 } else {
                     "-"
                 }
@@ -378,7 +380,7 @@ class EatenTimelineActivity : BaseActivity() {
         }
 
         val dateFormat = DateFormat.getDateFormat(this)
-        val timeFormat = DateFormat.getTimeFormat(this)
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
         val tvDateTime = TextView(this).apply {
             text = "${dateFormat.format(Date(selectedTimestamp))} ${timeFormat.format(Date(selectedTimestamp))}"

@@ -45,7 +45,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="12sp"
-        android:maxLines="3"
+        android:maxLines="10"
         android:ellipsize="end" />
     <FrameLayout
         android:id="@+id/vWidgetPostDivider"

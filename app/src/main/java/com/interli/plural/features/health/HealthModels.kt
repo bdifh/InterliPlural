@@ -39,10 +39,11 @@ data class PhysicalSensation(
 
 data class MedicationItem(
     val id: String = UUID.randomUUID().toString(),
-    var name: String,
+    var name: String = "",
     var dosage: String = "",
     var isTakenToday: Boolean = false,
-    var lastTakenTimestamp: Long? = null
+    var lastTakenTimestamp: Long? = null,
+    var scheduledTime: String? = ""
 )
 
 data class NutritionScheduleEntry(
@@ -54,12 +55,12 @@ data class NutritionScheduleEntry(
 
 data class HealthLogEntry(
     val id: String = UUID.randomUUID().toString(),
-    val timestamp: Long = System.currentTimeMillis(),
-    val memberId: String? = null,
-    val memberName: String? = null,
-    val type: String = "",
-    val value: String = "",
-    val note: String = ""
+    var timestamp: Long = System.currentTimeMillis(),
+    var memberId: String? = null,
+    var memberName: String? = null,
+    var type: String = "",
+    var value: String? = "",
+    var note: String? = ""
 )
 
 data class EatenMealRecord(
