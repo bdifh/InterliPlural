@@ -198,7 +198,7 @@ class SysmediaTimelineRemoteViewsFactory(
         val item = postList[position]
 
         val authorDisplay = if (item.authorHandle.isNotEmpty()) {
-            "${item.authorName} ${item.authorHandle}"
+            "${item.authorName}"
         } else {
             item.authorName
         }

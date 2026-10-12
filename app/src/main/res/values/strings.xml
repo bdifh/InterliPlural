@@ -737,7 +737,7 @@
     <string name="health_settings_btn">Physical Health Settings</string>
     <string name="logged_in_as">Logged in as: %1$s</string>
     <string name="hydration_counter_title">Hydration Counter</string>
-    <string name="eaten_check_title">Body Eaten Check</string>
+    <string name="eaten_check_title">Has the body been fed?</string>
     <string name="energy_level_title">Energy Level</string>
     <string name="rest_title">Pause / Rest</string>
     <string name="sensations_title">Physical Sensations &amp; Complaints</string>
@@ -809,4 +809,8 @@
     <string name="no_active_fronter">No active fronter</string>
     <string name="label_front_prefix">Front: %1$s</string>
     <string name="hint_nutrition_type">Meal type (e.g. Breakfast)</string>
+    <string name="btn_medication_history">Medication history</string>
+    <string name="medication_timeline_medicine">Medication</string>
+    <string name="medication_timeline_taken">Dose recorded</string>
+    <string name="medication_timeline_not_recorded">No dose recorded</string>
 </resources>

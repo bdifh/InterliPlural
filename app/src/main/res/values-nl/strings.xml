@@ -606,7 +606,7 @@
     <string name="health_settings_btn">Instellingen Lichamelijke Gezondheid</string>
     <string name="logged_in_as">Ingelogd als: %1$s</string>
     <string name="hydration_counter_title">Hydratatie Teller</string>
-    <string name="eaten_check_title">Lichaam Gegeten Check</string>
+    <string name="eaten_check_title">Heeft het lichaam gegeten?</string>
     <string name="energy_level_title">Energieniveau</string>
     <string name="rest_title">Pauze / Rust</string>
     <string name="sensations_title">Lichamelijke Sensaties &amp; Klachten</string>
@@ -680,4 +680,8 @@
     <string name="hint_nutrition_type">Type maaltijd (bijv. Ontbijt)</string>
     <string name="action_move_up">Omhoog</string>
     <string name="action_move_down">Omlaag</string>
+    <string name="btn_medication_history">Medicatiegeschiedenis</string>
+    <string name="medication_timeline_medicine">Medicijn</string>
+    <string name="medication_timeline_taken">Inname geregistreerd</string>
+    <string name="medication_timeline_not_recorded">Geen inname geregistreerd</string>
 </resources>
