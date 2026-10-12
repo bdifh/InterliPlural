@@ -106,5 +106,4 @@ this project is licensed under the GNU GPL (v3)
 - Or move to the [tag page](https://github.com/bdifh/InterliPlural/tags) here within Github (for download only).
 
 ---
-*Developed by Royal-Rey*
-*This Introduction was last updated for: V002-6b*
+*Developed by Royal-Rey* - *This Introduction was last updated for: V002-6b*
