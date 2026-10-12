@@ -107,5 +107,4 @@ this project is licensed under the GNU GPL (v3)
 
 ---
 *Developed by Royal-Rey*
-
 *This Introduction was last updated for: V002-6b*
