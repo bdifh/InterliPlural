@@ -1,10 +1,10 @@
 package com.interli.plural.features.health
 
 import android.content.Context
-import android.icu.util.TimeZone
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.util.Calendar
+import java.util.TimeZone
 
 object HealthHelper {
     private const val PREFS_NAME = "health_prefs"
@@ -188,10 +188,8 @@ object HealthHelper {
     }
 
     fun isSameDay(ts1: Long, ts2: Long, tz: TimeZone = TimeZone.getDefault()): Boolean {
-        val offset1 = tz.getOffset(ts1)
-        val offset2 = tz.getOffset(ts2)
-        val day1 = (ts1 + offset1) / 86400000L
-        val day2 = (ts2 + offset2) / 86400000L
+        val day1 = (ts1 + tz.getOffset(ts1)) / 86400000L
+        val day2 = (ts2 + tz.getOffset(ts2)) / 86400000L
         return day1 == day2
     }
 

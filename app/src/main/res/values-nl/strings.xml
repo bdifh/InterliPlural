@@ -614,7 +614,7 @@
     <string name="custom_sliders_title">Custom Schuifbalken</string>
     <string name="medication_title">Medicatielijst</string>
     <string name="weight_tracker_title">Gewicht Tracker</string>
-    <string name="nutrition_schedule_title">Voedingsschema</string>
+    <string name="nutrition_schedule_title">Plan je maaltijden</string>
     <string name="health_recent_logs">Recente Logs</string>
     <string name="btn_log_entry">Loggen</string>
     <string name="btn_add">+ Toevoegen</string>
@@ -661,7 +661,7 @@
     <string name="switch_custom_counters">Custom Tellers</string>
     <string name="switch_medication">Medicatielijst</string>
     <string name="switch_weight">Gewicht Tracker</string>
-    <string name="switch_nutrition">Voedingsschema</string>
+    <string name="switch_nutrition">Plan je maaltijden</string>
     <string name="meal_dinner">Avondeten</string>
     <string name="btn_eaten_timeline">Bekijk Tijdlijn</string>
     <string name="eaten_timeline_title">Gegeten Tijdlijn</string>
@@ -677,4 +677,7 @@
     <string name="no_member_general">Geen lid (Algemeen)</string>
     <string name="no_active_fronter">Geen actieve fronter</string>
     <string name="label_front_prefix">Front: %1$s</string>
+    <string name="hint_nutrition_type">Type maaltijd (bijv. Ontbijt)</string>
+    <string name="action_move_up">Omhoog</string>
+    <string name="action_move_down">Omlaag</string>
 </resources>

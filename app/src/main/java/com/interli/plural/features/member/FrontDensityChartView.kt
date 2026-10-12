@@ -102,7 +102,8 @@ class FrontDensityChartView(context: Context, attrs: AttributeSet?) : View(conte
             val x = paddingLeft + (h / 24f) * chartWidth
             canvas.drawLine(x, paddingTop, x, paddingTop + chartHeight, paint)
             textPaint.textAlign = Paint.Align.CENTER
-            canvas.drawText("${h}h", x, paddingTop + chartHeight + 15f * density, textPaint)
+            val unit = if (com.interli.plural.core.LocaleHelper.getLocale(context) == "nl") "u" else "h"
+            canvas.drawText("$h$unit", x, paddingTop + chartHeight + 15f * density, textPaint)
         }
         paint.strokeWidth = 3f * density
         paint.strokeCap = Paint.Cap.ROUND

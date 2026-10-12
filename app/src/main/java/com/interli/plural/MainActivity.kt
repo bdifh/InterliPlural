@@ -318,6 +318,13 @@ class MainActivity : BaseActivity() {
                         MoodActivity::class.java
                     ) else null
                 }
+                "health" -> {
+                    val sub = settingsPref.getBoolean("sub_health_enabled", true)
+                    if (sub) android.content.Intent(
+                        this,
+                        com.interli.plural.features.health.HealthActivity::class.java
+                    ) else null
+                }
 
                 "diary" -> if (settingsPref.getBoolean(
                         "module_notes_enabled",

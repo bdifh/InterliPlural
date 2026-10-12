@@ -611,6 +611,7 @@ class SettingsActivity : BaseActivity() {
         val relationsSub = sp.getBoolean("sub_relations_enabled", true) && pluralMaster
         val sysmediaSub = sp.getBoolean("module_sysmedia_enabled", true) && pluralMaster
         val moodMaster = sp.getBoolean("module_mood_enabled", true)
+        val healthSub = sp.getBoolean("sub_health_enabled", true)
         val moodLogSub = sp.getBoolean("sub_mood_log_enabled", true) && moodMaster
         val moodInsightsSub = sp.getBoolean("sub_mood_insights", true) && moodMaster
         val notesEnabled = sp.getBoolean("module_notes_enabled", true)
@@ -627,6 +628,10 @@ class SettingsActivity : BaseActivity() {
         if (relationsSub) {
             options.add(getString(R.string.module_relations))
             codes.add("relations")
+        }
+        if (healthSub) {
+            options.add(getString(R.string.health_title))
+            codes.add("health")
         }
         if (moodLogSub) {
             options.add(getString(R.string.mood_tracker))
@@ -683,6 +688,7 @@ class SettingsActivity : BaseActivity() {
             ModuleGroup("module_notes_enabled", getString(R.string.module_notes)),
             ModuleGroup("module_todo_enabled", getString(R.string.module_todo)),
             ModuleGroup("module_calendar_enabled", getString(R.string.module_calendar)),
+            ModuleGroup("sub_health_enabled", getString(R.string.health_title)),
             ModuleGroup(
                 "module_mood_enabled", getString(R.string.module_mood), listOf(
                     ModuleSub("sub_mood_log_enabled", getString(R.string.mood_tracker)),

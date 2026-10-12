@@ -59,6 +59,11 @@ class HealthSettingsActivity : BaseActivity() {
         findViewById<MaterialButton>(R.id.btnAddCustomSlider).setOnClickListener { showAddCustomSliderDialog() }
         findViewById<MaterialButton>(R.id.btnAddSensation).setOnClickListener { showAddSensationDialog() }
         findViewById<MaterialButton>(R.id.btnAddMedication).setOnClickListener { showAddMedicationDialog() }
+        findViewById<MaterialButton>(R.id.btnSaveHealthSettings)?.setOnClickListener {
+            save()
+            android.widget.Toast.makeText(this, getString(R.string.settings_saved), android.widget.Toast.LENGTH_SHORT).show()
+            finish()
+        }
     }
 
     private fun save() {

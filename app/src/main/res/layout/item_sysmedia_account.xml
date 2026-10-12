@@ -28,15 +28,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#000000" />
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvHandle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:textColor="#536471" />
+            android:textSize="14sp" />
 
     </LinearLayout>
 

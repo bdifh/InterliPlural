@@ -8,6 +8,8 @@ import android.text.InputType
 import android.text.format.DateFormat
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.*
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -265,7 +267,7 @@ class HealthActivity : BaseActivity() {
         val allLogs = HealthHelper.loadLogs(this)
         val todayMillis = System.currentTimeMillis()
         val tz = java.util.TimeZone.getDefault()
-        val todayLogs = allLogs.filter { HealthHelper.isSameDay(it.timestamp, todayMillis) }
+        val todayLogs = allLogs.filter { HealthHelper.isSameDay(it.timestamp, todayMillis, tz) }
 
         container.removeAllViews()
 
@@ -282,6 +284,7 @@ class HealthActivity : BaseActivity() {
         if (settings.showCustomCounters) renderCustomCountersCard(todayLogs)
         if (settings.showCustomSliders) renderCustomSlidersCard(todayLogs)
     }
+
 
     private fun renderActiveMemberHeader() {
         val density = resources.displayMetrics.density
@@ -353,37 +356,49 @@ class HealthActivity : BaseActivity() {
         }
 
         var alertDialog: AlertDialog? = null
+        var isUpdatingListView = false
 
         val builder = AlertDialog.Builder(this)
             .setTitle(getString(R.string.select_member))
             .setMultiChoiceItems(optionsList.toTypedArray(), checkedArray) { _, which, isChecked ->
-                val listView = alertDialog?.listView
-                if (which == 0) {
-                    if (isChecked) {
-                        tempSelectedIds.clear()
-                        tempSelectedNames.clear()
-                        for (i in 1 until checkedArray.size) {
-                            checkedArray[i] = false
-                            listView?.setItemChecked(i, false)
-                        }
-                    }
-                } else {
-                    val person = systemMembers[which - 1]
-                    if (isChecked) {
-                        checkedArray[0] = false
-                        listView?.setItemChecked(0, false)
-                        if (!tempSelectedIds.contains(person.id)) {
-                            tempSelectedIds.add(person.id)
-                            tempSelectedNames.add(person.name)
+                if (isUpdatingListView) return@setMultiChoiceItems
+                isUpdatingListView = true
+                try {
+                    val listView = alertDialog?.listView
+                    if (which == 0) {
+                        if (isChecked) {
+                            tempSelectedIds.clear()
+                            tempSelectedNames.clear()
+                            for (i in 1 until checkedArray.size) {
+                                checkedArray[i] = false
+                                listView?.setItemChecked(i, false)
+                            }
+                        } else {
+                            if (tempSelectedIds.isEmpty()) {
+                                checkedArray[0] = true
+                                listView?.setItemChecked(0, true)
+                            }
                         }
                     } else {
-                        tempSelectedIds.remove(person.id)
-                        tempSelectedNames.remove(person.name)
-                        if (tempSelectedIds.isEmpty()) {
-                            checkedArray[0] = true
-                            listView?.setItemChecked(0, true)
+                        val person = systemMembers[which - 1]
+                        if (isChecked) {
+                            checkedArray[0] = false
+                            listView?.setItemChecked(0, false)
+                            if (!tempSelectedIds.contains(person.id)) {
+                                tempSelectedIds.add(person.id)
+                                tempSelectedNames.add(person.name)
+                            }
+                        } else {
+                            tempSelectedIds.remove(person.id)
+                            tempSelectedNames.remove(person.name)
+                            if (tempSelectedIds.isEmpty()) {
+                                checkedArray[0] = true
+                                listView?.setItemChecked(0, true)
+                            }
                         }
                     }
+                } finally {
+                    isUpdatingListView = false
                 }
             }
             .setPositiveButton(getString(R.string.save)) { _, _ ->
@@ -786,37 +801,49 @@ class HealthActivity : BaseActivity() {
                 val tempMealNames = mutableListOf<String>().apply { addAll(selectedMealMemberNames) }
 
                 var alertDialog: AlertDialog? = null
+                var isUpdatingListView = false
 
                 val builder = AlertDialog.Builder(this@HealthActivity)
                     .setTitle(getString(R.string.select_member))
                     .setMultiChoiceItems(optionsList.toTypedArray(), checkedArray) { _, which, isChecked ->
-                        val listView = alertDialog?.listView
-                        if (which == 0) {
-                            if (isChecked) {
-                                tempMealIds.clear()
-                                tempMealNames.clear()
-                                for (i in 1 until checkedArray.size) {
-                                    checkedArray[i] = false
-                                    listView?.setItemChecked(i, false)
-                                }
-                            }
-                        } else {
-                            val person = systemMembers[which - 1]
-                            if (isChecked) {
-                                checkedArray[0] = false
-                                listView?.setItemChecked(0, false)
-                                if (!tempMealIds.contains(person.id)) {
-                                    tempMealIds.add(person.id)
-                                    tempMealNames.add(person.name)
+                        if (isUpdatingListView) return@setMultiChoiceItems
+                        isUpdatingListView = true
+                        try {
+                            val listView = alertDialog?.listView
+                            if (which == 0) {
+                                if (isChecked) {
+                                    tempMealIds.clear()
+                                    tempMealNames.clear()
+                                    for (i in 1 until checkedArray.size) {
+                                        checkedArray[i] = false
+                                        listView?.setItemChecked(i, false)
+                                    }
+                                } else {
+                                    if (tempMealIds.isEmpty()) {
+                                        checkedArray[0] = true
+                                        listView?.setItemChecked(0, true)
+                                    }
                                 }
                             } else {
-                                tempMealIds.remove(person.id)
-                                tempMealNames.remove(person.name)
-                                if (tempMealIds.isEmpty()) {
-                                    checkedArray[0] = true
-                                    listView?.setItemChecked(0, true)
+                                val person = systemMembers[which - 1]
+                                if (isChecked) {
+                                    checkedArray[0] = false
+                                    listView?.setItemChecked(0, false)
+                                    if (!tempMealIds.contains(person.id)) {
+                                        tempMealIds.add(person.id)
+                                        tempMealNames.add(person.name)
+                                    }
+                                } else {
+                                    tempMealIds.remove(person.id)
+                                    tempMealNames.remove(person.name)
+                                    if (tempMealIds.isEmpty()) {
+                                        checkedArray[0] = true
+                                        listView?.setItemChecked(0, true)
+                                    }
                                 }
                             }
+                        } finally {
+                            isUpdatingListView = false
                         }
                     }
                     .setPositiveButton(getString(R.string.save)) { _, _ ->
@@ -931,26 +958,83 @@ class HealthActivity : BaseActivity() {
         cardLayout.addView(getLastLogSubtitle(titleKey, logs))
 
         val entries = HealthHelper.loadNutritionEntries(this)
+        val density = resources.displayMetrics.density
+
         entries.forEach { entry ->
             val entryLayout = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, 4, 0, 4)
+                setPadding(0, (6 * density).toInt(), 0, (6 * density).toInt())
             }
-            val tv = TextView(this).apply {
-                text = "${entry.dayOfWeek} [${entry.mealType}]: ${entry.description}"
-                textSize = 13f
+
+            // Kolom 1: Dag
+            val tvDay = TextView(this).apply {
+                text = entry.dayOfWeek.ifEmpty { "-" }
+                textSize = 12f
+                setTypeface(null, android.graphics.Typeface.BOLD)
                 setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                layoutParams = LinearLayout.LayoutParams((85 * density).toInt(), LinearLayout.LayoutParams.WRAP_CONTENT)
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
+
+            // Kolom 2: Type maaltijd
+            val tvMealType = TextView(this).apply {
+                text = entry.mealType.ifEmpty { "-" }
+                textSize = 12f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                alpha = 0.85f
+                layoutParams = LinearLayout.LayoutParams((80 * density).toInt(), LinearLayout.LayoutParams.WRAP_CONTENT)
+                maxLines = 2
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            }
+
+            // Kolom 3: Maaltijd zelf
+            val tvDesc = TextView(this).apply {
+                text = entry.description.ifEmpty { "-" }
+                textSize = 12f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                setPadding((4 * density).toInt(), 0, (8 * density).toInt(), 0)
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
+
+            // Long-click op de rij opent het bewerkingsscherm
+            val longClickListener = View.OnLongClickListener {
+                showEditNutritionDialog(entry)
+                true
+            }
+            entryLayout.setOnLongClickListener(longClickListener)
+            tvDay.setOnLongClickListener(longClickListener)
+            tvMealType.setOnLongClickListener(longClickListener)
+            tvDesc.setOnLongClickListener(longClickListener)
+
+            // Vierkante X knop met 8-tap countdown
+            var deleteCountdown = 8
             val btnDel = createStyledButton("✕", primary = false).apply {
+                isAllCaps = false
+                insetTop = 0
+                insetBottom = 0
+                setPadding(0, 0, 0, 0)
+                textSize = 12f
+                layoutParams = LinearLayout.LayoutParams(
+                    (36 * density).toInt(),
+                    (36 * density).toInt()
+                )
                 setOnClickListener {
-                    entries.remove(entry)
-                    HealthHelper.saveNutritionEntries(this@HealthActivity, entries)
-                    renderHealthPage()
+                    deleteCountdown--
+                    if (deleteCountdown <= 0) {
+                        entries.remove(entry)
+                        HealthHelper.saveNutritionEntries(this@HealthActivity, entries)
+                        renderHealthPage()
+                    } else {
+                        text = "$deleteCountdown"
+                    }
                 }
             }
-            entryLayout.addView(tv)
+
+            entryLayout.addView(tvDay)
+            entryLayout.addView(tvMealType)
+            entryLayout.addView(tvDesc)
             entryLayout.addView(btnDel)
             cardLayout.addView(entryLayout)
         }
@@ -961,34 +1045,560 @@ class HealthActivity : BaseActivity() {
         container.addView(card)
     }
 
-    private fun showAddNutritionDialog() {
-        val layout = LinearLayout(this).apply {
+    private fun showEditNutritionDialog(entryToEdit: NutritionScheduleEntry) {
+        showNutritionDialog(entryToEdit)
+    }
+
+    private fun showNutritionDialog(existingEntry: NutritionScheduleEntry? = null) {
+        val textColor = ColorHelper.getTextColor(this)
+        val btnColor = ColorHelper.getBtnColor(this)
+        val density = resources.displayMetrics.density
+
+        var alertDialog: AlertDialog? = null
+
+        val scrollView = ScrollView(this)
+        val containerLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 16, 32, 16)
+            setPadding((16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt())
         }
-        val etDay = EditText(this).apply { hint = getString(R.string.hint_nutrition_day) }
-        val etType = EditText(this).apply { hint = getString(R.string.hint_field_title) }
-        val etDesc = EditText(this).apply { hint = getString(R.string.hint_nutrition_description) }
-        layout.addView(etDay)
-        layout.addView(etType)
-        layout.addView(etDesc)
+        scrollView.addView(containerLayout)
+
+        if (existingEntry != null) {
+            val entries = HealthHelper.loadNutritionEntries(this)
+            val index = entries.indexOfFirst { it.id == existingEntry.id }
+            if (index != -1) {
+                val moveRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    setPadding(0, 0, 0, (12 * density).toInt())
+                }
+
+                val btnMoveUp = createStyledButton("⬆ " + getString(R.string.action_move_up), primary = false).apply {
+                    isEnabled = index > 0
+                    alpha = if (isEnabled) 1.0f else 0.4f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        setMargins(0, 0, (4 * density).toInt(), 0)
+                    }
+                    setOnClickListener {
+                        if (index > 0) {
+                            val temp = entries[index]
+                            entries[index] = entries[index - 1]
+                            entries[index - 1] = temp
+                            HealthHelper.saveNutritionEntries(this@HealthActivity, entries)
+                            alertDialog?.dismiss()
+                            renderHealthPage()
+                        }
+                    }
+                }
+
+                val btnMoveDown = createStyledButton("⬇ " + getString(R.string.action_move_down), primary = false).apply {
+                    isEnabled = index < entries.size - 1
+                    alpha = if (isEnabled) 1.0f else 0.4f
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        setMargins((4 * density).toInt(), 0, 0, 0)
+                    }
+                    setOnClickListener {
+                        if (index < entries.size - 1) {
+                            val temp = entries[index]
+                            entries[index] = entries[index + 1]
+                            entries[index + 1] = temp
+                            HealthHelper.saveNutritionEntries(this@HealthActivity, entries)
+                            alertDialog?.dismiss()
+                            renderHealthPage()
+                        }
+                    }
+                }
+
+                moveRow.addView(btnMoveUp)
+                moveRow.addView(btnMoveDown)
+                containerLayout.addView(moveRow)
+
+                containerLayout.addView(View(this).apply {
+                    setBackgroundColor(btnColor and 0x33FFFFFF)
+                    layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply { setMargins(0, 0, 0, 16) }
+                })
+            }
+        }
+
+        val tvDayHeader = TextView(this).apply {
+            text = getString(R.string.hint_nutrition_day)
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(textColor)
+            setPadding(0, 0, 0, (6 * density).toInt())
+        }
+        containerLayout.addView(tvDayHeader)
+
+        val daysOfWeek = listOf(
+            getString(R.string.monday),
+            getString(R.string.tuesday),
+            getString(R.string.wednesday),
+            getString(R.string.thursday),
+            getString(R.string.friday),
+            getString(R.string.saturday),
+            getString(R.string.sunday)
+        )
+        val selectedDays = mutableSetOf<String>()
+        var specificDateString: String? = null
+
+        val existingDayParts = existingEntry?.dayOfWeek?.split(",")?.map { it.trim() } ?: emptyList()
+        if (existingEntry != null && existingEntry.dayOfWeek.contains("/")) {
+            specificDateString = existingEntry.dayOfWeek
+        } else {
+            selectedDays.addAll(existingDayParts.filter { daysOfWeek.contains(it) })
+        }
+
+        val daysLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, (8 * density).toInt())
+        }
+
+        val daysRow1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val daysRow2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+
+        val btnDatePicker = createStyledButton(
+            if (!specificDateString.isNullOrEmpty()) "📅 $specificDateString" else "📅 ${getString(R.string.select_date)}",
+            primary = false
+        )
+
+        daysOfWeek.forEachIndexed { index, dayName ->
+            val cb = CheckBox(this).apply {
+                text = dayName.take(3)
+                setTextColor(textColor)
+                isChecked = selectedDays.contains(dayName)
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        selectedDays.add(dayName)
+                        specificDateString = null
+                        btnDatePicker.text = "📅 ${getString(R.string.select_date)}"
+                    } else {
+                        selectedDays.remove(dayName)
+                    }
+                }
+            }
+            if (index < 4) daysRow1.addView(cb) else daysRow2.addView(cb)
+        }
+
+        btnDatePicker.setOnClickListener {
+            val cal = Calendar.getInstance()
+            val dpd = android.app.DatePickerDialog(this, { _, year, month, dayOfMonth ->
+                val selectedCal = Calendar.getInstance().apply { set(year, month, dayOfMonth) }
+                val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                specificDateString = sdf.format(selectedCal.time)
+                btnDatePicker.text = "📅 $specificDateString"
+                selectedDays.clear()
+                for (row in listOf(daysRow1, daysRow2)) {
+                    for (i in 0 until row.childCount) {
+                        (row.getChildAt(i) as? CheckBox)?.isChecked = false
+                    }
+                }
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH))
+            dpd.show()
+            ColorHelper.styleAlertDialog(dpd, this)
+        }
+
+        daysLayout.addView(daysRow1)
+        daysLayout.addView(daysRow2)
+        daysLayout.addView(btnDatePicker)
+        containerLayout.addView(daysLayout)
+
+        containerLayout.addView(View(this).apply {
+            setBackgroundColor(btnColor and 0x33FFFFFF)
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply { setMargins(0, 8, 0, 16) }
+        })
+
+        val tvTypeHeader = TextView(this).apply {
+            text = getString(R.string.hint_nutrition_type)
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(textColor)
+            setPadding(0, 0, 0, (6 * density).toInt())
+        }
+        containerLayout.addView(tvTypeHeader)
+
+        val mealTypes = listOf(
+            getString(R.string.meal_breakfast),
+            getString(R.string.meal_lunch),
+            getString(R.string.meal_dinner),
+            getString(R.string.meal_snack)
+        )
+        val selectedTypes = mutableSetOf<String>()
+        val existingTypeParts = existingEntry?.mealType?.split(",")?.map { it.trim() } ?: emptyList()
+        selectedTypes.addAll(existingTypeParts.filter { mealTypes.contains(it) })
+
+        val typeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, (8 * density).toInt())
+        }
+
+        mealTypes.forEach { typeName ->
+            val cb = CheckBox(this).apply {
+                text = typeName
+                setTextColor(textColor)
+                isChecked = selectedTypes.contains(typeName)
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) selectedTypes.add(typeName) else selectedTypes.remove(typeName)
+                }
+            }
+            typeRow.addView(cb)
+        }
+        val typeScrollView = HorizontalScrollView(this).apply {
+            addView(typeRow)
+            isFillViewport = true
+        }
+        containerLayout.addView(typeScrollView)
+
+        containerLayout.addView(View(this).apply {
+            setBackgroundColor(btnColor and 0x33FFFFFF)
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply { setMargins(0, 8, 0, 16) }
+        })
+
+        val tvDescHeader = TextView(this).apply {
+            text = getString(R.string.hint_nutrition_description)
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(textColor)
+            setPadding(0, 0, 0, (6 * density).toInt())
+        }
+        containerLayout.addView(tvDescHeader)
+
+        val selectedFoodItems = mutableSetOf<String>()
+        val foodItemsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        fun populateFoodItems() {
+            foodItemsContainer.removeAllViews()
+            val list = HealthHelper.loadSavedFoodItems(this)
+            list.forEach { food ->
+                val isChecked = existingEntry?.description?.contains(food, ignoreCase = true) == true
+                if (isChecked) selectedFoodItems.add(food)
+                val cb = CheckBox(this).apply {
+                    text = food
+                    setTextColor(textColor)
+                    this.isChecked = selectedFoodItems.contains(food)
+                    setOnCheckedChangeListener { _, checked ->
+                        if (checked) selectedFoodItems.add(food) else selectedFoodItems.remove(food)
+                    }
+                }
+                foodItemsContainer.addView(cb)
+            }
+        }
+        populateFoodItems()
+
+        val btnAddFood = createStyledButton(getString(R.string.btn_add_food_item), primary = false).apply {
+            setOnClickListener {
+                showAddFoodItemDialog {
+                    populateFoodItems()
+                }
+            }
+        }
+
+        val initialCustomDesc = existingEntry?.description?.let { desc ->
+            var cleaned = desc
+            selectedFoodItems.forEach { food ->
+                cleaned = cleaned.replace(food, "", ignoreCase = true)
+            }
+            cleaned.replace("(", "").replace(")", "").trim().trim(',', ' ')
+        } ?: ""
+
+        val etCustomDesc = EditText(this).apply {
+            hint = getString(R.string.hint_nutrition_description)
+            setText(if (existingEntry != null && selectedFoodItems.isEmpty()) existingEntry.description else initialCustomDesc)
+            setTextColor(textColor)
+            setHintTextColor(textColor and 0x88FFFFFF.toInt())
+        }
+
+        containerLayout.addView(foodItemsContainer)
+        containerLayout.addView(btnAddFood)
+        containerLayout.addView(etCustomDesc)
+
+        val builder = AlertDialog.Builder(this)
+            .setTitle(if (existingEntry == null) getString(R.string.dialog_add_nutrition) else getString(R.string.dialog_add_nutrition))
+            .setView(scrollView)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val finalDay = if (!specificDateString.isNullOrEmpty()) {
+                    specificDateString!!
+                } else {
+                    selectedDays.joinToString(", ")
+                }
+                val finalType = selectedTypes.joinToString(", ")
+
+                val foodListStr = selectedFoodItems.joinToString(", ")
+                val customNoteStr = etCustomDesc.text.toString().trim()
+
+                val finalDesc = buildString {
+                    if (foodListStr.isNotEmpty()) append(foodListStr)
+                    if (customNoteStr.isNotEmpty()) {
+                        if (isNotEmpty()) append(" (").append(customNoteStr).append(")")
+                        else append(customNoteStr)
+                    }
+                }
+
+                val entries = HealthHelper.loadNutritionEntries(this)
+                if (existingEntry != null) {
+                    val idx = entries.indexOfFirst { it.id == existingEntry.id }
+                    if (idx != -1) {
+                        entries[idx].dayOfWeek = finalDay
+                        entries[idx].mealType = finalType
+                        entries[idx].description = finalDesc
+                    } else {
+                        entries.add(NutritionScheduleEntry(
+                            id = existingEntry.id,
+                            dayOfWeek = finalDay,
+                            mealType = finalType,
+                            description = finalDesc
+                        ))
+                    }
+                } else {
+                    if (finalDay.isNotEmpty() || finalType.isNotEmpty() || finalDesc.isNotEmpty()) {
+                        entries.add(NutritionScheduleEntry(
+                            dayOfWeek = finalDay,
+                            mealType = finalType,
+                            description = finalDesc
+                        ))
+                    }
+                }
+
+                HealthHelper.saveNutritionEntries(this, entries)
+                HealthHelper.addLogEntry(this, HealthLogEntry(
+                    memberId = activeMemberIdString,
+                    memberName = activeMemberNameString,
+                    type = getString(R.string.nutrition_schedule_title),
+                    value = "$finalDay - $finalType: $finalDesc"
+                ))
+                renderHealthPage()
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+
+        if (existingEntry != null) {
+            builder.setNeutralButton(getString(R.string.delete)) { _, _ ->
+                val entries = HealthHelper.loadNutritionEntries(this)
+                entries.removeAll { it.id == existingEntry.id }
+                HealthHelper.saveNutritionEntries(this, entries)
+                renderHealthPage()
+            }
+        }
+
+        alertDialog = builder.create()
+        alertDialog.show()
+        ColorHelper.styleAlertDialog(alertDialog, this)
+    }
+
+    private fun showAddNutritionDialog() {
+        val textColor = ColorHelper.getTextColor(this)
+        val btnColor = ColorHelper.getBtnColor(this)
+        val density = resources.displayMetrics.density
+
+        val scrollView = ScrollView(this)
+        val containerLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt(), (16 * density).toInt())
+        }
+        scrollView.addView(containerLayout)
+        
+        val tvDayHeader = TextView(this).apply {
+            text = getString(R.string.hint_nutrition_day)
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(textColor)
+            setPadding(0, 0, 0, (6 * density).toInt())
+        }
+        containerLayout.addView(tvDayHeader)
+
+        val daysOfWeek = listOf(
+            getString(R.string.monday),
+            getString(R.string.tuesday),
+            getString(R.string.wednesday),
+            getString(R.string.thursday),
+            getString(R.string.friday),
+            getString(R.string.saturday),
+            getString(R.string.sunday)
+        )
+        val selectedDays = mutableSetOf<String>()
+        var specificDateString: String? = null
+
+        val daysLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, (8 * density).toInt())
+        }
+
+        val daysRow1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val daysRow2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+
+        val btnDatePicker = createStyledButton("📅 ${getString(R.string.select_date)}", primary = false)
+
+        daysOfWeek.forEachIndexed { index, dayName ->
+            val cb = CheckBox(this).apply {
+                text = dayName.take(3)
+                setTextColor(textColor)
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) {
+                        selectedDays.add(dayName)
+                        specificDateString = null
+                        btnDatePicker.text = "📅 ${getString(R.string.select_date)}"
+                    } else {
+                        selectedDays.remove(dayName)
+                    }
+                }
+            }
+            if (index < 4) daysRow1.addView(cb) else daysRow2.addView(cb)
+        }
+
+        btnDatePicker.setOnClickListener {
+            val cal = java.util.Calendar.getInstance()
+            val dpd = android.app.DatePickerDialog(this, { _, year, month, dayOfMonth ->
+                val selectedCal = java.util.Calendar.getInstance().apply { set(year, month, dayOfMonth) }
+                val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                specificDateString = sdf.format(selectedCal.time)
+                btnDatePicker.text = "📅 $specificDateString"
+                selectedDays.clear()
+                for (row in listOf(daysRow1, daysRow2)) {
+                    for (i in 0 until row.childCount) {
+                        (row.getChildAt(i) as? CheckBox)?.isChecked = false
+                    }
+                }
+            }, cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH), cal.get(java.util.Calendar.DAY_OF_MONTH))
+            dpd.show()
+            ColorHelper.styleAlertDialog(dpd, this)
+        }
+
+        daysLayout.addView(daysRow1)
+        daysLayout.addView(daysRow2)
+        daysLayout.addView(btnDatePicker)
+        containerLayout.addView(daysLayout)
+
+        containerLayout.addView(View(this).apply {
+            setBackgroundColor(btnColor and 0x33FFFFFF)
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply { setMargins(0, 8, 0, 16) }
+        })
+
+        val tvTypeHeader = TextView(this).apply {
+            text = getString(R.string.hint_nutrition_type)
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(textColor)
+            setPadding(0, 0, 0, (6 * density).toInt())
+        }
+        containerLayout.addView(tvTypeHeader)
+
+        val mealTypes = listOf(
+            getString(R.string.meal_breakfast),
+            getString(R.string.meal_lunch),
+            getString(R.string.meal_dinner),
+            getString(R.string.meal_snack)
+        )
+        val selectedTypes = mutableSetOf<String>()
+
+        val typeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, (8 * density).toInt())
+        }
+
+        mealTypes.forEach { typeName ->
+            val cb = CheckBox(this).apply {
+                text = typeName
+                setTextColor(textColor)
+                setOnCheckedChangeListener { _, isChecked ->
+                    if (isChecked) selectedTypes.add(typeName) else selectedTypes.remove(typeName)
+                }
+            }
+            typeRow.addView(cb)
+        }
+        val typeScrollView = HorizontalScrollView(this).apply {
+            addView(typeRow)
+            isFillViewport = true
+        }
+        containerLayout.addView(typeScrollView)
+
+        containerLayout.addView(View(this).apply {
+            setBackgroundColor(btnColor and 0x33FFFFFF)
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (1 * density).toInt()).apply { setMargins(0, 8, 0, 16) }
+        })
+
+        val tvDescHeader = TextView(this).apply {
+            text = getString(R.string.hint_nutrition_description)
+            textSize = 14f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            setTextColor(textColor)
+            setPadding(0, 0, 0, (6 * density).toInt())
+        }
+        containerLayout.addView(tvDescHeader)
+
+        val selectedFoodItems = mutableSetOf<String>()
+        val foodItemsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        fun populateFoodItems() {
+            foodItemsContainer.removeAllViews()
+            val list = HealthHelper.loadSavedFoodItems(this)
+            list.forEach { food ->
+                val cb = CheckBox(this).apply {
+                    text = food
+                    setTextColor(textColor)
+                    isChecked = selectedFoodItems.contains(food)
+                    setOnCheckedChangeListener { _, isChecked ->
+                        if (isChecked) selectedFoodItems.add(food) else selectedFoodItems.remove(food)
+                    }
+                }
+                foodItemsContainer.addView(cb)
+            }
+        }
+        populateFoodItems()
+
+        val btnAddFood = createStyledButton(getString(R.string.btn_add_food_item), primary = false).apply {
+            setOnClickListener {
+                showAddFoodItemDialog {
+                    populateFoodItems()
+                }
+            }
+        }
+
+        val etCustomDesc = EditText(this).apply {
+            hint = getString(R.string.hint_nutrition_description)
+            setTextColor(textColor)
+            setHintTextColor(textColor and 0x88FFFFFF.toInt())
+        }
+
+        containerLayout.addView(foodItemsContainer)
+        containerLayout.addView(btnAddFood)
+        containerLayout.addView(etCustomDesc)
 
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.dialog_add_nutrition))
-            .setView(layout)
+            .setView(scrollView)
             .setPositiveButton(getString(R.string.save)) { _, _ ->
-                val day = etDay.text.toString().trim()
-                val type = etType.text.toString().trim()
-                val desc = etDesc.text.toString().trim()
-                if (desc.isNotEmpty()) {
+                val finalDay = if (!specificDateString.isNullOrEmpty()) {
+                    specificDateString!!
+                } else {
+                    selectedDays.joinToString(", ")
+                }
+                val finalType = selectedTypes.joinToString(", ")
+
+                val foodListStr = selectedFoodItems.joinToString(", ")
+                val customNoteStr = etCustomDesc.text.toString().trim()
+
+                val finalDesc = buildString {
+                    if (foodListStr.isNotEmpty()) append(foodListStr)
+                    if (customNoteStr.isNotEmpty()) {
+                        if (isNotEmpty()) append(" (").append(customNoteStr).append(")")
+                        else append(customNoteStr)
+                    }
+                }
+
+                if (finalDay.isNotEmpty() || finalType.isNotEmpty() || finalDesc.isNotEmpty()) {
                     val entries = HealthHelper.loadNutritionEntries(this)
-                    entries.add(NutritionScheduleEntry(dayOfWeek = day, mealType = type, description = desc))
+                    entries.add(NutritionScheduleEntry(
+                        dayOfWeek = finalDay,
+                        mealType = finalType,
+                        description = finalDesc
+                    ))
                     HealthHelper.saveNutritionEntries(this, entries)
                     HealthHelper.addLogEntry(this, HealthLogEntry(
                         memberId = activeMemberIdString,
                         memberName = activeMemberNameString,
                         type = getString(R.string.nutrition_schedule_title),
-                        value = "$day - $desc"
+                        value = "$finalDay - $finalType: $finalDesc"
                     ))
                     renderHealthPage()
                 }

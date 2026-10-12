@@ -745,7 +745,7 @@
     <string name="custom_sliders_title">Custom Sliders</string>
     <string name="medication_title">Medication List</string>
     <string name="weight_tracker_title">Weight Tracker</string>
-    <string name="nutrition_schedule_title">Nutrition Schedule</string>
+    <string name="nutrition_schedule_title">Plan your meals</string>
     <string name="health_recent_logs">Recent Logs</string>
     <string name="btn_log_entry">Log</string>
     <string name="btn_add">+ Add</string>
@@ -793,7 +793,7 @@
     <string name="switch_custom_counters">Custom Counters</string>
     <string name="switch_medication">Medication List</string>
     <string name="switch_weight">Weight Tracker</string>
-    <string name="switch_nutrition">Nutrition Schedule</string>
+    <string name="switch_nutrition">Plan your meals</string>
     <string name="btn_eaten_timeline">View Timeline</string>
     <string name="eaten_timeline_title">Eaten Timeline</string>
     <string name="dialog_edit_eaten_meal">Edit: %1$s</string>
@@ -808,5 +808,5 @@
     <string name="no_member_general">No member (General)</string>
     <string name="no_active_fronter">No active fronter</string>
     <string name="label_front_prefix">Front: %1$s</string>
-
+    <string name="hint_nutrition_type">Meal type (e.g. Breakfast)</string>
 </resources>

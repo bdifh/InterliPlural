@@ -638,7 +638,7 @@ class SysmediaActivity : BaseActivity() {
             holder.tvHandle.text = "@$handle"
             holder.tvTime.text = sdf.format(Date(post.timestamp))
             val content = post.content ?: ""
-            markwon.setMarkdown(holder.tvContent, content)
+            markwon.setMarkdown(holder.tvContent, content.replace("\n", "  \n"))
             val text = holder.tvContent.text
             val spannable = if (text is android.text.Spannable) text else android.text.SpannableStringBuilder(text)
             val matcher = java.util.regex.Pattern.compile("#([A-Za-z0-9_]+)").matcher(spannable)

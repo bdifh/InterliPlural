@@ -739,6 +739,8 @@ class SysmediaProfileActivity : BaseActivity() {
     }
     private fun showUserListDialog(title: String, userIds: List<String>) {
         val filteredPeople = people.filter { userIds.contains(it.id) }
+        val textColor = ColorHelper.getTextColor(this)
+        val bgColor = ColorHelper.getBgColor(this)
 
         val adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
             override fun onCreateViewHolder(p: ViewGroup, t: Int) = object : RecyclerView.ViewHolder(
@@ -747,8 +749,15 @@ class SysmediaProfileActivity : BaseActivity() {
             override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {
                 val person = filteredPeople[pos]
                 val prof = person.sysmediaProfile
-                h.itemView.findViewById<TextView>(R.id.tvName).text = prof?.displayName ?: person.name
-                h.itemView.findViewById<TextView>(R.id.tvHandle).text = "@${prof?.handle ?: person.name}"
+                val tvName = h.itemView.findViewById<TextView>(R.id.tvName)
+                val tvHandle = h.itemView.findViewById<TextView>(R.id.tvHandle)
+
+                tvName.text = prof?.displayName ?: person.name
+                tvName.setTextColor(textColor)
+
+                tvHandle.text = "@${prof?.handle ?: person.name}"
+                tvHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
+
                 val iv = h.itemView.findViewById<ImageView>(R.id.ivAvatar)
                 val uri = prof?.profilePictureUri ?: person.profilePictureUri
                 if (uri != null) iv.load(uri) else iv.setImageResource(R.drawable.ic_stat_name)
@@ -765,9 +774,16 @@ class SysmediaProfileActivity : BaseActivity() {
 
         val rv = RecyclerView(this).apply {
             layoutManager = LinearLayoutManager(this@SysmediaProfileActivity)
+            setBackgroundColor(bgColor)
             this.adapter = adapter
         }
 
-        AlertDialog.Builder(this).setTitle(title).setView(rv).setPositiveButton(R.string.done, null).show()
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(rv)
+            .setPositiveButton(R.string.done, null)
+            .create()
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 }

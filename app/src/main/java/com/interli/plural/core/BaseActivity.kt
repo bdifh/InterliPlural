@@ -49,14 +49,17 @@ abstract class BaseActivity : AppCompatActivity() {
         dm.densityDpi = targetDensityDpi
         return context.createConfigurationContext(config)
     }
+
     override fun attachBaseContext(newBase: android.content.Context) {
         val scaledContext = applyFixedDisplayScale(newBase)
         super.attachBaseContext(LocaleHelper.wrapContext(scaledContext))
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SilentUi.disableSoundEffects(window?.decorView)
     }
+
     override fun onResume() {
         super.onResume()
         ColorHelper.applySettings(this)
@@ -262,7 +265,7 @@ abstract class BaseActivity : AppCompatActivity() {
         }
         val current = sp.getBoolean(key, true)
         sp.edit().putBoolean(key, !current).apply()
-        
+
         navigationView.post {
             updateNavigationMenu(navigationView)
         }
@@ -286,6 +289,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val sysmediaSub = sharedPref.getBoolean("module_sysmedia_enabled", true) && pluralMaster
 
         val moodMaster = sharedPref.getBoolean("module_mood_enabled", true)
+        val healthSub = sharedPref.getBoolean("sub_health_enabled", true)
         val moodLogSub = sharedPref.getBoolean("sub_mood_log_enabled", true) && moodMaster
         val moodStatsSub = sharedPref.getBoolean("sub_mood_stats_enabled", true) && moodMaster
         val moodInsightsSub = sharedPref.getBoolean("sub_mood_insights", true) && moodMaster
@@ -325,11 +329,12 @@ abstract class BaseActivity : AppCompatActivity() {
             }
         }
 
-        if (moodLogSub) {
+        val hasMoodChildren = healthSub || moodLogSub
+        if (hasMoodChildren) {
             menu.add(2, ID_CAT_MOOD, Menu.NONE, formatCategoryTitle(R.string.nav_cat_mood, moodExpanded))
             if (moodExpanded) {
-                menu.add(2, R.id.action_health_tracker, Menu.NONE, "    ${getString(R.string.health_title)}")
-                menu.add(2, R.id.action_mood_tracker, Menu.NONE, "    ${getString(R.string.mood_tracker)}")
+                if (healthSub) menu.add(2, R.id.action_health_tracker, Menu.NONE, "    ${getString(R.string.health_title)}")
+                if (moodLogSub) menu.add(2, R.id.action_mood_tracker, Menu.NONE, "    ${getString(R.string.mood_tracker)}")
             }
         }
 
@@ -360,14 +365,17 @@ abstract class BaseActivity : AppCompatActivity() {
         super.setContentView(layoutResID)
         SilentUi.disableSoundEffects(window?.decorView)
     }
+
     override fun setContentView(view: View?) {
         super.setContentView(view)
         SilentUi.disableSoundEffects(window?.decorView)
     }
+
     override fun setContentView(view: View?, params: ViewGroup.LayoutParams?) {
         super.setContentView(view, params)
         SilentUi.disableSoundEffects(window?.decorView)
     }
+
     protected fun showUnsavedChangesDialog(onConfirm: () -> Unit) {
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(getString(R.string.unsaved_changes_title))
@@ -378,11 +386,13 @@ abstract class BaseActivity : AppCompatActivity() {
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }
+
     protected fun navigateToStartPage() {
         val settingsPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val startPage = (settingsPref.getString("start_page", "members") ?: "members").lowercase()
         val targetClass = when (startPage) {
             "mood" -> if (settingsPref.getBoolean("module_mood_enabled", true) && settingsPref.getBoolean("sub_mood_log_enabled", true)) MoodActivity::class.java else MainActivity::class.java
+            "health" -> if (settingsPref.getBoolean("sub_health_enabled", true)) HealthActivity::class.java else MainActivity::class.java
             "mood_insights" -> if (settingsPref.getBoolean("module_mood_enabled", true) && settingsPref.getBoolean("sub_mood_insights", true)) MemberMoodCorrelationActivity::class.java else MainActivity::class.java
             "diary" -> if (settingsPref.getBoolean("module_notes_enabled", true)) DiaryActivity::class.java else MainActivity::class.java
             "calendar" -> if (settingsPref.getBoolean("module_calendar_enabled", true)) CalendarActivity::class.java else MainActivity::class.java
@@ -398,6 +408,7 @@ abstract class BaseActivity : AppCompatActivity() {
             finish()
         }
     }
+
     protected fun showFrontMessageNotification(person: Person) {
         val title = getString(R.string.notification_front_message_title, person.name)
         val message = person.frontMessage ?: return

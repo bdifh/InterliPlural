@@ -127,7 +127,8 @@ class MemberSwitchChartView(context: Context, attrs: AttributeSet?) : View(conte
                 }
             }
             if (h % 6 == 0) {
-                canvas.drawText("${h}u", x + barWidth / 2, height - (10f * density), textPaint)
+                val unit = if (com.interli.plural.core.LocaleHelper.getLocale(context) == "nl") "u" else "h"
+                canvas.drawText("$h$unit", x + barWidth / 2, height - (10f * density), textPaint)
             }
         }
     }
