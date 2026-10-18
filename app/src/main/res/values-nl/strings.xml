@@ -684,4 +684,18 @@
     <string name="medication_timeline_medicine">Medicijn</string>
     <string name="medication_timeline_taken">Inname geregistreerd</string>
     <string name="medication_timeline_not_recorded">Geen inname geregistreerd</string>
+    <string name="front_settings_title">Front instellingen - %1$s</string>
+    <string name="front_intensity_label">Front: %1$d%%</string>
+    <string name="front_role_label">Front rol / type:</string>
+    <string name="front_role_none">Geen</string>
+    <string name="front_role_co_front">Co-front</string>
+    <string name="front_role_co_con">Co-con</string>
+    <string name="front_role_influence">Invloed (Influence)</string>
+    <string name="front_role_other">Overig</string>
+    <string name="front_role_custom_hint">Aangepaste rol / woord</string>
+    <string name="front_percentage_label">Front percentage: %1$d%%</string>
+    <string name="export_date_label">Exportdatum: %1$s</string>
+    <string name="no_intake_recorded">Geen innames geregistreerd</string>
+    <string name="dialog_pdf_include_members_title">PDF Export Opties</string>
+    <string name="checkbox_include_member_names">Ledeninvoer (namen) opnemen in export</string>
 </resources>

@@ -107,6 +107,13 @@
                     android:padding="8dp" />
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReorderCards"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/action_reorder" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddCustomCounter"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

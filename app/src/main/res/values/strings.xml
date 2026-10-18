@@ -813,4 +813,18 @@
     <string name="medication_timeline_medicine">Medication</string>
     <string name="medication_timeline_taken">Dose recorded</string>
     <string name="medication_timeline_not_recorded">No dose recorded</string>
+    <string name="front_settings_title">Front Settings - %1$s</string>
+    <string name="front_intensity_label">Front: %1$d%%</string>
+    <string name="front_role_label">Front role / type:</string>
+    <string name="front_role_none">None</string>
+    <string name="front_role_co_front">Co-front</string>
+    <string name="front_role_co_con">Co-con</string>
+    <string name="front_role_influence">Influence</string>
+    <string name="front_role_other">Other</string>
+    <string name="front_role_custom_hint">Custom role / word</string>
+    <string name="front_percentage_label">Front percentage: %1$d%%</string>
+    <string name="export_date_label">Export date: %1$s</string>
+    <string name="no_intake_recorded">No intake recorded</string>
+    <string name="dialog_pdf_include_members_title">PDF Export Options</string>
+    <string name="checkbox_include_member_names">Include member names in export</string>
 </resources>

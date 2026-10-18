@@ -298,6 +298,12 @@
             android:parentActivityName=".features.health.HealthActivity"
             android:exported="false" />
 
+        <activity
+            android:name=".features.health.MedicationHistoryActivity"
+            android:label="@string/btn_medication_history"
+            android:parentActivityName=".features.health.HealthActivity"
+            android:exported="false" />
+
         <receiver android:name=".widgets.CurrentFronterWidget"
             android:label="@string/widget_name_fronter"
             android:exported="false">

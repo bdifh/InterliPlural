@@ -22,12 +22,13 @@ sealed class MainItem {
 }
 class PersonAdapter(
     private val context: Context,
-    private val groups: List<Group>,
-    private val people: List<Person>,
+    private val groups: MutableList<Group>,
+    private val people: MutableList<Person>,
     private val onFrontClicked: (Person) -> Unit,
     private val onProfileClicked: (Person, String) -> Unit,
     private val onGroupToggled: (Group) -> Unit,
     private val onGroupLongClicked: (Group) -> Unit,
+    private val onFrontLongClicked: ((Person) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private var items: List<MainItem> = listOf()
     private var filterQuery: String = ""
@@ -158,7 +159,11 @@ class PersonAdapter(
             }
             holder.frontButton.setOnClickListener {
                 onFrontClicked(person)
-                notifyDataSetChanged() 
+                notifyDataSetChanged()
+            }
+            holder.frontButton.setOnLongClickListener {
+                onFrontLongClicked?.invoke(person)
+                true
             }
             holder.nameText.setOnClickListener {
                 onProfileClicked(person, person.id)

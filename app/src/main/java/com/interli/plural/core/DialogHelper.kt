@@ -31,7 +31,19 @@ object DialogHelper {
         val sdf = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
         val startStr = sdf.format(Date(session.startTime))
         val endStr = session.endTime?.let { sdf.format(Date(it)) } ?: context.getString(R.string.currently_active)
-        val baseMessage = context.getString(R.string.session_details_format, startStr, endStr)
+        var baseMessage = context.getString(R.string.session_details_format, startStr, endStr)
+
+        val extraParts = mutableListOf<String>()
+        if (session.frontPercentage != null && session.frontPercentage != 100) {
+            extraParts.add("${session.frontPercentage}%")
+        }
+        if (!session.frontRole.isNullOrBlank()) {
+            extraParts.add(session.frontRole!!)
+        }
+        if (extraParts.isNotEmpty()) {
+            baseMessage += "\n${context.getString(R.string.front_role_label)} ${extraParts.joinToString(" - ")}"
+        }
+
         val message = if (!session.note.isNullOrBlank()) {
             "$baseMessage\n\n${context.getString(R.string.note)}: ${session.note}"
         } else {
@@ -317,6 +329,63 @@ object DialogHelper {
         btnEndRow.addView(View(context).apply { layoutParams = LinearLayout.LayoutParams(16, 0) })
         btnEndRow.addView(btnEndTime, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         container.addView(btnEndRow)
+        var currentPerc = session.frontPercentage ?: 100
+        val percLabel = TextView(context).apply {
+            text = "\n" + context.getString(R.string.front_percentage_label, currentPerc)
+            setTextColor(ColorHelper.getTextColor(context))
+        }
+        container.addView(percLabel)
+
+        val sbPerc = SeekBar(context).apply {
+            max = 100
+            progress = currentPerc
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(p0: SeekBar?, p1: Int, p2: Boolean) {
+                    currentPerc = p1
+                    percLabel.text = "\n" + context.getString(R.string.front_percentage_label, currentPerc)
+                }
+                override fun onStartTrackingTouch(p0: SeekBar?) {}
+                override fun onStopTrackingTouch(p0: SeekBar?) {}
+            })
+        }
+        container.addView(sbPerc)
+
+        val roleLabel = TextView(context).apply {
+            text = "\n" + context.getString(R.string.front_role_label)
+            setTextColor(ColorHelper.getTextColor(context))
+        }
+        container.addView(roleLabel)
+
+        val roles = listOf(
+            context.getString(R.string.front_role_none),
+            context.getString(R.string.front_role_co_front),
+            context.getString(R.string.front_role_co_con),
+            context.getString(R.string.front_role_influence),
+            context.getString(R.string.front_role_other)
+        )
+        val selectedRole = session.frontRole ?: context.getString(R.string.front_role_none)
+
+        val spinnerRole = Spinner(context).apply {
+            adapter = ColorHelper.createThemedAdapter(context, roles)
+            val initialIdx = if (roles.contains(selectedRole)) roles.indexOf(selectedRole) else (roles.size - 1)
+            setSelection(initialIdx)
+        }
+        container.addView(spinnerRole)
+
+        val etCustomRole = EditText(context).apply {
+            hint = context.getString(R.string.front_role_custom_hint)
+            setTextColor(ColorHelper.getTextColor(context))
+            setText(if (!roles.contains(selectedRole) && selectedRole != context.getString(R.string.front_role_none)) selectedRole else "")
+            visibility = if (spinnerRole.selectedItemPosition == roles.size - 1) View.VISIBLE else View.GONE
+        }
+        container.addView(etCustomRole)
+
+        spinnerRole.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p0: AdapterView<*>?, p1: View?, position: Int, p3: Long) {
+                etCustomRole.visibility = if (position == roles.size - 1) View.VISIBLE else View.GONE
+            }
+            override fun onNothingSelected(p0: AdapterView<*>?) {}
+        }
         val noteLabel = TextView(context).apply {
             text = "\n" + context.getString(R.string.note)
             setTextColor(ColorHelper.getTextColor(context))
@@ -374,6 +443,17 @@ object DialogHelper {
                     session.endTime = null
                 }
                 session.note = etNote.text.toString().ifBlank { null }
+
+                val selPos = spinnerRole.selectedItemPosition
+                session.frontPercentage = currentPerc
+                session.frontRole = if (selPos == roles.size - 1) {
+                    etCustomRole.text.toString().trim().ifBlank { null }
+                } else if (selPos == 0) {
+                    null
+                } else {
+                    roles[selPos]
+                }
+
                 saveData(context, allSessions, people)
                 onUpdate()
                 dialog.dismiss()

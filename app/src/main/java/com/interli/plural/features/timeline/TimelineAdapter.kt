@@ -38,7 +38,18 @@ class TimelineAdapter(
         val textColor = ColorHelper.getTextColor(context)
         holder.name.setTextColor(textColor)
         holder.time.setTextColor(textColor)
-        holder.name.text = session.personName
+        val extraParts = mutableListOf<String>()
+        if (session.frontPercentage != null && session.frontPercentage != 100) {
+            extraParts.add("${session.frontPercentage}%")
+        }
+        if (!session.frontRole.isNullOrBlank()) {
+            extraParts.add(session.frontRole!!)
+        }
+        if (extraParts.isNotEmpty()) {
+            holder.name.text = "${session.personName} (${extraParts.joinToString(" - ")})"
+        } else {
+            holder.name.text = session.personName
+        }
         holder.note.text = session.note
         holder.note.setTextColor(textColor)
         holder.note.visibility = if (session.note.isNullOrBlank()) View.GONE else View.VISIBLE

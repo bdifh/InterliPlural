@@ -278,16 +278,22 @@ class HealthActivity : BaseActivity() {
 
         renderActiveMemberHeader()
 
-        if (settings.showHydration) renderHydrationCard(todayLogs)
-        if (settings.showEatenCheck) renderEatenCard(todayLogs)
-        if (settings.showNutritionSchedule) renderNutritionCard(todayLogs)
-        if (settings.showEnergySlider) renderEnergyCard(todayLogs)
-        if (settings.showRest) renderRestCard(todayLogs)
-        if (settings.showWeight) renderWeightCard(todayLogs)
-        if (settings.showMedication) renderMedicationCard(todayLogs)
-        if (settings.showSensations) renderSensationsCard(todayLogs)
-        if (settings.showCustomCounters) renderCustomCountersCard(todayLogs)
-        if (settings.showCustomSliders) renderCustomSlidersCard(todayLogs)
+        val cardOrder = settings.getNormalizedCardOrder()
+
+        cardOrder.forEach { cardKey ->
+            when (cardKey) {
+                "hydration" -> if (settings.showHydration) renderHydrationCard(todayLogs)
+                "eaten" -> if (settings.showEatenCheck) renderEatenCard(todayLogs)
+                "nutrition" -> if (settings.showNutritionSchedule) renderNutritionCard(todayLogs)
+                "energy" -> if (settings.showEnergySlider) renderEnergyCard(todayLogs)
+                "rest" -> if (settings.showRest) renderRestCard(todayLogs)
+                "weight" -> if (settings.showWeight) renderWeightCard(todayLogs)
+                "medication" -> if (settings.showMedication) renderMedicationCard(todayLogs)
+                "sensations" -> if (settings.showSensations) renderSensationsCard(todayLogs)
+                "counters" -> if (settings.showCustomCounters) renderCustomCountersCard(todayLogs)
+                "sliders" -> if (settings.showCustomSliders) renderCustomSlidersCard(todayLogs)
+            }
+        }
     }
 
 
@@ -1994,7 +2000,7 @@ class HealthActivity : BaseActivity() {
                 setMargins(0, (16 * density).toInt(), 0, 0)
             }
             setOnClickListener {
-                showMedicationTimeline()
+                startActivity(Intent(this@HealthActivity, MedicationHistoryActivity::class.java))
             }
         }
 
@@ -2004,205 +2010,6 @@ class HealthActivity : BaseActivity() {
 
         card.addView(cardLayout)
         container.addView(card)
-    }
-
-
-        private fun showMedicationTimeline() {
-        val medications = HealthHelper.loadMedications(this)
-        val allLogs = HealthHelper.loadLogs(this)
-        val titleKey = getString(R.string.medication_title)
-
-        val medicationLogs = allLogs.filter { log ->
-            log.type == titleKey ||
-                    medications.any { med ->
-                        val name = med.name.orEmpty()
-                        name.isNotBlank() &&
-                                log.value == "$name" +
-                                if (med.dosage.isNotEmpty()) {
-                                    " (${med.dosage})"
-                                } else {
-                                    ""
-                                }
-                    }
-        }
-
-        val medicationValues = medications.associateWith { med ->
-            "${med.name.orEmpty()}" +
-                    if (med.dosage.isNotEmpty()) {
-                        " (${med.dosage})"
-                    } else {
-                        ""
-                    }
-        }
-
-        val relevantLogs = medicationLogs.filter { log ->
-            medicationValues.values.any { it == log.value }
-        }
-
-        val today = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        val firstDay = Calendar.getInstance().apply {
-            timeInMillis = relevantLogs.minOfOrNull { it.timestamp }
-                ?: today.timeInMillis
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-
-        val dates = mutableListOf<Long>()
-        val cursor = firstDay.clone() as Calendar
-
-        while (!cursor.after(today)) {
-            dates.add(cursor.timeInMillis)
-            cursor.add(Calendar.DAY_OF_MONTH, 1)
-        }
-
-        if (dates.isEmpty()) {
-            dates.add(today.timeInMillis)
-        }
-
-        val density = resources.displayMetrics.density
-        fun dp(value: Int) = (value * density).toInt()
-
-        val textColor = ColorHelper.getTextColor(this)
-        val themeColor = ColorHelper.getBtnColor(this)
-        val dateFormat = SimpleDateFormat("dd/MM", Locale.getDefault())
-
-        val matrix = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(12), dp(12), dp(12), dp(12))
-        }
-
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-
-        header.addView(TextView(this).apply {
-            text = getString(R.string.medication_timeline_medicine)
-            setTextColor(textColor)
-            textSize = 13f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            layoutParams = LinearLayout.LayoutParams(dp(120), dp(44))
-            gravity = Gravity.CENTER_VERTICAL
-        })
-
-        dates.forEach { date ->
-            header.addView(TextView(this).apply {
-                text = dateFormat.format(Date(date))
-                setTextColor(textColor)
-                textSize = 11f
-                gravity = Gravity.CENTER
-                layoutParams = LinearLayout.LayoutParams(dp(48), dp(44))
-            })
-        }
-
-        matrix.addView(header)
-
-        medications.forEach { med ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-            }
-
-            val medValue = medicationValues[med].orEmpty()
-
-            row.addView(TextView(this).apply {
-                text = buildString {
-                    append(med.name.orEmpty())
-                    if (med.dosage.isNotEmpty()) {
-                        append("\n")
-                        append(med.dosage)
-                    }
-                }
-                setTextColor(textColor)
-                textSize = 12f
-                maxLines = 2
-                layoutParams = LinearLayout.LayoutParams(dp(120), dp(48))
-                gravity = Gravity.CENTER_VERTICAL
-            })
-
-            dates.forEach { date ->
-                val taken = relevantLogs.any { log ->
-                    log.value == medValue &&
-                            HealthHelper.isSameDay(
-                                log.timestamp,
-                                date,
-                                java.util.TimeZone.getDefault()
-                            )
-                }
-
-                val dot = View(this).apply {
-                    background = android.graphics.drawable.GradientDrawable().apply {
-                        shape = android.graphics.drawable.GradientDrawable.OVAL
-                        setColor(if (taken) themeColor else Color.TRANSPARENT)
-                        setStroke(
-                            dp(1),
-                            if (taken) themeColor else
-                                (textColor and 0x66FFFFFF)
-                        )
-                    }
-                    layoutParams = LinearLayout.LayoutParams(
-                        dp(14),
-                        dp(14)
-                    ).apply {
-                        gravity = Gravity.CENTER
-                    }
-                    contentDescription = getString(
-                        if (taken) R.string.medication_timeline_taken
-                        else R.string.medication_timeline_not_recorded
-                    )
-                }
-
-                val cell = FrameLayout(this).apply {
-                    addView(
-                        dot,
-                        FrameLayout.LayoutParams(dp(14), dp(14), Gravity.CENTER)
-                    )
-                    layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
-                }
-
-                row.addView(cell)
-            }
-
-            matrix.addView(row)
-
-            matrix.addView(View(this).apply {
-                setBackgroundColor(themeColor and 0x33FFFFFF)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(1)
-                )
-            })
-        }
-
-        val horizontalScroll = HorizontalScrollView(this).apply {
-            isFillViewport = false
-            addView(matrix)
-        }
-
-        val verticalScroll = ScrollView(this).apply {
-            addView(horizontalScroll)
-        }
-
-        val dialog = AlertDialog.Builder(this)
-            .setTitle(R.string.btn_medication_history)
-            .setView(verticalScroll)
-            .setPositiveButton(R.string.close, null)
-            .create()
-
-        dialog.show()
-        dialog.window?.setLayout(
-            (resources.displayMetrics.widthPixels * 0.96).toInt(),
-            (resources.displayMetrics.heightPixels * 0.85).toInt()
-        )
-        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun showAddMedicationDialog(existingMed: MedicationItem? = null) {

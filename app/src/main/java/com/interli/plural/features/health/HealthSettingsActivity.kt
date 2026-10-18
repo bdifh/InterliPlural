@@ -1,15 +1,25 @@
 package com.interli.plural.features.health
 
+import android.graphics.Color
 import android.os.Bundle
 import android.text.InputType
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.interli.plural.R
 import com.interli.plural.core.BaseActivity
 import com.interli.plural.core.ColorHelper
+import java.util.Collections
 
 class HealthSettingsActivity : BaseActivity() {
 
@@ -55,6 +65,7 @@ class HealthSettingsActivity : BaseActivity() {
         switchMedication.setOnCheckedChangeListener { _, c -> settings.showMedication = c; save() }
         switchWeight.setOnCheckedChangeListener { _, c -> settings.showWeight = c; save() }
 
+        findViewById<MaterialButton>(R.id.btnReorderCards)?.setOnClickListener { showReorderCardsDialog() }
         findViewById<MaterialButton>(R.id.btnAddCustomCounter).setOnClickListener { showAddCustomCounterDialog() }
         findViewById<MaterialButton>(R.id.btnAddCustomSlider).setOnClickListener { showAddCustomSliderDialog() }
         findViewById<MaterialButton>(R.id.btnAddSensation).setOnClickListener { showAddSensationDialog() }
@@ -68,6 +79,120 @@ class HealthSettingsActivity : BaseActivity() {
 
     private fun save() {
         HealthHelper.saveSettings(this, settings)
+    }
+
+    private fun showReorderCardsDialog() {
+        val cardNamesMap = mapOf(
+            "hydration" to getString(R.string.switch_hydration),
+            "eaten" to getString(R.string.switch_eaten),
+            "nutrition" to getString(R.string.switch_nutrition),
+            "energy" to getString(R.string.switch_energy),
+            "rest" to getString(R.string.switch_rest),
+            "weight" to getString(R.string.switch_weight),
+            "medication" to getString(R.string.switch_medication),
+            "sensations" to getString(R.string.switch_sensations),
+            "counters" to getString(R.string.switch_custom_counters),
+            "sliders" to getString(R.string.switch_custom_sliders)
+        )
+
+        val currentOrder = settings.getNormalizedCardOrder().toMutableList()
+        val density = resources.displayMetrics.density
+
+        class CardViewHolder(val view: LinearLayout, val tvHandle: TextView, val tvName: TextView) :
+            RecyclerView.ViewHolder(view)
+
+        var itemTouchHelper: ItemTouchHelper? = null
+
+        val adapter = object : RecyclerView.Adapter<CardViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): CardViewHolder {
+                val row = LinearLayout(this@HealthSettingsActivity).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding((16 * density).toInt(), (12 * density).toInt(), (16 * density).toInt(), (12 * density).toInt())
+                    layoutParams = RecyclerView.LayoutParams(
+                        RecyclerView.LayoutParams.MATCH_PARENT,
+                        RecyclerView.LayoutParams.WRAP_CONTENT
+                    )
+                }
+
+                val handle = TextView(this@HealthSettingsActivity).apply {
+                    text = "☰"
+                    textSize = 18f
+                    setTextColor(ColorHelper.getTextColor(this@HealthSettingsActivity))
+                    alpha = 0.6f
+                    setPadding(0, 0, (16 * density).toInt(), 0)
+                }
+
+                val name = TextView(this@HealthSettingsActivity).apply {
+                    textSize = 15f
+                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    setTextColor(ColorHelper.getTextColor(this@HealthSettingsActivity))
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+
+                row.addView(handle)
+                row.addView(name)
+
+                return CardViewHolder(row, handle, name)
+            }
+
+            override fun onBindViewHolder(holder: CardViewHolder, position: Int) {
+                val cardKey = currentOrder[position]
+                holder.tvName.text = cardNamesMap[cardKey] ?: cardKey
+
+                val dragStartListener = View.OnTouchListener { _, event ->
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        itemTouchHelper?.startDrag(holder)
+                    }
+                    false
+                }
+
+                holder.tvHandle.setOnTouchListener(dragStartListener)
+                holder.view.setOnTouchListener(dragStartListener)
+            }
+
+            override fun getItemCount() = currentOrder.size
+        }
+
+        val recyclerView = RecyclerView(this).apply {
+            layoutManager = LinearLayoutManager(this@HealthSettingsActivity)
+            this.adapter = adapter
+            setPadding(0, (8 * density).toInt(), 0, (8 * density).toInt())
+        }
+
+        itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun onMove(
+                rv: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                val from = viewHolder.bindingAdapterPosition
+                val to = target.bindingAdapterPosition
+                if (from == RecyclerView.NO_POSITION || to == RecyclerView.NO_POSITION) return false
+                Collections.swap(currentOrder, from, to)
+                adapter.notifyItemMoved(from, to)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+        })
+
+        itemTouchHelper.attachToRecyclerView(recyclerView)
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.action_reorder)
+            .setView(recyclerView)
+            .setPositiveButton(R.string.save) { _, _ ->
+                settings.cardOrder = currentOrder
+                HealthHelper.saveSettings(this, settings)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
     }
 
     private fun showAddCustomCounterDialog() {

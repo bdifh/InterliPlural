@@ -12,8 +12,34 @@ data class HealthSettings(
     var showCustomCounters: Boolean = true,
     var showMedication: Boolean = false,
     var showWeight: Boolean = false,
-    var showNutritionSchedule: Boolean = true
-)
+    var showNutritionSchedule: Boolean = true,
+    var cardOrder: List<String> = defaultCardOrder
+) {
+    fun getNormalizedCardOrder(): List<String> {
+        val current = cardOrder.filter { defaultCardOrder.contains(it) }.toMutableList()
+        defaultCardOrder.forEach { key ->
+            if (!current.contains(key)) {
+                current.add(key)
+            }
+        }
+        return current
+    }
+
+    companion object {
+        val defaultCardOrder = listOf(
+            "hydration",
+            "eaten",
+            "nutrition",
+            "energy",
+            "rest",
+            "weight",
+            "medication",
+            "sensations",
+            "counters",
+            "sliders"
+        )
+    }
+}
 
 data class CustomCounter(
     val id: String = UUID.randomUUID().toString(),

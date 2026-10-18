@@ -90,7 +90,9 @@ data class FrontSession(
     var startTime: Long,
     var endTime: Long? = null,
     var personId: String? = null,
-    var note: String? = null
+    var note: String? = null,
+    var frontPercentage: Int? = 100,
+    var frontRole: String? = null
 )
 
 
@@ -427,6 +429,9 @@ class MainActivity : BaseActivity() {
             },
             onGroupLongClicked = { group ->
                 showEditGroupDialog(group)
+            },
+            onFrontLongClicked = { person ->
+                showFrontDetailsDialog(person)
             }
         )
         recyclerView.layoutManager = LinearLayoutManager(this)
@@ -1340,5 +1345,128 @@ class MainActivity : BaseActivity() {
         }
 
         override fun getItemCount() = items.size
+    }
+    private fun showFrontDetailsDialog(person: Person) {
+        if (person.isArchived) return
+        if (!person.isFront) {
+            toggleFront(person)
+        }
+        val session = sessions.find {
+            (it.personId == person.id || (it.personId == null && it.personName == person.name)) && it.endTime == null
+        } ?: return
+
+        val textColor = ColorHelper.getTextColor(this)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(40, 20, 40, 10)
+        }
+        
+        var currentPerc = session.frontPercentage ?: 100
+        val tvPercLabel = TextView(this).apply {
+            text = getString(R.string.front_intensity_label, currentPerc)
+            setTextColor(textColor)
+            textSize = 16f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+        }
+        container.addView(tvPercLabel)
+
+        val seekBar = SeekBar(this).apply {
+            max = 100
+            progress = currentPerc
+            setPadding(0, 16, 0, 24)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                    currentPerc = progress
+                    tvPercLabel.text = getString(R.string.front_intensity_label, currentPerc)
+                }
+                override fun onStartTrackingTouch(sb: SeekBar?) {}
+                override fun onStopTrackingTouch(sb: SeekBar?) {}
+            })
+        }
+        container.addView(seekBar)
+
+        val tvRoleLabel = TextView(this).apply {
+            text = getString(R.string.front_role_label)
+            setTextColor(textColor)
+            textSize = 14f
+            setPadding(0, 12, 0, 8)
+        }
+        container.addView(tvRoleLabel)
+
+        val roles = listOf(
+            getString(R.string.front_role_none),
+            getString(R.string.front_role_co_front),
+            getString(R.string.front_role_co_con),
+            getString(R.string.front_role_influence),
+            getString(R.string.front_role_other)
+        )
+        val selectedRole = session.frontRole ?: getString(R.string.front_role_none)
+
+        val spinner = Spinner(this).apply {
+            adapter = ColorHelper.createThemedAdapter(this@MainActivity, roles)
+            val initialIndex = if (roles.contains(selectedRole)) roles.indexOf(selectedRole) else (roles.size - 1)
+            setSelection(initialIndex)
+        }
+        container.addView(spinner)
+
+        val etCustomRole = EditText(this).apply {
+            hint = getString(R.string.front_role_custom_hint)
+            setTextColor(textColor)
+            setHintTextColor((textColor and 0x00FFFFFF) or 0x80000000.toInt())
+            setText(if (!roles.contains(selectedRole) && selectedRole != getString(R.string.front_role_none)) selectedRole else "")
+            visibility = if (spinner.selectedItemPosition == roles.size - 1) View.VISIBLE else View.GONE
+        }
+        container.addView(etCustomRole)
+
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                etCustomRole.visibility = if (position == roles.size - 1) View.VISIBLE else View.GONE
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        val tvNoteLabel = TextView(this).apply {
+            text = getString(R.string.note) + ":"
+            setTextColor(textColor)
+            textSize = 14f
+            setPadding(0, 16, 0, 8)
+        }
+        container.addView(tvNoteLabel)
+
+        val etNote = EditText(this).apply {
+            hint = getString(R.string.note)
+            setTextColor(textColor)
+            setHintTextColor((textColor and 0x00FFFFFF) or 0x80000000.toInt())
+            setText(session.note ?: "")
+        }
+        container.addView(etNote)
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.front_settings_title, person.name))
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val selectedPos = spinner.selectedItemPosition
+                val finalRole = if (selectedPos == roles.size - 1) {
+                    etCustomRole.text.toString().trim().ifBlank { null }
+                } else if (selectedPos == 0) {
+                    null
+                } else {
+                    roles[selectedPos]
+                }
+
+                session.frontPercentage = currentPerc
+                session.frontRole = finalRole
+                session.note = etNote.text.toString().trim().ifBlank { null }
+
+                savePeople()
+                updateUI()
+                (findViewById<RecyclerView>(R.id.recyclerView)?.adapter as? PersonAdapter)?.updateItems()
+                Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleSupportAlertDialog(dialog, this)
     }
 }

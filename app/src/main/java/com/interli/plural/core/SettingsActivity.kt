@@ -179,6 +179,12 @@ class SettingsActivity : BaseActivity() {
         findViewById<Button>(R.id.btnConfigAutoBackup).setOnClickListener {
             showBackupManagementDialog()
         }
+        val swEnableGifs = findViewById<SwitchCompat>(R.id.swEnableGifs)
+        swEnableGifs?.isChecked = sharedPref.getBoolean("enable_gifs", true)
+        swEnableGifs?.setOnCheckedChangeListener { _, isChecked ->
+            sharedPref.edit().putBoolean("enable_gifs", isChecked).apply()
+            MainApplication.setupCoil(this)
+        }
         findViewById<Button>(R.id.btnSaveSettings).setOnClickListener {
             val langChanged = selectedLangCode != initialLang
             sharedPref.edit(commit = true) {
@@ -194,6 +200,7 @@ class SettingsActivity : BaseActivity() {
                 putString("mood_color_5", moodColors[4])
                 putString("app_language", selectedLangCode)
                 putString("start_page", selectedStartPage)
+                putBoolean("enable_gifs", findViewById<SwitchCompat>(R.id.swEnableGifs)?.isChecked ?: true)
             }
             getSharedPreferences("my_app", MODE_PRIVATE).edit(commit = true) {
                 putString("mood_color_1", moodColors[0])
@@ -202,6 +209,7 @@ class SettingsActivity : BaseActivity() {
                 putString("mood_color_4", moodColors[3])
                 putString("mood_color_5", moodColors[4])
             }
+            MainApplication.setupCoil(this)
             BackupHelper.updateAutoBackupSchedule(this)
             Toast.makeText(this, getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
             if (langChanged) {
