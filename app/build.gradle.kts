@@ -70,10 +70,25 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
 }
 
-androidComponents {
-    onVariants { variant ->
-        variant.outputs.forEach { output ->
-            output.outputFileName.set("InterliPlural-${versionDisplayed}.apk")
-        }
+// ANDROID STUDIO. 9.2.1
+
+// androidComponents {
+   // onVariants { variant ->
+      // variant.outputs.forEach { output ->
+        // output.outputFileName.set("InterliPlural-${versionDisplayed}.apk")
+       //  }
+  // }
+// }
+
+
+// INTELLI J
+tasks.register<Copy>("copyDebugApk") {
+    dependsOn("assembleDebug")
+
+    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    into(layout.buildDirectory.dir("outputs/apk/debug"))
+
+    rename {
+        "InterliPlural-${versionDisplayed}.apk"
     }
 }
