@@ -1,6 +1,4 @@
-<!-- This is the dictionary of the app. -->
-<!-- Those are all the texts in the app. -->
-<!-- Every sentense used will come across every page. -->
+<!-- language English. -->
 <resources>
     <string name="app_name">Interli Plural</string>
     <string name="add_member">Member +</string>
@@ -827,4 +825,5 @@
     <string name="no_intake_recorded">No intake recorded</string>
     <string name="dialog_pdf_include_members_title">PDF Export Options</string>
     <string name="checkbox_include_member_names">Include member names in export</string>
+    <string name="note_set_date_time">Set note date/time</string>
 </resources>

@@ -145,6 +145,8 @@ data class DiaryNote(
     var title: String,
     var content: String,
     val timestamp: Long = System.currentTimeMillis(),
+    var customTimestamp: Long? = null,
+    var noteEditTimestamp: Long? = null,
     var linkedMemberIds: MutableList<String> = mutableListOf(),
     var senderId: String? = null,
     var bundleId: String? = null,

@@ -34,6 +34,15 @@
             android:textColor="@color/black" />
 
         <TextView
+                android:id="@+id/noteCustomDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:layout_marginTop="2dp"
+                android:alpha="0.6"
+                android:visibility="gone" />
+
+        <TextView
             android:id="@+id/noteSender"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

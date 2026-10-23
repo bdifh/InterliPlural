@@ -26,8 +26,6 @@
     <string name="stats_front_density">Front-activiteit per uur (min)</string>
     <string name="stats_most_switches_total">Meeste switches totaal</string>
     <string name="stats_hour_axis">0u ---------------------------------------- 23u</string>
-
-    <!-- MainActivity extracts -->
     <string name="notification_channel_name">Front Status</string>
     <string name="notification_channel_description">Toont wie er op dit moment front</string>
     <string name="notification_channel_sysmedia_name">Sysmedia Notificaties</string>
@@ -138,8 +136,6 @@
     <string name="label_end_time_optional">Eind Tijd (optioneel):</string>
     <string name="active_click_to_set">Nog bezig (klik om in te stellen)</string>
     <string name="dialog_edit_front_title">Front Bewerken</string>
-
-    <!-- New strings -->
     <string name="profile_title">Profiel</string>
     <string name="hint_name">Naam</string>
     <string name="label_groups_colon">Groepen:</string>
@@ -698,4 +694,5 @@
     <string name="no_intake_recorded">Geen innames geregistreerd</string>
     <string name="dialog_pdf_include_members_title">PDF Export Opties</string>
     <string name="checkbox_include_member_names">Ledeninvoer (namen) opnemen in export</string>
+    <string name="note_set_date_time">Datum en tijd van notitie instellen</string>
 </resources>

@@ -147,6 +147,29 @@
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <TextView
+                    android:id="@+id/labelChangeNoteDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/note_set_date_time"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+                <Button
+                    android:id="@+id/btnChangeNoteDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/note_set_date_time"
+                    android:textAlignment="viewStart" />
+                <TextView
+                    android:id="@+id/linkedChangeNoteDate"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="12sp"
+                    android:alpha="0.7" />
+
+                <TextView
                     android:id="@+id/labelLinkedMembers"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

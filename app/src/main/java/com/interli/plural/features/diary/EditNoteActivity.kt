@@ -60,6 +60,7 @@ class EditNoteActivity : BaseActivity() {
     private lateinit var linkedTodoText: TextView
     private var selectedMemberIds = mutableListOf<String>()
     private var isEditMode = false
+    private var selectedNoteTimestamp: Long? = null
     private var deleteClicks = 0
     private var initialTitle = ""
     private var initialContent = ""
@@ -111,7 +112,12 @@ class EditNoteActivity : BaseActivity() {
         btnLinkTodo.setOnClickListener {
             showTodoSelectionDialog()
         }
+        findViewById<Button>(R.id.btnChangeNoteDate).setOnClickListener {
+            timeSettingsChange()
+        }
         val existingNote = notes.find { it.id == noteId }
+        selectedNoteTimestamp = existingNote?.noteEditTimestamp
+        updateSelectedNoteDateText()
         if (existingNote != null) {
             isEditMode = false
             editTitle.setText(existingNote.title)
@@ -294,6 +300,52 @@ class EditNoteActivity : BaseActivity() {
         dialog.show()
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }
+
+    private fun timeSettingsChange() {
+        val initialTime = selectedNoteTimestamp ?: System.currentTimeMillis()
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = initialTime
+        }
+
+        android.app.DatePickerDialog(
+            this,
+            { _, year, month, day ->
+                val chosenTime = Calendar.getInstance().apply {
+                    timeInMillis = calendar.timeInMillis
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month)
+                    set(Calendar.DAY_OF_MONTH, day)
+                }
+
+                android.app.TimePickerDialog(
+                    this,
+                    { _, hour, minute ->
+                        chosenTime.set(Calendar.HOUR_OF_DAY, hour)
+                        chosenTime.set(Calendar.MINUTE, minute)
+                        chosenTime.set(Calendar.SECOND, 0)
+                        chosenTime.set(Calendar.MILLISECOND, 0)
+
+                        selectedNoteTimestamp = chosenTime.timeInMillis
+                        updateSelectedNoteDateText()
+                    },
+                    calendar.get(Calendar.HOUR_OF_DAY),
+                    calendar.get(Calendar.MINUTE),
+                    true
+                ).show()
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    private fun updateSelectedNoteDateText() {
+        val dateView = findViewById<TextView>(R.id.linkedChangeNoteDate)
+        dateView.text = selectedNoteTimestamp?.let {
+            SimpleDateFormat("dd MMMM yyyy, HH:mm", Locale.getDefault()).format(Date(it))
+        } ?: ""
+    }
+
     private fun hasChanges(): Boolean {
         if (!isEditMode) return false
         val initialProfileOnly = intent.getStringExtra("note_id")?.let { id ->
@@ -328,6 +380,8 @@ class EditNoteActivity : BaseActivity() {
         val textColor = ColorHelper.getTextColor(this)
         editTitle.isEnabled = isEditMode
         val isMessage = notes.find { it.id == noteId }?.senderId != null
+        findViewById<Button>(R.id.btnChangeNoteDate).visibility =
+            if (isEditMode && !isMessage) View.VISIBLE else View.GONE
         val layoutContent = findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.layoutNoteContent)
         val embedContainer = findViewById<LinearLayout>(R.id.mediaEmbedContainerNote)
         if (isEditMode) {
@@ -437,12 +491,23 @@ class EditNoteActivity : BaseActivity() {
             return
         }
         if (noteId == null) {
-            notes.add(DiaryNote(title = title, content = content, linkedMemberIds = selectedMemberIds, bundleName = selectedBundleName, linkedTodoListId = selectedTodoId, isProfileOnly = cbProfileOnly.isChecked))
+            notes.add(
+                DiaryNote(
+                    title = title,
+                    content = content,
+                    noteEditTimestamp = selectedNoteTimestamp,
+                    linkedMemberIds = selectedMemberIds,
+                    bundleName = selectedBundleName,
+                    linkedTodoListId = selectedTodoId,
+                    isProfileOnly = cbProfileOnly.isChecked
+                )
+            )
         } else {
             val note = notes.find { it.id == noteId }
             if (note != null) {
                 note.title = title
                 note.content = content
+                note.noteEditTimestamp = selectedNoteTimestamp
                 note.linkedMemberIds = selectedMemberIds
                 note.linkedTodoListId = selectedTodoId
                 note.isProfileOnly = cbProfileOnly.isChecked

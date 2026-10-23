@@ -285,6 +285,7 @@ class DiaryActivity : BaseActivity() {
          inner class NoteViewHolder(view: View) : RecyclerView.ViewHolder(view) {
             val title: TextView = view.findViewById(R.id.noteTitle)
             val date: TextView = view.findViewById(R.id.noteDate)
+             val customDate: TextView = view.findViewById(R.id.noteCustomDate)
             val sender: TextView = view.findViewById(R.id.noteSender)
             val recipients: TextView = view.findViewById(R.id.noteRecipients)
             val replyTo: TextView = view.findViewById(R.id.noteReplyTo)
@@ -373,7 +374,11 @@ class DiaryActivity : BaseActivity() {
                     holder.title.setTextColor(textColor)
                     holder.date.text = sdf.format(Date(note.timestamp))
                     holder.date.setTextColor(textColor)
-                    // Extract "From" from content if it exists
+                    val customTimestamp = note.noteEditTimestamp
+                    holder.customDate.text = customTimestamp?.let { sdf.format(Date(it)) } ?: ""
+                    holder.customDate.visibility =
+                        if (customTimestamp != null && note.senderId == null) View.VISIBLE else View.GONE
+                    holder.customDate.setTextColor(textColor)
                     val fromPrefixEn = "From: "
                     val fromPrefixNl = "Van: "
                     var displayContent = note.content
