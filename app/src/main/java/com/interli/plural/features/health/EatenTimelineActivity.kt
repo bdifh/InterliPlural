@@ -50,15 +50,9 @@ class EatenTimelineActivity : BaseActivity() {
         val toolbar = MaterialToolbar(this).apply {
             id = R.id.topAppBar
             title = getString(R.string.eaten_timeline_title)
-            val typedValue = android.util.TypedValue()
-            val actionBarHeight = if (theme.resolveAttribute(android.R.attr.actionBarSize, typedValue, true)) {
-                android.util.TypedValue.complexToDimensionPixelSize(typedValue.data, resources.displayMetrics)
-            } else {
-                (56 * resources.displayMetrics.density).toInt()
-            }
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                actionBarHeight
+                (56 * resources.displayMetrics.density).toInt()
             )
         }
 

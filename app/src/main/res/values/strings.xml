@@ -826,4 +826,7 @@
     <string name="dialog_pdf_include_members_title">PDF Export Options</string>
     <string name="checkbox_include_member_names">Include member names in export</string>
     <string name="note_set_date_time">Set note date/time</string>
+    <string name="manage_eaten_meals">manage meals</string>
+    <string name="dialog_add_eaten_meal">Add meal</string>
+    <string name="hint_eaten_meal_name">Meal name</string>
 </resources>

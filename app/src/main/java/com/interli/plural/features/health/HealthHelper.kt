@@ -37,6 +37,31 @@ object HealthHelper {
         sp.edit().putString("custom_counters", gson.toJson(list)).apply()
     }
 
+    fun loadEatenMealTypes(
+        context: Context,
+        defaultMeals: List<String>
+    ): MutableList<String> {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val json = sp.getString("eaten_meal_types", null)
+            ?: return defaultMeals.toMutableList()
+
+        val type = object : TypeToken<MutableList<String>>() {}.type
+
+        return try {
+            gson.fromJson<MutableList<String>>(json, type)
+                ?: defaultMeals.toMutableList()
+        } catch (_: Exception) {
+            defaultMeals.toMutableList()
+        }
+    }
+
+    fun saveEatenMealTypes(context: Context, meals: List<String>) {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sp.edit()
+            .putString("eaten_meal_types", gson.toJson(meals))
+            .apply()
+    }
+
     fun loadCustomSliders(context: Context): MutableList<CustomSlider> {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val json = sp.getString("custom_sliders", "[]")

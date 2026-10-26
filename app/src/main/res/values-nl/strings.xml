@@ -695,4 +695,7 @@
     <string name="dialog_pdf_include_members_title">PDF Export Opties</string>
     <string name="checkbox_include_member_names">Ledeninvoer (namen) opnemen in export</string>
     <string name="note_set_date_time">Datum en tijd van notitie instellen</string>
+    <string name="manage_eaten_meals">Beheer maaltijden</string>
+    <string name="dialog_add_eaten_meal">Maaltijd toevoegen</string>
+    <string name="hint_eaten_meal_name">Naam van de maaltijd</string>
 </resources>

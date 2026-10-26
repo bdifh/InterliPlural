@@ -15,6 +15,8 @@ import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.ItemTouchHelper
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.interli.plural.Person
@@ -573,12 +575,30 @@ class HealthActivity : BaseActivity() {
             setTextColor(ColorHelper.getTextColor(this@HealthActivity))
             setPadding(0, 0, 0, 12)
         }
-        cardLayout.addView(title)
+        val headerLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
 
-        val meals = listOf(
-            getString(R.string.meal_breakfast),
-            getString(R.string.meal_lunch),
-            getString(R.string.meal_dinner)
+        title.setPadding(0, 0, 0, 0)
+        headerLayout.addView(
+            title,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        )
+
+        val btnManageMeals = createStyledButton(
+            getString(R.string.manage_eaten_meals),
+            primary = false
+        )
+        headerLayout.addView(btnManageMeals)
+        btnManageMeals.setOnClickListener {
+            showManageEatenMealsDialog()
+        }
+        cardLayout.addView(headerLayout)
+
+        val meals = HealthHelper.loadEatenMealTypes(
+            this,
+            getDefaultEatenMealTypes()
         )
 
         val todayMillis = System.currentTimeMillis()
@@ -751,6 +771,288 @@ class HealthActivity : BaseActivity() {
 
         card.addView(cardLayout)
         container.addView(card)
+    }
+
+    private fun showManageEatenMealsDialog() {
+        val meals = HealthHelper.loadEatenMealTypes(
+            this,
+            getDefaultEatenMealTypes()
+        )
+        val deleteCountdowns = mutableMapOf<String, Int>()
+
+        val recyclerView = androidx.recyclerview.widget.RecyclerView(this).apply {
+            layoutManager =
+                androidx.recyclerview.widget.LinearLayoutManager(this@HealthActivity)
+        }
+
+        val adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            var onDragStart: ((RecyclerView.ViewHolder) -> Unit)? = null
+
+            override fun getItemCount(): Int = meals.size
+
+            override fun onCreateViewHolder(
+                parent: ViewGroup,
+                viewType: Int
+            ): RecyclerView.ViewHolder {
+                val density = parent.context.resources.displayMetrics.density
+
+                val row = LinearLayout(parent.context).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(
+                        (16 * density).toInt(),
+                        (12 * density).toInt(),
+                        (16 * density).toInt(),
+                        (12 * density).toInt()
+                    )
+                    layoutParams = RecyclerView.LayoutParams(
+                        RecyclerView.LayoutParams.MATCH_PARENT,
+                        RecyclerView.LayoutParams.WRAP_CONTENT
+                    )
+                }
+
+                val dragIcon = ImageView(parent.context).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        (24 * density).toInt(),
+                        (24 * density).toInt()
+                    ).apply {
+                        marginEnd = (12 * density).toInt()
+                    }
+                    setImageResource(android.R.drawable.ic_menu_sort_by_size)
+                    setColorFilter(ColorHelper.getTextColor(this@HealthActivity))
+                }
+
+                val mealName = TextView(parent.context).apply {
+                    textSize = 18f
+                    setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                    layoutParams = LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    )
+                }
+
+                val btnDelete = createStyledButton("✕", primary = false).apply {
+                    isAllCaps = false
+                    insetTop = 0
+                    insetBottom = 0
+                    setPadding(0, 0, 0, 0)
+                    textSize = 12f
+                    layoutParams = LinearLayout.LayoutParams(
+                        (36 * density).toInt(),
+                        (36 * density).toInt()
+                    )
+                }
+
+                row.addView(dragIcon)
+                row.addView(mealName)
+                row.addView(btnDelete)
+
+                return object : RecyclerView.ViewHolder(row) {}
+            }
+
+            override fun onBindViewHolder(
+                holder: RecyclerView.ViewHolder,
+                position: Int
+            ) {
+                val row = holder.itemView as LinearLayout
+                val dragIcon = row.getChildAt(0) as ImageView
+                val mealName = row.getChildAt(1) as TextView
+                val btnDelete = row.getChildAt(2) as MaterialButton
+
+                val currentMeal = meals[position]
+                mealName.text = currentMeal
+                mealName.setOnLongClickListener {
+                    val input = EditText(this@HealthActivity).apply {
+                        setSingleLine()
+                        setText(currentMeal)
+                        setSelection(text.length)
+                    }
+
+                    val renameDialog = AlertDialog.Builder(this@HealthActivity)
+                        .setTitle(
+                            getString(R.string.dialog_edit_eaten_meal, currentMeal)
+                        )
+                        .setView(input)
+                        .setNegativeButton(R.string.cancel, null)
+                        .setPositiveButton(R.string.save) { _, _ ->
+                            val newName = input.text.toString().trim()
+                            val currentPosition = holder.bindingAdapterPosition
+
+                            if (
+                                newName.isNotEmpty() &&
+                                currentPosition != RecyclerView.NO_POSITION &&
+                                meals.withIndex().none { (index, name) ->
+                                    index != currentPosition &&
+                                            name.equals(newName, ignoreCase = true)
+                                }
+                            ) {
+                                meals[currentPosition] = newName
+                                deleteCountdowns.remove(currentMeal)
+                                notifyItemChanged(currentPosition)
+                            }
+                        }
+                        .create()
+
+                    renameDialog.show()
+                    ColorHelper.styleAlertDialog(renameDialog, this@HealthActivity)
+                    true
+                }
+                btnDelete.text = deleteCountdowns[currentMeal]?.toString() ?: "✕"
+
+                dragIcon.setOnTouchListener { _, event ->
+                    if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                        onDragStart?.invoke(holder)
+                    }
+                    true
+                }
+
+                btnDelete.setOnClickListener {
+                    val currentPosition = holder.bindingAdapterPosition
+
+                    if (currentPosition != RecyclerView.NO_POSITION) {
+                        val mealToDelete = meals[currentPosition]
+                        val remaining = (deleteCountdowns[mealToDelete] ?: 8) - 1
+
+                        if (remaining == 0) {
+                            meals.removeAt(currentPosition)
+                            deleteCountdowns.remove(mealToDelete)
+                            notifyItemRemoved(currentPosition)
+                        } else {
+                            deleteCountdowns[mealToDelete] = remaining
+                            btnDelete.text = remaining.toString()
+                        }
+                    }
+                }
+            }
+        }
+
+        recyclerView.adapter = adapter
+
+        val itemTouchHelper = ItemTouchHelper(
+            object : ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                0
+            ) {
+                override fun isLongPressDragEnabled(): Boolean = false
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean {
+                    val fromPosition = viewHolder.bindingAdapterPosition
+                    val toPosition = target.bindingAdapterPosition
+
+                    if (
+                        fromPosition == RecyclerView.NO_POSITION ||
+                        toPosition == RecyclerView.NO_POSITION
+                    ) {
+                        return false
+                    }
+
+                    val movedMeal = meals.removeAt(fromPosition)
+                    meals.add(toPosition, movedMeal)
+                    adapter.notifyItemMoved(fromPosition, toPosition)
+
+                    return true
+                }
+
+                override fun onSwiped( //don't delete, app breaks.
+                    viewHolder: RecyclerView.ViewHolder,
+                    direction: Int
+                ) {
+                }
+            }
+        )
+
+        itemTouchHelper.attachToRecyclerView(recyclerView)
+
+        adapter.onDragStart = { holder ->
+            if (holder.bindingAdapterPosition != RecyclerView.NO_POSITION) {
+                itemTouchHelper.startDrag(holder)
+            }
+        }
+
+        val density = resources.displayMetrics.density
+
+        val titleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(
+                (24 * density).toInt(),
+                (8 * density).toInt(),
+                (16 * density).toInt(),
+                (8 * density).toInt()
+            )
+        }
+
+        val title = TextView(this).apply {
+            text = getString(R.string.manage_eaten_meals)
+            textSize = 20f
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        }
+
+        val btnAdd = createStyledButton(
+            getString(R.string.btn_add),
+            primary = false
+        )
+
+        titleLayout.addView(title)
+        titleLayout.addView(btnAdd)
+
+        val dialog = AlertDialog.Builder(this)
+            .setCustomTitle(titleLayout)
+            .setView(recyclerView)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.save) { _, _ ->
+                HealthHelper.saveEatenMealTypes(this@HealthActivity, meals)
+                renderHealthPage()
+            }
+            .create()
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+
+        btnAdd.setOnClickListener {
+            val input = EditText(this).apply {
+                hint = getString(R.string.hint_eaten_meal_name)
+                setSingleLine()
+            }
+
+            val addDialog = AlertDialog.Builder(this)
+                .setTitle(R.string.dialog_add_eaten_meal)
+                .setView(input)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.save) { _, _ ->
+                    val mealName = input.text.toString().trim()
+
+                    if (
+                        mealName.isNotEmpty() &&
+                        meals.none { it.equals(mealName, ignoreCase = true) }
+                    ) {
+                        meals.add(mealName)
+                        adapter.notifyDataSetChanged()
+                    }
+                }
+                .create()
+
+            addDialog.show()
+            ColorHelper.styleAlertDialog(addDialog, this)
+        }
+    }
+
+    private fun getDefaultEatenMealTypes(): List<String> {
+        return listOf(
+            getString(R.string.meal_breakfast),
+            getString(R.string.meal_lunch),
+            getString(R.string.meal_dinner)
+        )
     }
 
     private fun showEditEatenMealDialog(
@@ -1221,11 +1523,9 @@ class HealthActivity : BaseActivity() {
         }
         containerLayout.addView(tvTypeHeader)
 
-        val mealTypes = listOf(
-            getString(R.string.meal_breakfast),
-            getString(R.string.meal_lunch),
-            getString(R.string.meal_dinner),
-            getString(R.string.meal_snack)
+        val mealTypes = HealthHelper.loadEatenMealTypes(
+            this,
+            getDefaultEatenMealTypes()
         )
         val selectedTypes = mutableSetOf<String>()
         val existingTypeParts = existingEntry?.mealType?.split(",")?.map { it.trim() } ?: emptyList()
@@ -1487,11 +1787,9 @@ class HealthActivity : BaseActivity() {
         }
         containerLayout.addView(tvTypeHeader)
 
-        val mealTypes = listOf(
-            getString(R.string.meal_breakfast),
-            getString(R.string.meal_lunch),
-            getString(R.string.meal_dinner),
-            getString(R.string.meal_snack)
+        val mealTypes = HealthHelper.loadEatenMealTypes(
+            this,
+            getDefaultEatenMealTypes()
         )
         val selectedTypes = mutableSetOf<String>()
 
