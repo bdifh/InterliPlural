@@ -593,8 +593,8 @@
     <string name="help_who_am_i_neutral">This is neutral / okay</string>
     <string name="help_who_am_i_dislike">I don\'t like this</string>
     <string name="help_who_am_i_now">I am doing / feeling this now</string>
-    <item name="help_who_am_i_now" type="id" /> <!-- I noticed some other IDs might be needed but strings.xml is not for IDs, wait -->
-    <string name="help_who_am_i_note">Note: The checkmark ✅ gives a higher score to members who have filled in this activity most in the Mood Tracker.</string>
+    <item name="help_who_am_i_now" type="id" />
+    <string name="help_who_am_i_note">Note: Only Mood Tracker data! The checkmark ✅ gives a higher score to members who have filled in this activity most in the Mood Tracker.</string>
 
     <string name="add_new_environment">+ New Environment</string>
     <string name="dialog_new_environment_title">New Environment</string>
