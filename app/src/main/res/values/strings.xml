@@ -830,7 +830,7 @@
     <string name="dialog_add_eaten_meal">Add meal</string>
     <string name="hint_eaten_meal_name">Meal name</string>
     <string name="edit_energy_rating">Edit rating</string>
-    <string name="energy_rating_dialog_title">Edit energy rating</string>
+    <string name="energy_rating_dialog_title">Edit rating</string>
     <string name="energy_rating_mode_numbers">Use numbers</string>
     <string name="energy_rating_mode_thumbs">Use rotating thumbs</string>
     <string name="energy_rating_min_value">Minimum value</string>

@@ -293,7 +293,7 @@ class HealthActivity : BaseActivity() {
                 "medication" -> if (settings.showMedication) renderMedicationCard(todayLogs)
                 "sensations" -> if (settings.showSensations) renderSensationsCard(todayLogs)
                 "counters" -> if (settings.showCustomCounters) renderCustomCountersCards(todayLogs)
-                "sliders" -> if (settings.showCustomSliders) renderCustomSlidersCard(todayLogs)
+                "sliders" -> if (settings.showCustomSliders) renderCustomSlidersCards(todayLogs)
             }
         }
     }
@@ -2007,6 +2007,11 @@ class HealthActivity : BaseActivity() {
             } else {
                 (energyValue - minValue).coerceAtLeast(0)
             }
+            val sliderColor = ColorHelper.getBtnColor(this@HealthActivity)
+            progressTintList = ColorStateList.valueOf(sliderColor)
+            thumbTintList = ColorStateList.valueOf(sliderColor)
+            progressBackgroundTintList =
+                ColorStateList.valueOf(sliderColor and 0x66FFFFFF)
         }
 
         val thumbRotations = listOf(180f, 135f, 90f, 45f, 0f)
@@ -2139,6 +2144,18 @@ class HealthActivity : BaseActivity() {
 
     private fun showEnergyRatingSettingsDialog() {
         val settings = HealthHelper.loadEnergyRatingSettings(this)
+
+        showEnergyRatingSettingsDialog(settings) {
+            HealthHelper.saveEnergyRatingSettings(this, settings)
+            renderHealthPage()
+        }
+    }
+
+    private fun showEnergyRatingSettingsDialog(
+        settings: EnergyRatingSettings,
+        slider: CustomSlider? = null,
+        onSaved: () -> Unit
+    ) {
         val density = resources.displayMetrics.density
         val labels = settings.labels.toMutableMap()
 
@@ -2150,6 +2167,18 @@ class HealthActivity : BaseActivity() {
                 (24 * density).toInt(),
                 (8 * density).toInt()
             )
+        }
+
+        val sliderNameInput = slider?.let { customSlider ->
+            EditText(this).apply {
+                hint = getString(R.string.hint_slider_name)
+                setSingleLine()
+                setText(customSlider.name)
+            }
+        }
+
+        if (sliderNameInput != null) {
+            content.addView(sliderNameInput)
         }
 
         val modeGroup = RadioGroup(this).apply {
@@ -2282,6 +2311,13 @@ class HealthActivity : BaseActivity() {
                         InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
                     minLines = 1
                     maxLines = 2
+                    val themeTextColor = ColorHelper.getTextColor(this@HealthActivity)
+
+                    setTextColor(themeTextColor)
+                    setHintTextColor(themeTextColor and 0x88FFFFFF.toInt())
+                    backgroundTintList = ColorStateList.valueOf(
+                        ColorHelper.getBtnColor(this@HealthActivity)
+                    )
                     setText(labels[labelKey].orEmpty())
                     layoutParams = LinearLayout.LayoutParams(
                         0,
@@ -2367,6 +2403,12 @@ class HealthActivity : BaseActivity() {
         ColorHelper.styleAlertDialog(dialog, this)
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val newSliderName = sliderNameInput?.text?.toString()?.trim()
+
+            if (slider != null && newSliderName.isNullOrBlank()) {
+                sliderNameInput?.error = getString(R.string.hint_slider_name)
+                return@setOnClickListener
+            }
             if (thumbsOption.isChecked) {
                 saveVisibleDescriptions()
                 settings.useThumbs = true
@@ -2398,9 +2440,29 @@ class HealthActivity : BaseActivity() {
 
             settings.labels.clear()
             settings.labels.putAll(labels)
+            if (slider != null) {
+                slider.name = newSliderName!!
+            }
 
-            HealthHelper.saveEnergyRatingSettings(this, settings)
             dialog.dismiss()
+            onSaved()
+        }
+    }
+
+    private fun showCustomSliderRatingDialog(
+        slider: CustomSlider,
+        sliders: MutableList<CustomSlider>
+    ) {
+        val settings = slider.ratingSettings ?: EnergyRatingSettings()
+
+        showEnergyRatingSettingsDialog(settings, slider) {
+            slider.ratingSettings = settings
+
+            val minimum = if (settings.useThumbs) 1 else settings.minValue
+            val maximum = if (settings.useThumbs) 5 else settings.maxValue
+            slider.value = slider.value.coerceIn(minimum, maximum)
+
+            HealthHelper.saveCustomSliders(this, sliders)
             renderHealthPage()
         }
     }
@@ -3390,95 +3452,222 @@ class HealthActivity : BaseActivity() {
             .show().let { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    private fun renderCustomSlidersCard(logs: List<HealthLogEntry>) {
+    private fun renderCustomSlidersCards(logs: List<HealthLogEntry>) {
+        val sliders = HealthHelper.loadCustomSliders(this)
+
+        sliders.forEach { slider ->
+            renderCustomSliderCard(slider, sliders, logs)
+        }
+    }
+
+    private fun renderCustomSliderCard(
+        slider: CustomSlider,
+        sliders: MutableList<CustomSlider>,
+        logs: List<HealthLogEntry>
+    ) {
+        val settings = slider.ratingSettings ?: EnergyRatingSettings().also {
+            slider.ratingSettings = it
+            HealthHelper.saveCustomSliders(this, sliders)
+        }
+
+        val useThumbs = settings.useThumbs
+        val minValue = settings.minValue
+        val maxValue = settings.maxValue
+        val minimum = if (useThumbs) 1 else minValue
+        val maximum = if (useThumbs) 5 else maxValue
+
+        slider.value = slider.value.coerceIn(minimum, maximum)
+
+        val logType = "custom_slider_${slider.id}"
         val card = createCard()
         val cardLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 20, 20, 20)
         }
-        val titleKey = getString(R.string.custom_sliders_title)
+
         val titleLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
+
         val title = TextView(this).apply {
-            text = titleKey
+            text = slider.name
             textSize = 16f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(ColorHelper.getTextColor(this@HealthActivity))
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
         }
-        val btnAdd = createStyledButton(getString(R.string.btn_add), primary = false).apply {
-            setOnClickListener { showAddCustomSliderDialog() }
+
+        val editRatingLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
         }
+
+        val btnEdit = createStyledButton(
+            getString(R.string.edit),
+            primary = false
+        ).apply {
+            setOnClickListener {
+                showCustomSliderRatingDialog(slider, sliders)
+            }
+        }
+
+        val tvRange = TextView(this).apply {
+            text = if (useThumbs) "1–5" else "$minValue–$maxValue"
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        editRatingLayout.addView(btnEdit)
+        editRatingLayout.addView(tvRange)
         titleLayout.addView(title)
-        titleLayout.addView(btnAdd)
+        titleLayout.addView(editRatingLayout)
 
-        val sliders = HealthHelper.loadCustomSliders(this)
-        val sliderNames = sliders.map { it.name }
         cardLayout.addView(titleLayout)
-        cardLayout.addView(getLastLogSubtitle(titleKey, logs, sliderNames))
+        cardLayout.addView(
+            getLastLogSubtitle(logType, logs, listOf(slider.name))
+        )
 
-        sliders.forEach { slider ->
-            val itemLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(0, 4, 0, 12)
+        var sliderValue = slider.value
+
+        val tvValue = TextView(this).apply {
+            textSize = 18f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, 4, 0, 4)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val thumbIndicator = TextView(this).apply {
+            text = "👍"
+            textSize = 36f
+            gravity = Gravity.CENTER
+        }
+
+        val tvDescription = TextView(this).apply {
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, 8)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val seekBar = SeekBar(this).apply {
+            max = if (useThumbs) 4 else (maxValue - minValue).coerceAtLeast(0)
+            progress = if (useThumbs) {
+                sliderValue - 1
+            } else {
+                sliderValue - minValue
             }
-            val headerLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
+            val sliderColor = ColorHelper.getBtnColor(this@HealthActivity)
+            progressTintList = ColorStateList.valueOf(sliderColor)
+            thumbTintList = ColorStateList.valueOf(sliderColor)
+            progressBackgroundTintList =
+                ColorStateList.valueOf(sliderColor and 0x66FFFFFF)
+        }
+
+        val thumbRotations = listOf(180f, 135f, 90f, 45f, 0f)
+
+        fun updateSliderDisplay() {
+            if (useThumbs) {
+                thumbIndicator.visibility = View.VISIBLE
+                thumbIndicator.rotation = thumbRotations[sliderValue - 1]
+                tvValue.visibility = View.GONE
+
+                val description =
+                    settings.labels["thumbs_$sliderValue"].orEmpty()
+                tvDescription.text = description
+                tvDescription.visibility =
+                    if (description.isBlank()) View.GONE else View.VISIBLE
+            } else {
+                thumbIndicator.visibility = View.GONE
+                tvValue.visibility = View.VISIBLE
+                tvValue.text = sliderValue.toString()
+
+                val description =
+                    settings.labels[sliderValue.toString()].orEmpty()
+                tvDescription.text = description
+                tvDescription.visibility =
+                    if (description.isBlank()) View.GONE else View.VISIBLE
             }
-            var valProgress = slider.value
-            val tvName = TextView(this).apply {
-                text = "${slider.name}: $valProgress%"
-                textSize = 13f
-                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+
+        seekBar.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    sliderValue = if (useThumbs) {
+                        progress + 1
+                    } else {
+                        minValue + progress
+                    }
+                    updateSliderDisplay()
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    slider.value = sliderValue
+                    HealthHelper.saveCustomSliders(this@HealthActivity, sliders)
+                }
             }
-            val btnLog = createStyledButton(getString(R.string.btn_log_entry), primary = true).apply {
-                setOnClickListener {
-                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+        )
+
+        updateSliderDisplay()
+
+        val btnLog = createStyledButton(
+            getString(R.string.btn_log_entry),
+            primary = true
+        ).apply {
+            setOnClickListener {
+                val descriptionKey = if (useThumbs) {
+                    "thumbs_$sliderValue"
+                } else {
+                    sliderValue.toString()
+                }
+                val description = settings.labels[descriptionKey].orEmpty()
+
+                val baseValue = if (useThumbs) {
+                    "👍 $sliderValue / 5"
+                } else {
+                    "$sliderValue ($minValue–$maxValue)"
+                }
+
+                val logValue = if (description.isBlank()) {
+                    baseValue
+                } else {
+                    "$baseValue — $description"
+                }
+
+                HealthHelper.addLogEntry(
+                    this@HealthActivity,
+                    HealthLogEntry(
                         memberId = activeMemberIdString,
                         memberName = activeMemberNameString,
-                        type = slider.name,
-                        value = "$valProgress%"
-                    ))
-                    renderHealthPage()
-                }
+                        type = logType,
+                        value = logValue
+                    )
+                )
+                renderHealthPage()
             }
-            val btnDel = createStyledButton("✕", primary = false).apply {
-                setOnClickListener {
-                    sliders.remove(slider)
-                    HealthHelper.saveCustomSliders(this@HealthActivity, sliders)
-                    renderHealthPage()
-                }
-            }
-            headerLayout.addView(tvName)
-            headerLayout.addView(btnLog)
-            headerLayout.addView(btnDel)
-
-            val seekBar = SeekBar(this).apply {
-                max = 100
-                progress = valProgress
-                setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
-                        valProgress = p
-                        slider.value = p
-                        tvName.text = "${slider.name}: $valProgress%"
-                    }
-                    override fun onStartTrackingTouch(sb: SeekBar?) {}
-                    override fun onStopTrackingTouch(sb: SeekBar?) {
-                        HealthHelper.saveCustomSliders(this@HealthActivity, sliders)
-                    }
-                })
-            }
-
-            itemLayout.addView(headerLayout)
-            itemLayout.addView(seekBar)
-            cardLayout.addView(itemLayout)
         }
 
-        renderCardLogs(cardLayout, logs) { it.type == titleKey || sliderNames.contains(it.type) }
+        cardLayout.addView(tvValue)
+        cardLayout.addView(thumbIndicator)
+        cardLayout.addView(seekBar)
+        cardLayout.addView(tvDescription)
+        cardLayout.addView(btnLog)
+
+        renderCardLogs(cardLayout, logs) {
+            it.type == logType || it.type == slider.name
+        }
 
         card.addView(cardLayout)
         container.addView(card)
@@ -3505,7 +3694,24 @@ class HealthActivity : BaseActivity() {
                 val maxL = etMax.text.toString().trim()
                 if (name.isNotEmpty()) {
                     val list = HealthHelper.loadCustomSliders(this)
-                    list.add(CustomSlider(name = name, minLabel = minL, maxLabel = maxL))
+                    val sliderSettings = EnergyRatingSettings()
+
+                    if (minL.isNotBlank()) {
+                        sliderSettings.labels["1"] = minL
+                    }
+                    if (maxL.isNotBlank()) {
+                        sliderSettings.labels["10"] = maxL
+                    }
+
+                    list.add(
+                        CustomSlider(
+                            name = name,
+                            minLabel = minL,
+                            maxLabel = maxL,
+                            value = 5,
+                            ratingSettings = sliderSettings
+                        )
+                    )
                     HealthHelper.saveCustomSliders(this, list)
                     renderHealthPage()
                 }

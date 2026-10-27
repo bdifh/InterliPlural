@@ -699,7 +699,7 @@
     <string name="dialog_add_eaten_meal">Maaltijd toevoegen</string>
     <string name="hint_eaten_meal_name">Naam van de maaltijd</string>
     <string name="edit_energy_rating">Energiewaarde aanpassen</string>
-    <string name="energy_rating_dialog_title">Energiewaardering aanpassen</string>
+    <string name="energy_rating_dialog_title">waardering aanpassen</string>
     <string name="energy_rating_mode_numbers">Getallen gebruiken</string>
     <string name="energy_rating_mode_thumbs">Roterende duimpjes gebruiken</string>
     <string name="energy_rating_min_value">Laagste waarde</string>

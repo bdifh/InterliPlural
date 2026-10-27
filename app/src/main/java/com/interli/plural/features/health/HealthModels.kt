@@ -54,7 +54,8 @@ data class CustomSlider(
     var name: String,
     var minLabel: String = "",
     var maxLabel: String = "",
-    var value: Int = 50
+    var value: Int = 50,
+    var ratingSettings: EnergyRatingSettings? = null
 )
 
 data class PhysicalSensation(

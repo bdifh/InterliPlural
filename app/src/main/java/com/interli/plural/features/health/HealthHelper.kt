@@ -213,10 +213,42 @@ object HealthHelper {
     }
 
     fun loadCustomSliders(context: Context): MutableList<CustomSlider> {
-        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val json = sp.getString("custom_sliders", "[]")
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val json = prefs.getString("custom_sliders", "[]")
         val type = object : TypeToken<MutableList<CustomSlider>>() {}.type
-        return try { gson.fromJson(json, type) ?: mutableListOf() } catch (_: Exception) { mutableListOf() }
+
+        val sliders: MutableList<CustomSlider> = try {
+            gson.fromJson(json, type) ?: mutableListOf()
+        } catch (_: Exception) {
+            mutableListOf()
+        }
+
+        var changed = false
+
+        sliders.forEach { slider ->
+            if (slider.ratingSettings == null) {
+                val oldValue = slider.value.coerceIn(0, 100)
+                slider.value = ((oldValue * 9 + 50) / 100) + 1
+
+                val settings = EnergyRatingSettings()
+
+                if (slider.minLabel.isNotBlank()) {
+                    settings.labels["1"] = slider.minLabel
+                }
+                if (slider.maxLabel.isNotBlank()) {
+                    settings.labels["10"] = slider.maxLabel
+                }
+
+                slider.ratingSettings = settings
+                changed = true
+            }
+        }
+
+        if (changed) {
+            saveCustomSliders(context, sliders)
+        }
+
+        return sliders
     }
 
     fun saveCustomSliders(context: Context, list: List<CustomSlider>) {
