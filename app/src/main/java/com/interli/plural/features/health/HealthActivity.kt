@@ -1912,23 +1912,70 @@ class HealthActivity : BaseActivity() {
     }
 
     private fun renderEnergyCard(logs: List<HealthLogEntry>) {
+        val ratingSettings = HealthHelper.loadEnergyRatingSettings(this)
+        val useThumbs = ratingSettings.useThumbs
+        val minValue = ratingSettings.minValue
+        val maxValue = ratingSettings.maxValue
+
         val card = createCard()
         val cardLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 20, 20, 20)
         }
+
         val titleKey = getString(R.string.energy_level_title)
+        val titleLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
         val title = TextView(this).apply {
             text = titleKey
             textSize = 16f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
         }
+
+        val editRatingLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+        }
+
+        val btnEditRating = createStyledButton(
+            getString(R.string.edit_energy_rating),
+            primary = false
+        ).apply {
+            setOnClickListener {
+                showEnergyRatingSettingsDialog()
+            }
+        }
+
+        val tvRange = TextView(this).apply {
+            text = if (useThumbs) "1–5" else "$minValue–$maxValue"
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        editRatingLayout.addView(btnEditRating)
+        editRatingLayout.addView(tvRange)
+        titleLayout.addView(title)
+        titleLayout.addView(editRatingLayout)
+
         val subtitle = getLastLogSubtitle(titleKey, logs)
 
-        var energyVal = 5
-        val tvVal = TextView(this).apply {
-            text = "$energyVal / 10"
+        var energyValue = if (useThumbs) {
+            3
+        } else {
+            minValue + (maxValue - minValue) / 2
+        }
+
+        val tvValue = TextView(this).apply {
             textSize = 18f
             setTypeface(null, android.graphics.Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -1936,41 +1983,426 @@ class HealthActivity : BaseActivity() {
             setTextColor(ColorHelper.getTextColor(this@HealthActivity))
         }
 
-        val seekBar = SeekBar(this).apply {
-            max = 10
-            progress = energyVal
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
-                    energyVal = p
-                    tvVal.text = "$energyVal / 10"
-                }
-                override fun onStartTrackingTouch(sb: SeekBar?) {}
-                override fun onStopTrackingTouch(sb: SeekBar?) {}
-            })
+        val thumbIndicator = TextView(this).apply {
+            text = "👍"
+            textSize = 36f
+            gravity = Gravity.CENTER
         }
 
-        val btnLog = createStyledButton(getString(R.string.btn_log_entry), primary = true).apply {
+        val tvDescription = TextView(this).apply {
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, 8)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val seekBar = SeekBar(this).apply {
+            max = if (useThumbs) {
+                4
+            } else {
+                (maxValue - minValue).coerceAtLeast(0)
+            }
+            progress = if (useThumbs) {
+                energyValue - 1
+            } else {
+                (energyValue - minValue).coerceAtLeast(0)
+            }
+        }
+
+        val thumbRotations = listOf(180f, 135f, 90f, 45f, 0f)
+
+        fun updateEnergyDisplay() {
+            if (useThumbs) {
+                thumbIndicator.visibility = View.VISIBLE
+                thumbIndicator.rotation = thumbRotations[energyValue - 1]
+                tvValue.visibility = View.GONE
+
+                val description =
+                    ratingSettings.labels["thumbs_$energyValue"].orEmpty()
+                tvDescription.text = description
+                tvDescription.visibility =
+                    if (description.isBlank()) View.GONE else View.VISIBLE
+            } else {
+                thumbIndicator.visibility = View.GONE
+                tvValue.visibility = View.VISIBLE
+                tvValue.text = energyValue.toString()
+
+                val description =
+                    ratingSettings.labels[energyValue.toString()].orEmpty()
+                tvDescription.text = description
+                tvDescription.visibility =
+                    if (description.isBlank()) View.GONE else View.VISIBLE
+            }
+        }
+
+        seekBar.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    energyValue = if (useThumbs) {
+                        progress + 1
+                    } else {
+                        minValue + progress
+                    }
+                    updateEnergyDisplay()
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            }
+        )
+
+        updateEnergyDisplay()
+
+        val btnLog = createStyledButton(
+            getString(R.string.btn_log_entry),
+            primary = true
+        ).apply {
             setOnClickListener {
-                HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+                val descriptionKey = if (useThumbs) {
+                    "thumbs_$energyValue"
+                } else {
+                    energyValue.toString()
+                }
+                val description =
+                    ratingSettings.labels[descriptionKey].orEmpty()
+
+                val baseValue = if (useThumbs) {
+                    "👍 $energyValue / 5"
+                } else {
+                    "$energyValue ($minValue–$maxValue)"
+                }
+
+                val logValue = if (description.isBlank()) {
+                    baseValue
+                } else {
+                    "$baseValue — $description"
+                }
+
+                val entry = HealthLogEntry(
                     memberId = activeMemberIdString,
                     memberName = activeMemberNameString,
-                    type = titleKey,
-                    value = "$energyVal / 10"
-                ))
+                    type = "energy_level",
+                    value = logValue
+                )
+
+                HealthHelper.addLogEntry(this@HealthActivity, entry)
+                HealthHelper.addEnergyHistoryEntry(this@HealthActivity, entry)
                 renderHealthPage()
             }
         }
 
-        cardLayout.addView(title)
+        cardLayout.addView(titleLayout)
         cardLayout.addView(subtitle)
-        cardLayout.addView(tvVal)
+
+        if (useThumbs) {
+            cardLayout.addView(thumbIndicator)
+        } else {
+            cardLayout.addView(tvValue)
+        }
+
         cardLayout.addView(seekBar)
+        cardLayout.addView(tvDescription)
         cardLayout.addView(btnLog)
 
-        renderCardLogs(cardLayout, logs) { it.type == titleKey }
+        val btnHistory = createStyledButton(
+            getString(R.string.btn_energy_history),
+            primary = false
+        ).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, (12 * resources.displayMetrics.density).toInt(), 0, 0)
+            }
+
+            setOnClickListener {
+                startActivity(
+                    Intent(this@HealthActivity, EnergyTimelineActivity::class.java)
+                )
+            }
+        }
+
+        cardLayout.addView(btnHistory)
+
+        renderCardLogs(cardLayout, logs) {
+            it.type == titleKey || it.type == "energy_level"
+        }
 
         card.addView(cardLayout)
         container.addView(card)
+    }
+
+    private fun showEnergyRatingSettingsDialog() {
+        val settings = HealthHelper.loadEnergyRatingSettings(this)
+        val density = resources.displayMetrics.density
+        val labels = settings.labels.toMutableMap()
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(
+                (24 * density).toInt(),
+                (8 * density).toInt(),
+                (24 * density).toInt(),
+                (8 * density).toInt()
+            )
+        }
+
+        val modeGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.VERTICAL
+        }
+
+        val numbersOption = RadioButton(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.energy_rating_mode_numbers)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            isChecked = !settings.useThumbs
+        }
+
+        val thumbsOption = RadioButton(this).apply {
+            id = View.generateViewId()
+            text = getString(R.string.energy_rating_mode_thumbs)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            isChecked = settings.useThumbs
+        }
+
+        modeGroup.addView(numbersOption)
+        modeGroup.addView(thumbsOption)
+        content.addView(modeGroup)
+
+        val numberSettings = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, (8 * density).toInt(), 0, 0)
+        }
+
+        val rangeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val minValueInput = EditText(this).apply {
+            hint = getString(R.string.energy_rating_min_value)
+            inputType =
+                InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
+            setSingleLine()
+            setText(settings.minValue.toString())
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            ).apply {
+                marginEnd = (8 * density).toInt()
+            }
+        }
+
+        val maxValueInput = EditText(this).apply {
+            hint = getString(R.string.energy_rating_max_value)
+            inputType =
+                InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
+            setSingleLine()
+            setText(settings.maxValue.toString())
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
+        }
+
+        rangeRow.addView(minValueInput)
+        rangeRow.addView(maxValueInput)
+        numberSettings.addView(rangeRow)
+
+        val labelsContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        var displayedMin = settings.minValue
+        var displayedMax = settings.maxValue
+
+        fun saveVisibleDescriptions() {
+            for (index in 0 until labelsContainer.childCount) {
+                val row = labelsContainer.getChildAt(index) as? LinearLayout
+                    ?: continue
+                val labelKey = row.tag?.toString() ?: continue
+                val descriptionInput = row.getChildAt(1) as? EditText
+                    ?: continue
+                val description = descriptionInput.text.toString().trim()
+
+                if (description.isEmpty()) {
+                    labels.remove(labelKey)
+                } else {
+                    labels[labelKey] = description
+                }
+            }
+        }
+
+        fun buildValueRows(
+            minValue: Int,
+            maxValue: Int,
+            keyPrefix: String
+        ) {
+            saveVisibleDescriptions()
+            labelsContainer.removeAllViews()
+
+            for (value in minValue..maxValue) {
+                val labelKey = "$keyPrefix$value"
+
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    tag = labelKey
+                    setPadding(0, (2 * density).toInt(), 0, (2 * density).toInt())
+                }
+
+                val valueText = TextView(this).apply {
+                    if (keyPrefix == "thumbs_") {
+                        text = "👍"
+                        textSize = 22f
+                        rotation = listOf(180f, 135f, 90f, 45f, 0f)[value - 1]
+                    } else {
+                        text = value.toString()
+                        textSize = 14f
+                    }
+
+                    gravity = Gravity.CENTER
+                    setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                    layoutParams = LinearLayout.LayoutParams(
+                        (48 * density).toInt(),
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                }
+
+                val descriptionInput = EditText(this).apply {
+                    hint = getString(R.string.energy_rating_description_hint)
+                    inputType =
+                        InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                    minLines = 1
+                    maxLines = 2
+                    setText(labels[labelKey].orEmpty())
+                    layoutParams = LinearLayout.LayoutParams(
+                        0,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    )
+                }
+
+                row.addView(valueText)
+                row.addView(descriptionInput)
+                labelsContainer.addView(row)
+            }
+
+            displayedMin = minValue
+            displayedMax = maxValue
+        }
+
+        val labelsScroll = ScrollView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (240 * density).toInt()
+            )
+            addView(labelsContainer)
+        }
+
+        val btnUpdateValues = createStyledButton(
+            getString(R.string.energy_rating_update_values),
+            primary = false
+        ).apply {
+            setOnClickListener {
+                val minValue = minValueInput.text.toString().toIntOrNull()
+                val maxValue = maxValueInput.text.toString().toIntOrNull()
+
+                if (minValue == null || maxValue == null || minValue >= maxValue) {
+                    maxValueInput.error =
+                        getString(R.string.energy_rating_range_error)
+                    return@setOnClickListener
+                }
+
+                buildValueRows(minValue, maxValue, "")
+            }
+        }
+
+        numberSettings.addView(btnUpdateValues)
+        content.addView(numberSettings)
+        content.addView(labelsScroll)
+
+        fun updateRowsForSelectedMode() {
+            saveVisibleDescriptions()
+
+            if (thumbsOption.isChecked) {
+                numberSettings.visibility = View.GONE
+                buildValueRows(1, 5, "thumbs_")
+            } else {
+                numberSettings.visibility = View.VISIBLE
+
+                val minValue =
+                    minValueInput.text.toString().toIntOrNull() ?: settings.minValue
+                val maxValue =
+                    maxValueInput.text.toString().toIntOrNull() ?: settings.maxValue
+
+                if (minValue < maxValue) {
+                    buildValueRows(minValue, maxValue, "")
+                } else {
+                    labelsContainer.removeAllViews()
+                }
+            }
+        }
+
+        modeGroup.setOnCheckedChangeListener { _, _ ->
+            updateRowsForSelectedMode()
+        }
+        updateRowsForSelectedMode()
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.energy_rating_dialog_title)
+            .setView(content)
+            .setNegativeButton(R.string.cancel, null)
+            .setPositiveButton(R.string.save, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            if (thumbsOption.isChecked) {
+                saveVisibleDescriptions()
+                settings.useThumbs = true
+            } else {
+                val minValue = minValueInput.text.toString().toIntOrNull()
+                val maxValue = maxValueInput.text.toString().toIntOrNull()
+
+                if (minValue == null || maxValue == null || minValue >= maxValue) {
+                    maxValueInput.error =
+                        getString(R.string.energy_rating_range_error)
+                    return@setOnClickListener
+                }
+
+                if (minValue != displayedMin || maxValue != displayedMax) {
+                    buildValueRows(minValue, maxValue, "")
+                    Toast.makeText(
+                        this,
+                        R.string.energy_rating_values_updated_first,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@setOnClickListener
+                }
+
+                saveVisibleDescriptions()
+                settings.useThumbs = false
+                settings.minValue = minValue
+                settings.maxValue = maxValue
+            }
+
+            settings.labels.clear()
+            settings.labels.putAll(labels)
+
+            HealthHelper.saveEnergyRatingSettings(this, settings)
+            dialog.dismiss()
+            renderHealthPage()
+        }
     }
 
     private fun renderRestCard(logs: List<HealthLogEntry>) {

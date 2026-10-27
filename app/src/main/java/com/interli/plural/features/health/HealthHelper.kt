@@ -25,6 +25,68 @@ object HealthHelper {
         sp.edit().putString("settings", gson.toJson(settings)).apply()
     }
 
+    fun loadEnergyRatingSettings(context: Context): EnergyRatingSettings {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val json = sp.getString("energy_rating_settings", null)
+            ?: return EnergyRatingSettings()
+
+        return try {
+            gson.fromJson(json, EnergyRatingSettings::class.java)
+                ?: EnergyRatingSettings()
+        } catch (_: Exception) {
+            EnergyRatingSettings()
+        }
+    }
+
+    fun saveEnergyRatingSettings(
+        context: Context,
+        settings: EnergyRatingSettings
+    ) {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sp.edit()
+            .putString("energy_rating_settings", gson.toJson(settings))
+            .apply()
+    }
+
+    fun loadEnergyHistory(context: Context): MutableList<HealthLogEntry> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val type = object : TypeToken<MutableList<HealthLogEntry>>() {}.type
+
+        val historyJson = prefs.getString("energy_history", "[]")
+        val history: MutableList<HealthLogEntry> =
+            try {
+                gson.fromJson(historyJson, type) ?: mutableListOf()
+            } catch (_: Exception) {
+                mutableListOf()
+            }
+
+        if (!prefs.getBoolean("energy_history_migrated", false)) {
+            val oldTypes = setOf("Energy Level", "Energieniveau")
+            val existingIds = history.map { it.id }.toMutableSet()
+
+            loadLogs(context)
+                .filter { it.type in oldTypes && existingIds.add(it.id) }
+                .forEach { history.add(it) }
+
+            prefs.edit()
+                .putString("energy_history", gson.toJson(history))
+                .putBoolean("energy_history_migrated", true)
+                .apply()
+        }
+
+        return history.sortedByDescending { it.timestamp }.toMutableList()
+    }
+
+    fun addEnergyHistoryEntry(context: Context, entry: HealthLogEntry) {
+        val history = loadEnergyHistory(context)
+        history.add(0, entry)
+
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("energy_history", gson.toJson(history))
+            .apply()
+    }
+
     fun loadCustomCounters(context: Context): MutableList<CustomCounter> {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val json = sp.getString("custom_counters", "[]")

@@ -829,4 +829,21 @@
     <string name="manage_eaten_meals">manage meals</string>
     <string name="dialog_add_eaten_meal">Add meal</string>
     <string name="hint_eaten_meal_name">Meal name</string>
+    <string name="edit_energy_rating">Edit rating</string>
+    <string name="energy_rating_dialog_title">Edit energy rating</string>
+    <string name="energy_rating_mode_numbers">Use numbers</string>
+    <string name="energy_rating_mode_thumbs">Use rotating thumbs</string>
+    <string name="energy_rating_min_value">Minimum value</string>
+    <string name="energy_rating_max_value">Maximum value</string>
+    <string name="energy_rating_range_error">Maximum must be greater than minimum</string>
+    <string name="energy_rating_update_values">Update values</string>
+    <string name="energy_rating_description_hint">Optional description</string>
+    <string name="energy_rating_values_updated_first">The value rows were updated. Add descriptions, then save again.</string>
+    <string name="energy_timeline_title">Energy Timeline</string>
+    <string name="btn_energy_history">View history</string>
+    <string name="energy_history_time">Time</string>
+    <string name="energy_history_value">Value</string>
+    <string name="energy_history_description">Description</string>
+    <string name="energy_history_member">Member</string>
+    <string name="energy_history_range">Range</string>
 </resources>

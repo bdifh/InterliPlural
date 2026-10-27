@@ -698,4 +698,21 @@
     <string name="manage_eaten_meals">Beheer maaltijden</string>
     <string name="dialog_add_eaten_meal">Maaltijd toevoegen</string>
     <string name="hint_eaten_meal_name">Naam van de maaltijd</string>
+    <string name="edit_energy_rating">Energiewaarde aanpassen</string>
+    <string name="energy_rating_dialog_title">Energiewaardering aanpassen</string>
+    <string name="energy_rating_mode_numbers">Getallen gebruiken</string>
+    <string name="energy_rating_mode_thumbs">Roterende duimpjes gebruiken</string>
+    <string name="energy_rating_min_value">Laagste waarde</string>
+    <string name="energy_rating_max_value">Hoogste waarde</string>
+    <string name="energy_rating_range_error">De hoogste waarde moet groter zijn dan de laagste waarde</string>
+    <string name="energy_rating_update_values">Waarden bijwerken</string>
+    <string name="energy_rating_description_hint">Beschrijving (optioneel)</string>
+    <string name="energy_rating_values_updated_first">De waarderijen zijn bijgewerkt. Vul eventueel beschrijvingen in en sla opnieuw op.</string>
+    <string name="energy_timeline_title">Energiegeschiedenis</string>
+    <string name="btn_energy_history">Bekijk geschiedenis</string>
+    <string name="energy_history_time">Tijd</string>
+    <string name="energy_history_value">Waarde</string>
+    <string name="energy_history_description">Beschrijving</string>
+    <string name="energy_history_member">Lid</string>
+    <string name="energy_history_range">Schaal</string>
 </resources>

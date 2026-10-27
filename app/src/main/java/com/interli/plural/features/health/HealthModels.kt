@@ -103,3 +103,10 @@ data class EatenMealListSnapshot(
     val dateStartMillis: Long = 0L,
     val meals: List<String> = emptyList()
 )
+
+data class EnergyRatingSettings(
+    var useThumbs: Boolean = false,
+    var minValue: Int = 1,
+    var maxValue: Int = 10,
+    var labels: MutableMap<String, String> = mutableMapOf()
+)

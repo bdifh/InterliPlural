@@ -299,6 +299,12 @@
             android:exported="false" />
 
         <activity
+                android:name=".features.health.EnergyTimelineActivity"
+                android:label="@string/energy_timeline_title"
+                android:parentActivityName=".features.health.HealthActivity"
+                android:exported="false" />
+
+        <activity
             android:name=".features.health.MedicationHistoryActivity"
             android:label="@string/btn_medication_history"
             android:parentActivityName=".features.health.HealthActivity"
