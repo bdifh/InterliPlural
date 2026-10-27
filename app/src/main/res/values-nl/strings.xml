@@ -715,4 +715,5 @@
     <string name="energy_history_description">Beschrijving</string>
     <string name="energy_history_member">Lid</string>
     <string name="energy_history_range">Schaal</string>
+    <string name="hint_counter_current_count">Huidige stand</string>
 </resources>

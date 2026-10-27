@@ -292,7 +292,7 @@ class HealthActivity : BaseActivity() {
                 "weight" -> if (settings.showWeight) renderWeightCard(todayLogs)
                 "medication" -> if (settings.showMedication) renderMedicationCard(todayLogs)
                 "sensations" -> if (settings.showSensations) renderSensationsCard(todayLogs)
-                "counters" -> if (settings.showCustomCounters) renderCustomCountersCard(todayLogs)
+                "counters" -> if (settings.showCustomCounters) renderCustomCountersCards(todayLogs)
                 "sliders" -> if (settings.showCustomSliders) renderCustomSlidersCard(todayLogs)
             }
         }
@@ -3169,88 +3169,195 @@ class HealthActivity : BaseActivity() {
             .show().let { ColorHelper.styleAlertDialog(it, this) }
     }
 
-    private fun renderCustomCountersCard(logs: List<HealthLogEntry>) {
+    private fun renderCustomCountersCards(logs: List<HealthLogEntry>) {
+        val counters = HealthHelper.loadCustomCounters(this)
+
+        counters.forEach { counter ->
+            renderCustomCounterCard(counter, counters, logs)
+        }
+
+        val density = resources.displayMetrics.density
+    }
+
+    private fun renderCustomCounterCard(
+        counter: CustomCounter,
+        allCounters: MutableList<CustomCounter>,
+        logs: List<HealthLogEntry>
+    ) {
+        val density = resources.displayMetrics.density
         val card = createCard()
+
         val cardLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 20, 20, 20)
         }
-        val titleKey = getString(R.string.custom_counters_title)
+
         val titleLayout = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
+
         val title = TextView(this).apply {
-            text = titleKey
+            text = counter.name
             textSize = 16f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(ColorHelper.getTextColor(this@HealthActivity))
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1f
+            )
         }
-        val btnAdd = createStyledButton(getString(R.string.btn_add), primary = false).apply {
-            setOnClickListener { showAddCustomCounterDialog() }
+
+        val btnEdit = createStyledButton(
+            getString(R.string.edit),
+            primary = false
+        ).apply {
+            setOnClickListener {
+                showEditCustomCounterDialog(counter, allCounters)
+            }
         }
+
         titleLayout.addView(title)
-        titleLayout.addView(btnAdd)
+        titleLayout.addView(btnEdit)
 
-        val counters = HealthHelper.loadCustomCounters(this)
-        val counterNames = counters.map { it.name }
-        cardLayout.addView(titleLayout)
-        cardLayout.addView(getLastLogSubtitle(titleKey, logs, counterNames))
+        var count = counter.count
 
-        counters.forEach { counter ->
-            val itemLayout = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(0, 4, 0, 4)
-            }
-            val tv = TextView(this).apply {
-                text = "${counter.name}: ${counter.count} / ${counter.target}"
-                textSize = 13f
-                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            val btnMinus = createStyledButton("-", primary = false).apply {
-                setOnClickListener {
-                    if (counter.count > 0) {
-                        counter.count--
-                        HealthHelper.saveCustomCounters(this@HealthActivity, counters)
-                        tv.text = "${counter.name}: ${counter.count} / ${counter.target}"
-                    }
+        val counterRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, (16 * density).toInt(), 0, (8 * density).toInt())
+        }
+
+        val tvStatus = TextView(this).apply {
+            text = "$count / ${counter.target}"
+            textSize = 22f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding((20 * density).toInt(), 0, (20 * density).toInt(), 0)
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+        }
+
+        val btnMinus = createStyledButton("-", primary = false).apply {
+            isAllCaps = false
+            insetTop = 0
+            insetBottom = 0
+            setPadding(0, 0, 0, 0)
+            textSize = 20f
+            layoutParams = LinearLayout.LayoutParams(
+                (48 * density).toInt(),
+                (42 * density).toInt()
+            )
+
+            setOnClickListener {
+                if (count > 0) {
+                    count--
+                    counter.count = count
+                    HealthHelper.saveCustomCounters(this@HealthActivity, allCounters)
+                    tvStatus.text = "$count / ${counter.target}"
                 }
             }
-            val btnPlus = createStyledButton("+", primary = true).apply {
-                setOnClickListener {
-                    counter.count++
-                    HealthHelper.saveCustomCounters(this@HealthActivity, counters)
-                    tv.text = "${counter.name}: ${counter.count} / ${counter.target}"
-                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
+        }
+
+        val btnPlus = createStyledButton("+", primary = false).apply {
+            isAllCaps = false
+            insetTop = 0
+            insetBottom = 0
+            setPadding(0, 0, 0, 0)
+            textSize = 20f
+            layoutParams = LinearLayout.LayoutParams(
+                (48 * density).toInt(),
+                (42 * density).toInt()
+            )
+
+            setOnClickListener {
+                count++
+                counter.count = count
+                HealthHelper.saveCustomCounters(this@HealthActivity, allCounters)
+
+                HealthHelper.addLogEntry(
+                    this@HealthActivity,
+                    HealthLogEntry(
                         memberId = activeMemberIdString,
                         memberName = activeMemberNameString,
                         type = counter.name,
-                        value = "${counter.count}"
-                    ))
-                    renderHealthPage()
-                }
+                        value = count.toString()
+                    )
+                )
+
+                renderHealthPage()
             }
-            val btnDel = createStyledButton("✕", primary = false).apply {
-                setOnClickListener {
-                    counters.remove(counter)
-                    HealthHelper.saveCustomCounters(this@HealthActivity, counters)
-                    renderHealthPage()
-                }
-            }
-            itemLayout.addView(tv)
-            itemLayout.addView(btnMinus)
-            itemLayout.addView(btnPlus)
-            itemLayout.addView(btnDel)
-            cardLayout.addView(itemLayout)
         }
 
-        renderCardLogs(cardLayout, logs) { it.type == titleKey || counterNames.contains(it.type) }
+        counterRow.addView(btnMinus)
+        counterRow.addView(tvStatus)
+        counterRow.addView(btnPlus)
+
+        cardLayout.addView(titleLayout)
+        cardLayout.addView(counterRow)
+
+        renderCardLogs(cardLayout, logs) {
+            it.type == counter.name
+        }
 
         card.addView(cardLayout)
         container.addView(card)
+    }
+
+    private fun showEditCustomCounterDialog(
+        counter: CustomCounter,
+        allCounters: MutableList<CustomCounter>
+    ) {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 16, 32, 16)
+        }
+
+        val etName = EditText(this).apply {
+            hint = getString(R.string.hint_counter_name)
+            setText(counter.name)
+        }
+
+        val etCount = EditText(this).apply {
+            hint = getString(R.string.hint_counter_current_count)
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(counter.count.toString())
+        }
+
+        val etTarget = EditText(this).apply {
+            hint = getString(R.string.hint_counter_target)
+            inputType = InputType.TYPE_CLASS_NUMBER
+            setText(counter.target.toString())
+        }
+
+        layout.addView(etName)
+        layout.addView(etCount)
+        layout.addView(etTarget)
+
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.edit))
+            .setView(layout)
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
+                val newName = etName.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    counter.name = newName
+                    counter.count = etCount.text.toString()
+                        .toIntOrNull() ?: counter.count
+                    counter.target = etTarget.text.toString()
+                        .toIntOrNull() ?: counter.target
+
+                    HealthHelper.saveCustomCounters(this, allCounters)
+                    renderHealthPage()
+                }
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .setNeutralButton(getString(R.string.delete)) { _, _ ->
+                allCounters.remove(counter)
+                HealthHelper.saveCustomCounters(this, allCounters)
+                renderHealthPage()
+            }
+            .show()
+            .let { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun showAddCustomCounterDialog() {

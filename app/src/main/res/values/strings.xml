@@ -846,4 +846,5 @@
     <string name="energy_history_description">Description</string>
     <string name="energy_history_member">Member</string>
     <string name="energy_history_range">Range</string>
+    <string name="hint_counter_current_count">Current count</string>
 </resources>
