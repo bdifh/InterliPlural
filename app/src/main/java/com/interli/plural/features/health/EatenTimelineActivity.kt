@@ -34,64 +34,8 @@ class EatenTimelineActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val rootDrawer = DrawerLayout(this).apply {
-            id = R.id.drawerLayout
-            fitsSystemWindows = true
-        }
-
-        val mainLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-            )
-        }
-
-        val toolbar = MaterialToolbar(this).apply {
-            id = R.id.topAppBar
-            title = getString(R.string.eaten_timeline_title)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                (56 * resources.displayMetrics.density).toInt()
-            )
-        }
-
-        val scrollView = NestedScrollView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                0,
-                1f
-            )
-            setPadding(32, 32, 32, 32)
-        }
-
-        container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-
-        scrollView.addView(container)
-        mainLayout.addView(toolbar)
-        mainLayout.addView(scrollView)
-
-        val navView = NavigationView(this).apply {
-            id = R.id.navigationView
-            layoutParams = DrawerLayout.LayoutParams(
-                DrawerLayout.LayoutParams.WRAP_CONTENT,
-                DrawerLayout.LayoutParams.MATCH_PARENT
-            ).apply {
-                gravity = Gravity.START
-            }
-            inflateMenu(R.menu.main_menu)
-        }
-
-        rootDrawer.addView(mainLayout)
-        rootDrawer.addView(navView)
-
-        setContentView(rootDrawer)
+        setContentView(R.layout.activity_eaten_timeline)
+        container = findViewById(R.id.eatenTimelineContainer)
         setupNavigationDrawer()
 
         systemMembers = MemberHelper.loadAllPeople(this).filter { !it.isArchived }
@@ -137,7 +81,7 @@ class EatenTimelineActivity : BaseActivity() {
         }
 
         val sortedDays = dayGroupMap.keys.sortedDescending()
-        val meals = listOf(
+        val defaultMeals = listOf(
             getString(R.string.meal_breakfast),
             getString(R.string.meal_lunch),
             getString(R.string.meal_dinner)
@@ -147,6 +91,16 @@ class EatenTimelineActivity : BaseActivity() {
 
         sortedDays.forEach { dayMillis ->
             val recordsForDay = dayGroupMap[dayMillis] ?: mutableListOf()
+            val configuredMeals = HealthHelper.loadEatenMealTypesForDate(
+                this,
+                dayMillis,
+                defaultMeals
+            )
+
+            val meals = (
+                    configuredMeals +
+                            recordsForDay.map { it.mealType }.filter { it.isNotBlank() }
+                    ).distinct()
             val isToday = dayMillis == todayStart
             val isYesterday = dayMillis == yesterdayStart
 

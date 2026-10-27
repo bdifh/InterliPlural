@@ -98,3 +98,8 @@ data class EatenMealRecord(
     var isChecked: Boolean = true,
     var eatenItems: List<String> = emptyList()
 )
+
+data class EatenMealListSnapshot(
+    val dateStartMillis: Long = 0L,
+    val meals: List<String> = emptyList()
+)

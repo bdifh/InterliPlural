@@ -43,23 +43,111 @@ object HealthHelper {
     ): MutableList<String> {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val json = sp.getString("eaten_meal_types", null)
-            ?: return defaultMeals.toMutableList()
-
         val type = object : TypeToken<MutableList<String>>() {}.type
 
-        return try {
-            gson.fromJson<MutableList<String>>(json, type)
-                ?: defaultMeals.toMutableList()
+        val meals: MutableList<String> = try {
+            if (json == null) {
+                defaultMeals.toMutableList()
+            } else {
+                gson.fromJson(json, type) ?: defaultMeals.toMutableList()
+            }
         } catch (_: Exception) {
             defaultMeals.toMutableList()
         }
+
+        if (loadEatenMealListSnapshots(context).isEmpty()) {
+            saveEatenMealListSnapshot(
+                context,
+                getStartOfDayMillis(System.currentTimeMillis()),
+                meals
+            )
+        }
+
+        return meals
     }
 
     fun saveEatenMealTypes(context: Context, meals: List<String>) {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sp.edit().putString("eaten_meal_types", gson.toJson(meals)).apply()
+
+        saveEatenMealListSnapshot(
+            context,
+            getStartOfDayMillis(System.currentTimeMillis()),
+            meals
+        )
+    }
+
+    fun loadEatenMealTypesForDate(
+        context: Context,
+        dateMillis: Long,
+        defaultMeals: List<String>
+    ): List<String> {
+        var snapshots = loadEatenMealListSnapshots(context)
+
+        if (snapshots.isEmpty()) {
+            loadEatenMealTypes(context, defaultMeals)
+            snapshots = loadEatenMealListSnapshots(context)
+        }
+
+        val requestedDay = getStartOfDayMillis(dateMillis)
+
+        return snapshots
+            .filter { it.dateStartMillis <= requestedDay }
+            .maxByOrNull { it.dateStartMillis }
+            ?.meals
+            ?: defaultMeals
+    }
+
+    private fun loadEatenMealListSnapshots(
+        context: Context
+    ): MutableList<EatenMealListSnapshot> {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val json = sp.getString("eaten_meal_list_snapshots", "[]") ?: "[]"
+        val type = object : TypeToken<MutableList<EatenMealListSnapshot>>() {}.type
+
+        return try {
+            gson.fromJson(json, type) ?: mutableListOf()
+        } catch (_: Exception) {
+            mutableListOf()
+        }
+    }
+
+    private fun saveEatenMealListSnapshot(
+        context: Context,
+        dateStartMillis: Long,
+        meals: List<String>
+    ) {
+        val snapshots = loadEatenMealListSnapshots(context)
+        val index = snapshots.indexOfFirst {
+            it.dateStartMillis == dateStartMillis
+        }
+        val snapshot = EatenMealListSnapshot(
+            dateStartMillis = dateStartMillis,
+            meals = meals.toList()
+        )
+
+        if (index >= 0) {
+            snapshots[index] = snapshot
+        } else {
+            snapshots.add(snapshot)
+        }
+
+        snapshots.sortBy { it.dateStartMillis }
+
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         sp.edit()
-            .putString("eaten_meal_types", gson.toJson(meals))
+            .putString("eaten_meal_list_snapshots", gson.toJson(snapshots))
             .apply()
+    }
+
+    private fun getStartOfDayMillis(timestamp: Long): Long {
+        return Calendar.getInstance().apply {
+            timeInMillis = timestamp
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
     }
 
     fun loadCustomSliders(context: Context): MutableList<CustomSlider> {
