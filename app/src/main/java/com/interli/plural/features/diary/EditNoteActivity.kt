@@ -35,6 +35,7 @@ import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
 import io.noties.markwon.Markwon
+import com.interli.plural.core.MarkdownHighlight
 import java.text.SimpleDateFormat
 import java.util.*
 import org.commonmark.ext.gfm.tables.TableCell
@@ -362,6 +363,7 @@ class EditNoteActivity : BaseActivity() {
             .usePlugin(TablePlugin.create(this))
             .usePlugin(CoilImagesPlugin.create(this))
             .usePlugin(LinkifyPlugin.create())
+            .usePlugin(MarkdownHighlight.create(this))
             .usePlugin(object : AbstractMarkwonPlugin() {
                 override fun beforeRender(node: Node) {
                     node.accept(object : AbstractVisitor() {

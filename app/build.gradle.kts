@@ -55,6 +55,7 @@ dependencies {
     implementation("io.noties.markwon:image-coil:4.6.2")
     implementation("io.noties.markwon:linkify:4.6.2")
     implementation("io.noties.markwon:ext-strikethrough:4.6.2")
+    implementation("io.noties.markwon:simple-ext:4.6.2")
     implementation("io.coil-kt:coil-gif:1.4.0")
 
     implementation(libs.androidx.activity.ktx)

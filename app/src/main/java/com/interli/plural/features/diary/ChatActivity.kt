@@ -26,6 +26,7 @@ import com.interli.plural.Person
 import com.interli.plural.R
 import com.interli.plural.SysmediaProfile
 import com.interli.plural.core.DialogHelper
+import com.interli.plural.core.MarkdownHighlight
 import io.noties.markwon.Markwon
 import java.text.SimpleDateFormat
 import java.util.*
@@ -140,6 +141,7 @@ class ChatActivity : BaseActivity() {
             .usePlugin(io.noties.markwon.ext.tables.TablePlugin.create(this))
             .usePlugin(io.noties.markwon.image.coil.CoilImagesPlugin.create(this))
             .usePlugin(io.noties.markwon.linkify.LinkifyPlugin.create())
+            .usePlugin(MarkdownHighlight.create(this))
             .build()
         markMessagesAsRead()
     }

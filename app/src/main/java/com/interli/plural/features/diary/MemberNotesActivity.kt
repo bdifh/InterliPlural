@@ -18,6 +18,7 @@ import com.interli.plural.R
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
+import com.interli.plural.core.MarkdownHighlight
 import io.noties.markwon.Markwon
 import java.text.SimpleDateFormat
 import java.util.*
@@ -113,6 +114,7 @@ class MemberNotesActivity : BaseActivity() {
             .usePlugin(TablePlugin.create(this))
             .usePlugin(CoilImagesPlugin.create(this))
             .usePlugin(LinkifyPlugin.create())
+            .usePlugin(MarkdownHighlight.create(this))
             .build()
         val sdf = SimpleDateFormat("dd MMMM yyyy, HH:mm", Locale.getDefault())
         val inflater = layoutInflater

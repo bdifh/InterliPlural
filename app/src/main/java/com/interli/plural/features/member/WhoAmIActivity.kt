@@ -28,6 +28,7 @@ import com.google.android.material.chip.ChipGroup
 import com.interli.plural.CustomField
 import com.interli.plural.core.MediaEmbedHelper
 import io.noties.markwon.Markwon
+import com.interli.plural.core.MarkdownHighlight
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
@@ -542,6 +543,7 @@ class WhoAmIActivity : BaseActivity() {
             .usePlugin(CoilImagesPlugin.create(this))
             .usePlugin(LinkifyPlugin.create())
             .usePlugin(StrikethroughPlugin.create())
+            .usePlugin(MarkdownHighlight.create(this))
             .build()
 
         val container = LinearLayout(this).apply {

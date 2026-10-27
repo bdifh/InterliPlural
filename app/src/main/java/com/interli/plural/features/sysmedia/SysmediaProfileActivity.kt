@@ -25,6 +25,7 @@ import com.interli.plural.core.BaseActivity
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.core.CropImageActivity
 import com.interli.plural.core.ImageHelper
+import com.interli.plural.core.MarkdownHighlight
 import com.interli.plural.features.sysmedia.CreatePostActivity
 import com.interli.plural.core.MediaEmbedHelper
 import com.interli.plural.features.member.MemberHelper
@@ -105,6 +106,7 @@ class SysmediaProfileActivity : BaseActivity() {
             .usePlugin(io.noties.markwon.linkify.LinkifyPlugin.create())
             .usePlugin(io.noties.markwon.ext.strikethrough.StrikethroughPlugin.create())
             .usePlugin(io.noties.markwon.image.coil.CoilImagesPlugin.create(this))
+            .usePlugin(MarkdownHighlight.create(this))
             .build()
         profileUserId = intent.getStringExtra("profile_user_id") ?: ""
         activeMemberId = intent.getStringExtra("active_member_id") ?: ""

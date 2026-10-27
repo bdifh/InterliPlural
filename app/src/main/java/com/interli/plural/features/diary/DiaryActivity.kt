@@ -24,6 +24,7 @@ import com.interli.plural.Person
 import com.interli.plural.R
 import com.interli.plural.TodoList
 import io.noties.markwon.Markwon
+import com.interli.plural.core.MarkdownHighlight
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -47,7 +48,9 @@ class DiaryActivity : BaseActivity() {
         setContentView(R.layout.activity_diary)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.isAppearanceLightStatusBars = true
-        markwon = Markwon.create(this)
+        markwon = Markwon.builder(this)
+            .usePlugin(MarkdownHighlight.create(this))
+            .build()
         loadNotes()
         recyclerView = findViewById(R.id.diaryRecyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)

@@ -36,6 +36,7 @@ import com.interli.plural.R
 import com.interli.plural.SysmediaNotification
 import com.interli.plural.SysmediaPost
 import com.interli.plural.SysmediaProfile
+import com.interli.plural.core.MarkdownHighlight
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -93,6 +94,7 @@ class SysmediaActivity : BaseActivity() {
             .usePlugin(io.noties.markwon.linkify.LinkifyPlugin.create())
             .usePlugin(io.noties.markwon.ext.strikethrough.StrikethroughPlugin.create())
             .usePlugin(io.noties.markwon.image.coil.CoilImagesPlugin.create(this))
+            .usePlugin(MarkdownHighlight.create(this))
             .build()
         if (activeMemberId == null) {
             val nonArchived = people.filter { !it.isArchived }
