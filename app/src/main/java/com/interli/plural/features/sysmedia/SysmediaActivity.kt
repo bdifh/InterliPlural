@@ -234,7 +234,7 @@ class SysmediaActivity : BaseActivity() {
         val activeMember = people.find { it.id == activeMemberId }
         val followingIds = activeMember?.sysmediaProfile?.followingIds ?: mutableListOf()
         val unreadTimeline = posts.count {
-            it.timestamp > lastTimeline &&
+            it.displayTimestamp > lastTimeline &&
                     (it.senderId == activeMemberId || followingIds.contains(it.senderId)) &&
                     (it.scheduledTime == null || it.scheduledTime!! <= now)
         }
@@ -397,7 +397,7 @@ class SysmediaActivity : BaseActivity() {
             @Suppress("SENSELESS_COMPARISON")
             if (it.likedByMemberIds == null) it.likedByMemberIds = mutableMapOf()
         }
-        posts.sortByDescending { it.timestamp }
+        posts.sortByDescending { it.displayTimestamp }
         people = MemberHelper.loadAllPeople(this)
     }
     private fun saveData() {
@@ -638,7 +638,7 @@ class SysmediaActivity : BaseActivity() {
             holder.tvName.text = profile?.displayName ?: sender?.name ?: "Unknown"
             val handle = profile?.handle ?: sender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: sender?.manualId ?: "unknown"
             holder.tvHandle.text = "@$handle"
-            holder.tvTime.text = sdf.format(Date(post.timestamp))
+            holder.tvTime.text = sdf.format(Date(post.displayTimestamp))
             val content = post.content ?: ""
             markwon.setMarkdown(holder.tvContent, content.replace("\n", "  \n"))
             val text = holder.tvContent.text

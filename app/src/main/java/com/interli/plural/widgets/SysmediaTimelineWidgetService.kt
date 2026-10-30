@@ -182,7 +182,7 @@ class SysmediaTimelineRemoteViewsFactory(
                     authorName = name,
                     authorHandle = handle,
                     content = cleanedContent,
-                    formattedTime = sdf.format(Date(post.timestamp)),
+                    formattedTime = sdf.format(Date(post.displayTimestamp)),
                     avatarUri = avatar,
                     profileColor = color,
                     headerText = headerText

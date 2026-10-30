@@ -213,7 +213,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
         tvHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
         markwon.setMarkdown(tvContent, post.content.replace("\n", "  \n"))
         tvContent.setTextColor(textColor)
-        tvTime.text = sdf.format(Date(post.timestamp))
+        tvTime.text = sdf.format(Date(post.displayTimestamp))
         tvTime.setTextColor(textColor and 0x88FFFFFF.toInt())
         val avatarUri = profile?.profilePictureUri ?: sender?.profilePictureUri
         if (avatarUri != null) ivAvatar.load(avatarUri)

@@ -654,7 +654,7 @@ class SysmediaProfileActivity : BaseActivity() {
             }
 
             holder.tvTime.apply {
-                text = sdf.format(Date(post.timestamp))
+                text = sdf.format(Date(post.displayTimestamp))
                 setTextColor(textColor and 0x88FFFFFF.toInt())
             }
 

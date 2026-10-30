@@ -224,7 +224,10 @@ data class SysmediaPost(
     var imageUri: String? = null,
     var scheduledTime: Long? = null,
     var poll: SysmediaPoll? = null
-)
+) {
+    val displayTimestamp: Long
+        get() = scheduledTime ?: timestamp
+}
 data class SysmediaPoll(
     var options: MutableList<String> = mutableListOf(),
     var votes: MutableMap<String, Int> = mutableMapOf()
