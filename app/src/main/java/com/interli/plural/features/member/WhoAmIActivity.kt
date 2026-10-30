@@ -152,6 +152,19 @@ class WhoAmIActivity : BaseActivity() {
                 )
             }
         }
+        if (dataSourceMode == "BOTH") {
+            val divider = View(this).apply {
+                setBackgroundColor(ColorHelper.getBtnColor(this@WhoAmIActivity))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    2.dpToPx()
+                ).apply {
+                    setMargins(0, 20.dpToPx(), 0, 30.dpToPx())
+                }
+            }
+
+            cardsContainer.addView(divider)
+        }
         if (dataSourceMode == "MOOD" || dataSourceMode == "BOTH") {
             val moodGroups = loadMoodActivityGroups()
             val collapsedMoodGroups = loadCollapsedMoodGroups()
@@ -1046,32 +1059,77 @@ class WhoAmIActivity : BaseActivity() {
         ColorHelper.styleSupportAlertDialog(dialog, this)
     }
     private fun showEditItemDialog(groupId: String, oldName: String) {
-        val input = EditText(this).apply { 
+        val groups = loadIdentityGroups()
+        val input = EditText(this).apply {
             hint = getString(R.string.hint_item_name)
             setText(oldName)
         }
+
+        var selectedGroupIndex =
+            groups.indexOfFirst { it.id == groupId }.coerceAtLeast(0)
+
+        val groupLabel = TextView(this).apply {
+            text = getString(R.string.label_select_group)
+            setTextColor(ColorHelper.getTextColor(this@WhoAmIActivity))
+            setPadding(0, 16.dpToPx(), 0, 4.dpToPx())
+        }
+
+        val groupButton = Button(this)
+        groupButton.text = groups.getOrNull(selectedGroupIndex)?.name.orEmpty()
+
+        groupButton.setOnClickListener {
+            val groupNames = groups.map { it.name }.toTypedArray()
+
+            androidx.appcompat.app.AlertDialog.Builder(this@WhoAmIActivity)
+                .setTitle(R.string.label_select_group)
+                .setSingleChoiceItems(groupNames, selectedGroupIndex) { choiceDialog, which ->
+                    selectedGroupIndex = which
+                    groupButton.text = groupNames[which]
+                    choiceDialog.dismiss()
+                }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+                .let {
+                    ColorHelper.styleSupportAlertDialog(it, this@WhoAmIActivity)
+                }
+        }
+
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24.dpToPx(), 8.dpToPx(), 24.dpToPx(), 8.dpToPx())
             addView(input)
+            addView(groupLabel)
+            addView(groupButton)
         }
+
         androidx.appcompat.app.AlertDialog.Builder(this)
             .setTitle(R.string.dialog_edit_item)
             .setView(container)
             .setPositiveButton(R.string.save) { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotEmpty()) {
-                    val groups = loadIdentityGroups()
-                    groups.find { it.id == groupId }?.let { group ->
-                        val idx = group.itemNames.indexOf(oldName)
-                        if (idx != -1) group.itemNames[idx] = name
+                val newName = input.text.toString().trim()
+                val sourceGroup = groups.find { it.id == groupId }
+                val destinationGroup =
+                    groups.getOrNull(selectedGroupIndex)
+                val itemIndex = sourceGroup?.itemNames?.indexOf(oldName) ?: -1
+
+                if (
+                    newName.isNotEmpty() &&
+                    sourceGroup != null &&
+                    destinationGroup != null &&
+                    itemIndex != -1
+                ) {
+                    if (sourceGroup.id == destinationGroup.id) {
+                        sourceGroup.itemNames[itemIndex] = newName
+                    } else {
+                        sourceGroup.itemNames.removeAt(itemIndex)
+                        destinationGroup.itemNames.add(newName)
                     }
+
                     saveIdentityGroups(groups)
                     renderAll(etActivitySearch.text.toString())
                 }
             }
             .setNeutralButton(R.string.delete) { _, _ ->
-                val groups = loadIdentityGroups()
                 groups.find { it.id == groupId }?.itemNames?.remove(oldName)
                 saveIdentityGroups(groups)
                 renderAll(etActivitySearch.text.toString())
