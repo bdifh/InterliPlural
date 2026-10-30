@@ -3,7 +3,7 @@ plugins {
 }
 
 // ------- VERSION DISPLAY !!!! --------
-val versionDisplayed = "V002-6c" // CHANGE THIS ONE WHEN MAKING UPDATES
+val versionDisplayed = "V002-6d" // CHANGE THIS ONE WHEN MAKING UPDATES
 // ------- VERSION DISPLAY !!!! --------
 
 android {
@@ -88,6 +88,16 @@ tasks.register<Copy>("copyDebugApk") {
 
     from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
     into(layout.buildDirectory.dir("outputs/apk/debug"))
+
+    rename {
+        "InterliPlural-${versionDisplayed}.apk"
+    }
+}
+tasks.register<Copy>("copyReleaseApk") {
+    dependsOn("assembleRelease")
+
+    from(layout.buildDirectory.file("outputs/apk/release/app-release.apk"))
+    into(layout.buildDirectory.dir("outputs/apk/release"))
 
     rename {
         "InterliPlural-${versionDisplayed}.apk"
