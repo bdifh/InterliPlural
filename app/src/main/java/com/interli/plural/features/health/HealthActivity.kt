@@ -780,9 +780,14 @@ class HealthActivity : BaseActivity() {
         )
         val deleteCountdowns = mutableMapOf<String, Int>()
 
-        val recyclerView = androidx.recyclerview.widget.RecyclerView(this).apply {
-            layoutManager =
-                androidx.recyclerview.widget.LinearLayoutManager(this@HealthActivity)
+        val maxListHeight = (resources.displayMetrics.heightPixels * 0.55f).toInt()
+
+        val recyclerView = RecyclerView(this).apply {
+            layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this@HealthActivity)
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                maxListHeight
+            )
         }
 
         val adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -2335,14 +2340,6 @@ class HealthActivity : BaseActivity() {
             displayedMax = maxValue
         }
 
-        val labelsScroll = ScrollView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                (240 * density).toInt()
-            )
-            addView(labelsContainer)
-        }
-
         val btnUpdateValues = createStyledButton(
             getString(R.string.energy_rating_update_values),
             primary = false
@@ -2363,7 +2360,7 @@ class HealthActivity : BaseActivity() {
 
         numberSettings.addView(btnUpdateValues)
         content.addView(numberSettings)
-        content.addView(labelsScroll)
+        content.addView(labelsContainer)
 
         fun updateRowsForSelectedMode() {
             saveVisibleDescriptions()
@@ -2392,9 +2389,14 @@ class HealthActivity : BaseActivity() {
         }
         updateRowsForSelectedMode()
 
+        val dialogScroll = ScrollView(this).apply {
+            isFillViewport = true
+            addView(content)
+        }
+
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.energy_rating_dialog_title)
-            .setView(content)
+            .setView(dialogScroll)
             .setNegativeButton(R.string.cancel, null)
             .setPositiveButton(R.string.save, null)
             .create()
@@ -3781,6 +3783,13 @@ class HealthActivity : BaseActivity() {
             val dialog = builder.create()
             dialog.show()
             ColorHelper.styleAlertDialog(dialog, this)
+            dialog.listView?.apply {
+                layoutParams = layoutParams.apply {
+                    height = (resources.displayMetrics.heightPixels * 0.45f).toInt()
+                }
+                isVerticalScrollBarEnabled = true
+                requestLayout()
+            }
 
             if (savedFoodList.isNotEmpty()) {
                 dialog.listView?.setOnItemLongClickListener { _, _, position, _ ->
