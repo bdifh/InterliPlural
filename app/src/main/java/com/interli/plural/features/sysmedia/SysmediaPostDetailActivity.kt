@@ -282,7 +282,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
                 layout.findViewById<TextView>(R.id.tvOriginalName).text = origProfile?.displayName ?: originalSender?.name ?: "Unknown"
                 val origHandle = origProfile?.handle ?: originalSender?.name?.replace(" ", "_")?.lowercase() ?: originalSender?.manualId ?: "unknown"
                 layout.findViewById<TextView>(R.id.tvOriginalHandle).text = "@$origHandle"
-                markwon.setMarkdown(layout.findViewById(R.id.tvOriginalContent), originalPost.content)
+                markwon.setMarkdown(layout.findViewById(R.id.tvOriginalContent), originalPost.content.replace("\n", "  \n"))
                 val origAvatar = origProfile?.profilePictureUri ?: originalSender?.profilePictureUri
                 if (origAvatar != null) layout.findViewById<ImageView>(R.id.ivOriginalAvatar).load(origAvatar)
                 else layout.findViewById<ImageView>(R.id.ivOriginalAvatar).setImageDrawable(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this)))
@@ -498,7 +498,7 @@ class SysmediaPostDetailActivity : BaseActivity() {
                         holder.tvOriginalName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
                         val parentHandle = parentProfile?.handle ?: parentSender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: parentSender?.manualId ?: "unknown"
                         holder.tvOriginalHandle.text = "@$parentHandle"
-                        markwon.setMarkdown(holder.tvOriginalContent, originalPost.content)
+                        markwon.setMarkdown(holder.tvOriginalContent, originalPost.content.replace("\n", "  \n"))
                         val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
                         if (parentAvatar != null) holder.ivOriginalAvatar.load(parentAvatar)
                         else holder.ivOriginalAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaPostDetailActivity)))

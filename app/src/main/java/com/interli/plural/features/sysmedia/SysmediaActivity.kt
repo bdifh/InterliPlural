@@ -580,7 +580,7 @@ class SysmediaActivity : BaseActivity() {
                     holder.tvOriginalName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
                     val parentHandle = parentProfile?.handle ?: parentSender?.name?.replace(" ", "_")?.lowercase() ?: parentSender?.manualId ?: "unknown"
                     holder.tvOriginalHandle.text = "@$parentHandle"
-                    markwon.setMarkdown(holder.tvOriginalContent, originalPost.content)
+                    markwon.setMarkdown(holder.tvOriginalContent, originalPost.content.replace("\n", "  \n"))
                     val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
                     if (parentAvatar != null) {
                         holder.ivOriginalAvatar.load(parentAvatar) {
@@ -993,7 +993,7 @@ class SysmediaActivity : BaseActivity() {
                         sysmediaHolder.tvOriginalName.text = origProfile?.displayName ?: originalSender?.name ?: "Unknown"
                         val origHandle = origProfile?.handle ?: originalSender?.name?.replace(" ", "_")?.lowercase() ?: originalSender?.manualId ?: "unknown"
                         sysmediaHolder.tvOriginalHandle.text = "@$origHandle"
-                        markwon.setMarkdown(sysmediaHolder.tvOriginalContent, originalPost.content)
+                        markwon.setMarkdown(sysmediaHolder.tvOriginalContent, originalPost.content.replace("\n", "  \n"))
                         val origAvatar = origProfile?.profilePictureUri ?: originalSender?.profilePictureUri
                         val oColor = originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)
                         val oDrawable = android.graphics.drawable.ColorDrawable(oColor)
