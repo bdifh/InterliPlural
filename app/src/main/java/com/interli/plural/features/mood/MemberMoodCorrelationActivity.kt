@@ -253,13 +253,26 @@ class MemberMoodCorrelationActivity : BaseActivity() {
         renderMemberMoodAverages(filtered)
         renderMemberActivityMatrix(filtered)
     }
+
+    private fun getSafeStringSet(
+        preferences: android.content.SharedPreferences,
+        key: String
+    ): Set<String> {
+        return try {
+            preferences.getStringSet(key, emptySet())?.toSet() ?: emptySet()
+        } catch (_: ClassCastException) {
+            preferences.edit().remove(key).apply()
+            emptySet()
+        }
+    }
+
     private fun renderRecentFrontingActivity(recentEntries: List<MoodActivity.MoodEntry>) {
         val container = findViewById<LinearLayout>(R.id.containerRecentFrontingActivity) ?: return
         container.removeAllViews()
         if (recentEntries.isEmpty()) return
         val sp = getSharedPreferences("settings_prefs", MODE_PRIVATE)
-        val excludedActivities = sp.getStringSet("excluded_activities", emptySet()) ?: emptySet()
-        val pinnedActivities = sp.getStringSet("pinned_activities", emptySet()) ?: emptySet()
+        val excludedActivities = getSafeStringSet(sp, "excluded_activities")
+        val pinnedActivities = getSafeStringSet(sp, "pinned_activities")
         val allActivityEntries = recentEntries.flatMap { it.activities }
         val totalActivityCount = allActivityEntries.size.toFloat()
         val activityCounts = allActivityEntries
