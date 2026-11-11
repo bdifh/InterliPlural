@@ -293,7 +293,31 @@ object PdfExportHelper {
                         val start = sdf.format(Date(session.startTime))
                         val end = session.endTime?.let { sdf.format(Date(it)) }
                             ?: context.getString(R.string.currently_active)
+
                         drawText("${session.personName}: $start to $end", textPaint, 3f)
+
+                        val details = mutableListOf<String>()
+                        if (session.frontPercentage != null && session.frontPercentage != 100) {
+                            details.add("${session.frontPercentage}%")
+                        }
+                        if (!session.frontRole.isNullOrBlank()) {
+                            details.add(session.frontRole!!)
+                        }
+                        if (details.isNotEmpty()) {
+                            drawText(
+                                "  ${context.getString(R.string.front_role_label)} ${details.joinToString(" - ")}",
+                                textPaint,
+                                3f
+                            )
+                        }
+
+                        if (!session.note.isNullOrBlank()) {
+                            drawText(
+                                "  ${context.getString(R.string.note)}: ${session.note}",
+                                textPaint,
+                                5f
+                            )
+                        }
                     }
                 }
 
