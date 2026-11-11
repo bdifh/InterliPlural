@@ -14,6 +14,12 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 
 object BackupHelper {
+
+    enum class ImportMode {
+        REPLACE,
+        MERGE
+    }
+
     fun updateAutoBackupSchedule(context: Context) {
         val sp = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
         val enabled = sp.getBoolean("auto_backup_enabled", false)
@@ -205,7 +211,7 @@ object BackupHelper {
         return folder.listFiles { f -> f.name.endsWith(".json") || f.name.endsWith(".zip") }?.toList()?.sortedByDescending { it.lastModified() } ?: emptyList()
     }
 
-    fun restoreBackup(context: Context, inputStream: InputStream) {
+    fun restoreBackup(context: Context, inputStream: InputStream, mode: ImportMode = ImportMode.REPLACE) {
         val bis = BufferedInputStream(inputStream)
         bis.mark(1024)
         val header = ByteArray(4)

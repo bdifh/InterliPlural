@@ -847,4 +847,7 @@
     <string name="energy_history_member">Member</string>
     <string name="energy_history_range">Range</string>
     <string name="hint_counter_current_count">Current count</string>
+    <string name="backup_import_mode_title">How should this backup be imported?</string>
+    <string name="backup_import_replace">Replace data included in this backup</string>
+    <string name="backup_import_merge">Merge with existing data</string>
 </resources>

@@ -62,7 +62,7 @@ class SettingsActivity : BaseActivity() {
         }
     private val importLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-            uri?.let { performImport(it) }
+            uri?.let { showImportModeDialog(it) }
         }
     private val pdfLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
@@ -1040,9 +1040,33 @@ private var pendingPdfSelections: BooleanArray? = null
         pendingPdfEnd = null
     }
 
-    private fun performImport(uri: Uri) {
+    private fun showImportModeDialog(uri: Uri) {
+        val options = arrayOf(
+            getString(R.string.backup_import_replace),
+            getString(R.string.backup_import_merge)
+        )
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.backup_import_mode_title)
+            .setItems(options) { _, which ->
+                val mode = if (which == 0) {
+                    BackupHelper.ImportMode.REPLACE
+                } else {
+                    BackupHelper.ImportMode.MERGE
+                }
+                performImport(uri, mode)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+
+    private fun performImport(uri: Uri, mode: BackupHelper.ImportMode) {
         contentResolver.openInputStream(uri)?.use { stream ->
-            BackupHelper.restoreBackup(this, stream)
+            BackupHelper.restoreBackup(this, stream, mode)
             Toast.makeText(this, getString(R.string.backup_imported), Toast.LENGTH_LONG).show()
             recreate()
         }
