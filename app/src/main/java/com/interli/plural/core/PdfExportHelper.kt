@@ -23,6 +23,7 @@ import com.interli.plural.features.timeline.TimelineChartView
 import com.interli.plural.FrontSession
 import com.interli.plural.features.health.HealthLogEntry
 import com.interli.plural.features.health.MedicationItem
+import com.interli.plural.features.timeline.FrontHistoryPdfChartView
 import com.interli.plural.Person
 import com.interli.plural.R
 import com.interli.plural.TodoList
@@ -242,54 +243,121 @@ object PdfExportHelper {
 
                 // 3. Fronting History
                 if (selections[0]) {
-                    if (currentY > PAGE_HEIGHT - 200) startNewPage()
-                    drawText(context.getString(R.string.timeline_front_title), headerPaint, 15f)
                     val sessionsJson = sharedPref.getString("sessions_list", "[]")
                     val allSessions: List<FrontSession> = gson.fromJson(
                         sessionsJson,
                         object : TypeToken<List<FrontSession>>() {}.type
                     ) ?: emptyList()
+
+                    val now = System.currentTimeMillis()
                     val sessions = allSessions.filter {
-                        (it.endTime
-                            ?: System.currentTimeMillis()) >= effectiveStart && it.startTime <= effectiveEnd
+                        (it.endTime ?: now) >= effectiveStart && it.startTime <= effectiveEnd
                     }
 
-                    // graphics
-                    val chart = TimelineChartView(context, null)
-                    chart.setData(sessions, people)
-                    val chartStart = startDate ?: (sessions.minOfOrNull { it.startTime }
-                        ?: (System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000))
-                    val chartEnd = endDate ?: (sessions.maxOfOrNull {
-                        it.endTime ?: System.currentTimeMillis()
-                    } ?: System.currentTimeMillis())
-                    chart.setExportRange(chartStart, chartEnd)
+                    val chartStart = startDate
+                        ?: sessions.minOfOrNull { it.startTime }
+                        ?: (now - 6L * 24 * 60 * 60 * 1000)
+                    val chartEnd = maxOf(
+                        chartStart,
+                        endDate ?: sessions.maxOfOrNull { it.endTime ?: now } ?: now
+                    )
+
+                    val firstDay = Calendar.getInstance().apply {
+                        timeInMillis = chartStart
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    val lastDay = Calendar.getInstance().apply {
+                        timeInMillis = chartEnd
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+
+                    val dayStarts = mutableListOf<Long>()
+                    val dayCursor = firstDay.clone() as Calendar
+                    while (dayCursor.timeInMillis <= lastDay.timeInMillis) {
+                        dayStarts.add(dayCursor.timeInMillis)
+                        dayCursor.add(Calendar.DAY_OF_YEAR, 1)
+                    }
+
+                    val memberCount = sessions
+                        .map { it.personId ?: "name:${it.personName}" }
+                        .distinct()
+                        .size
+                    val headerHeight = 20f
+                    val panelSpacing = 8f
+                    val minLaneHeight = 7f
+                    val maxLaneHeight = 12f
+
+                    val availableChartHeight =
+                        PAGE_HEIGHT - MARGIN - (MARGIN + headerPaint.textSize + 14f)
+
+                    val minimumPanelHeight =
+                        headerHeight + memberCount * minLaneHeight + panelSpacing
+
+                    val daysPerPage = (availableChartHeight / minimumPanelHeight)
+                        .toInt()
+                        .coerceIn(1, 7)
+
+                    val laneHeight = if (memberCount == 0) {
+                        maxLaneHeight
+                    } else {
+                        (
+                                (availableChartHeight / daysPerPage - headerHeight - panelSpacing) /
+                                        memberCount
+                                ).coerceIn(minLaneHeight, maxLaneHeight)
+                    }
+
                     val chartWidth = PAGE_WIDTH - 2 * MARGIN.toInt()
-                    val chartHeight = (chart.uniqueMembersSize() * 24f + 200f).coerceIn(200f, 600f)
 
-                    if (currentY + chartHeight > PAGE_HEIGHT - MARGIN) startNewPage()
-                    val chartBitmap = android.graphics.Bitmap.createBitmap(
-                        chartWidth.toInt(),
-                        chartHeight.toInt(),
-                        android.graphics.Bitmap.Config.ARGB_8888
-                    )
-                    val chartCanvas = android.graphics.Canvas(chartBitmap)
-                    chartCanvas.drawColor(android.graphics.Color.WHITE)
-                    chart.measure(
-                        android.view.View.MeasureSpec.makeMeasureSpec(
-                            chartWidth.toInt(),
-                            android.view.View.MeasureSpec.EXACTLY
-                        ),
-                        android.view.View.MeasureSpec.makeMeasureSpec(
-                            chartHeight.toInt(),
-                            android.view.View.MeasureSpec.EXACTLY
+                    dayStarts.chunked(daysPerPage).forEach { daysOnPage ->
+                        startNewPage()
+                        drawText(context.getString(R.string.timeline_front_title), headerPaint, 8f)
+
+                        val chart = FrontHistoryPdfChartView(
+                            context = context,
+                            dayStarts = daysOnPage,
+                            sessions = sessions,
+                            people = people,
+                            laneHeight = laneHeight,
+                            panelSpacing = panelSpacing
                         )
-                    )
-                    chart.layout(0, 0, chartWidth.toInt(), chartHeight.toInt())
-                    chart.draw(chartCanvas)
-                    canvas.drawBitmap(chartBitmap, MARGIN, currentY, null)
-                    currentY += chartHeight + 20f
+                        val chartHeight = chart.requiredHeight
 
-                    sessions.reversed().take(500).forEach { session ->
+                        val bitmap = android.graphics.Bitmap.createBitmap(
+                            chartWidth,
+                            chartHeight,
+                            android.graphics.Bitmap.Config.ARGB_8888
+                        )
+                        val chartCanvas = android.graphics.Canvas(bitmap)
+                        chartCanvas.drawColor(android.graphics.Color.WHITE)
+
+                        chart.measure(
+                            android.view.View.MeasureSpec.makeMeasureSpec(
+                                chartWidth,
+                                android.view.View.MeasureSpec.EXACTLY
+                            ),
+                            android.view.View.MeasureSpec.makeMeasureSpec(
+                                chartHeight,
+                                android.view.View.MeasureSpec.EXACTLY
+                            )
+                        )
+                        chart.layout(0, 0, chartWidth, chartHeight)
+                        chart.draw(chartCanvas)
+
+                        canvas.drawBitmap(bitmap, MARGIN, currentY, null)
+                        currentY += chartHeight + 10f
+                        bitmap.recycle()
+                    }
+
+                    startNewPage()
+                    drawText(context.getString(R.string.timeline_front_title), headerPaint, 15f)
+
+                    sessions.sortedBy { it.startTime }.take(500).forEach { session ->
                         val start = sdf.format(Date(session.startTime))
                         val end = session.endTime?.let { sdf.format(Date(it)) }
                             ?: context.getString(R.string.currently_active)
