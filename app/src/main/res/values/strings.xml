@@ -858,4 +858,9 @@
     <string name="pdf_front_table_percentage">%</string>
     <string name="pdf_front_table_label">Label</string>
     <string name="pdf_front_table_note">Note</string>
+    <string name="pdf_mood_table_date">Date</string>
+    <string name="pdf_mood_table_time">Time</string>
+    <string name="pdf_mood_table_score">Score</string>
+    <string name="pdf_mood_table_members">Members</string>
+    <string name="pdf_mood_table_note">Note</string>
 </resources>

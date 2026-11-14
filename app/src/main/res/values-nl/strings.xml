@@ -727,4 +727,9 @@
     <string name="pdf_front_table_percentage">%</string>
     <string name="pdf_front_table_label">Label</string>
     <string name="pdf_front_table_note">Notitie</string>
+    <string name="pdf_mood_table_date">Datum</string>
+    <string name="pdf_mood_table_time">Tijd</string>
+    <string name="pdf_mood_table_score">Score</string>
+    <string name="pdf_mood_table_members">Leden</string>
+    <string name="pdf_mood_table_note">Notitie</string>
 </resources>

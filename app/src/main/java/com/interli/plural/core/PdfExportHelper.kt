@@ -27,6 +27,7 @@ import com.interli.plural.FrontSession
 import com.interli.plural.features.health.HealthLogEntry
 import com.interli.plural.features.health.MedicationItem
 import com.interli.plural.features.timeline.FrontHistoryPdfChartView
+import com.interli.plural.features.mood.MoodPdfWeeklyChartView
 import com.interli.plural.Person
 import com.interli.plural.R
 import com.interli.plural.TodoList
@@ -551,63 +552,275 @@ object PdfExportHelper {
 
                 // 4. Mood Data
                 if (selections[1]) {
-                    startNewPage()
-                    drawText(context.getString(R.string.mood_tracker), headerPaint, 15f)
                     val moodJson = sharedPref.getString("mood_entries", "[]")
                     val allMoods: List<MoodActivity.MoodEntry> = gson.fromJson(
                         moodJson,
                         object : TypeToken<List<MoodActivity.MoodEntry>>() {}.type
                     ) ?: emptyList()
-                    val moods = allMoods.filter { it.timestamp in effectiveStart..effectiveEnd }
 
-                    val chart = MoodChartView(context, null)
-                    chart.setData(moods, MoodChartView.Mode.TIMELINE)
-                    val chartStart = startDate ?: (moods.firstOrNull()?.timestamp
-                        ?: (System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000))
-                    val chartEnd =
-                        endDate ?: (moods.lastOrNull()?.timestamp ?: System.currentTimeMillis())
-                    chart.setExportRange(chartStart, chartEnd)
+                    val moods = allMoods
+                        .filter { it.timestamp in effectiveStart..effectiveEnd }
+                        .sortedBy { it.timestamp }
+
+                    val now = System.currentTimeMillis()
+                    val chartStart = startDate ?: moods.firstOrNull()?.timestamp
+                    ?: (now - 6L * 24 * 60 * 60 * 1000)
+                    val chartEnd = maxOf(
+                        chartStart,
+                        endDate ?: moods.lastOrNull()?.timestamp ?: now
+                    )
+
+                    val firstDay = Calendar.getInstance().apply {
+                        timeInMillis = chartStart
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    val lastDay = Calendar.getInstance().apply {
+                        timeInMillis = chartEnd
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+
+                    val dayStarts = mutableListOf<Long>()
+                    val dayCursor = firstDay.clone() as Calendar
+                    while (dayCursor.timeInMillis <= lastDay.timeInMillis) {
+                        dayStarts.add(dayCursor.timeInMillis)
+                        dayCursor.add(Calendar.DAY_OF_YEAR, 1)
+                    }
+
                     val chartWidth = PAGE_WIDTH - 2 * MARGIN.toInt()
-                    val chartHeight = 300f
 
-                    if (currentY + chartHeight > PAGE_HEIGHT - MARGIN) startNewPage()
-                    val chartBitmap = android.graphics.Bitmap.createBitmap(
-                        chartWidth.toInt(),
-                        chartHeight.toInt(),
-                        android.graphics.Bitmap.Config.ARGB_8888
-                    )
-                    val chartCanvas = android.graphics.Canvas(chartBitmap)
-                    chartCanvas.drawColor(android.graphics.Color.WHITE)
-                    chart.measure(
-                        android.view.View.MeasureSpec.makeMeasureSpec(
-                            chartWidth.toInt(),
-                            android.view.View.MeasureSpec.EXACTLY
-                        ),
-                        android.view.View.MeasureSpec.makeMeasureSpec(
-                            chartHeight.toInt(),
-                            android.view.View.MeasureSpec.EXACTLY
-                        )
-                    )
-                    chart.layout(0, 0, chartWidth.toInt(), chartHeight.toInt())
-                    chart.draw(chartCanvas)
-                    canvas.drawBitmap(chartBitmap, MARGIN, currentY, null)
-                    currentY += chartHeight + 20f
+                    dayStarts.chunked(7).forEach { daysOnPage ->
+                        startNewPage()
+                        drawText(context.getString(R.string.mood_tracker), headerPaint, 8f)
 
-                    moods.reversed().take(500).forEach { mood ->
-                        val time = sdf.format(Date(mood.timestamp))
-                        val memberNames =
-                            mood.memberIds.mapNotNull { id -> people.find { it.id == id && !it.isArchived }?.name }
-                        val membersStr =
-                            if (memberNames.isNotEmpty()) " - ${memberNames.joinToString(", ")}" else ""
-                        drawText(
-                            "[$time] ${mood.moodEmoji} ${mood.moodLabel}$membersStr",
-                            textPaint,
-                            2f
+                        val chart = MoodPdfWeeklyChartView(
+                            context = context,
+                            dayStarts = daysOnPage,
+                            entries = moods
                         )
-                        if (mood.note.isNotEmpty()) drawText(
-                            "  ${context.getString(R.string.note)}: ${mood.note}",
-                            textPaint,
-                            5f
+                        val chartHeight = chart.requiredHeight
+
+                        val bitmap = android.graphics.Bitmap.createBitmap(
+                            chartWidth,
+                            chartHeight,
+                            android.graphics.Bitmap.Config.ARGB_8888
+                        )
+                        val chartCanvas = android.graphics.Canvas(bitmap)
+                        chartCanvas.drawColor(android.graphics.Color.WHITE)
+
+                        chart.measure(
+                            android.view.View.MeasureSpec.makeMeasureSpec(
+                                chartWidth,
+                                android.view.View.MeasureSpec.EXACTLY
+                            ),
+                            android.view.View.MeasureSpec.makeMeasureSpec(
+                                chartHeight,
+                                android.view.View.MeasureSpec.EXACTLY
+                            )
+                        )
+                        chart.layout(0, 0, chartWidth, chartHeight)
+                        chart.draw(chartCanvas)
+
+                        canvas.drawBitmap(bitmap, MARGIN, currentY, null)
+                        currentY += chartHeight + 10f
+                        bitmap.recycle()
+                    }
+
+                    startNewPage()
+
+                    val tableLeft = MARGIN
+                    val tableBottom = PAGE_HEIGHT - MARGIN
+                    val columnWidths = listOf(72f, 50f, 42f, 125f, 206f)
+                    val tableWidth = columnWidths.sum()
+
+                    val tableHeaderPaint = TextPaint().apply {
+                        textSize = 8f
+                        isFakeBoldText = true
+                        color = android.graphics.Color.BLACK
+                    }
+                    val tableBodyPaint = TextPaint().apply {
+                        textSize = 8f
+                        color = android.graphics.Color.BLACK
+                    }
+                    val tableBorderPaint = android.graphics.Paint(
+                        android.graphics.Paint.ANTI_ALIAS_FLAG
+                    ).apply {
+                        color = 0xFF888888.toInt()
+                        style = android.graphics.Paint.Style.STROKE
+                        strokeWidth = 0.6f
+                    }
+                    val tableHeaderBackgroundPaint = android.graphics.Paint(
+                        android.graphics.Paint.ANTI_ALIAS_FLAG
+                    ).apply {
+                        color = 0xFFE8E8E8.toInt()
+                        style = android.graphics.Paint.Style.FILL
+                    }
+
+                    val tableHeaders = listOf(
+                        context.getString(R.string.pdf_mood_table_date),
+                        context.getString(R.string.pdf_mood_table_time),
+                        context.getString(R.string.pdf_mood_table_score),
+                        context.getString(R.string.pdf_mood_table_members),
+                        context.getString(R.string.pdf_mood_table_note)
+                    )
+
+                    fun drawMoodTableHeader() {
+                        drawText(context.getString(R.string.mood_tracker), headerPaint, 8f)
+
+                        val layouts = tableHeaders.mapIndexed { index, text ->
+                            createStaticLayout(
+                                text,
+                                tableHeaderPaint,
+                                columnWidths[index].toInt() - 8
+                            )
+                        }
+                        val rowHeight = maxOf(26f, layouts.maxOf { it.height.toFloat() } + 8f)
+
+                        canvas.drawRect(
+                            tableLeft,
+                            currentY,
+                            tableLeft + tableWidth,
+                            currentY + rowHeight,
+                            tableHeaderBackgroundPaint
+                        )
+
+                        var x = tableLeft
+                        layouts.forEachIndexed { index, layout ->
+                            val width = columnWidths[index]
+                            layout.draw(canvas, x + 4f, currentY + (rowHeight - layout.height) / 2f)
+                            canvas.drawRect(
+                                x,
+                                currentY,
+                                x + width,
+                                currentY + rowHeight,
+                                tableBorderPaint
+                            )
+                            x += width
+                        }
+                        currentY += rowHeight
+                    }
+
+                    fun drawMoodTableRow(cells: List<String>) {
+                        val layouts = cells.mapIndexed { index, text ->
+                            createStaticLayout(
+                                text.ifEmpty { " " },
+                                tableBodyPaint,
+                                columnWidths[index].toInt() - 8
+                            )
+                        }
+
+                        val lineHeight = (
+                                layouts.first().getLineBottom(0) -
+                                        layouts.first().getLineTop(0)
+                                ).coerceAtLeast(1).toFloat() * 1.1f
+
+                        val maxLines = layouts.maxOf { it.lineCount }
+                        var firstLine = 0
+
+                        while (firstLine < maxLines) {
+                            if (currentY + lineHeight + 8f > tableBottom) {
+                                startNewPage()
+                                drawMoodTableHeader()
+                            }
+
+                            val linesThatFit = (
+                                    (tableBottom - currentY - 8f) / lineHeight
+                                    ).toInt().coerceAtLeast(1)
+                            val lastLine = minOf(maxLines, firstLine + linesThatFit)
+
+                            val contentHeight = layouts.maxOf { layout ->
+                                val from = minOf(firstLine, layout.lineCount)
+                                val until = minOf(lastLine, layout.lineCount)
+
+                                if (until > from) {
+                                    layout.getLineBottom(until - 1) - layout.getLineTop(from)
+                                } else {
+                                    0
+                                }
+                            }.coerceAtLeast(lineHeight.toInt())
+
+                            val rowHeight = contentHeight + 8f
+                            var x = tableLeft
+
+                            layouts.forEachIndexed { index, layout ->
+                                val width = columnWidths[index]
+                                val from = minOf(firstLine, layout.lineCount)
+                                val until = minOf(lastLine, layout.lineCount)
+
+                                canvas.drawRect(
+                                    x,
+                                    currentY,
+                                    x + width,
+                                    currentY + rowHeight,
+                                    tableBorderPaint
+                                )
+
+                                if (until > from) {
+                                    drawClippedLayout(
+                                        layout,
+                                        canvas,
+                                        x + 4f,
+                                        currentY + 4f,
+                                        layout.getLineTop(from),
+                                        layout.getLineBottom(until - 1)
+                                    )
+                                }
+                                x += width
+                            }
+
+                            currentY += rowHeight
+                            firstLine = lastLine
+                        }
+                    }
+
+                    drawMoodTableHeader()
+
+                    val moodDateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                    val moodTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    val moodKeys = listOf(
+                        "mood_awful",
+                        "mood_bad",
+                        "mood_meh",
+                        "mood_good",
+                        "mood_rad"
+                    )
+
+                    var previousMoodDate: String? = null
+
+                    moods.takeLast(500).forEach { mood ->
+                        val moodDate = moodDateFormat.format(Date(mood.timestamp))
+                        val dateCell = if (moodDate != previousMoodDate) moodDate else ""
+                        previousMoodDate = moodDate
+
+                        val moodIndex = moodKeys.indexOf(mood.moodLabel).takeIf { it >= 0 }
+                            ?: moodKeys.indexOfFirst { key ->
+                                val resourceId = context.resources.getIdentifier(
+                                    key,
+                                    "string",
+                                    context.packageName
+                                )
+                                resourceId != 0 && context.getString(resourceId) == mood.moodLabel
+                            }
+
+                        val score = if (moodIndex >= 0) (moodIndex + 1).toString() else ""
+
+                        val memberNames = mood.memberIds.mapNotNull { id ->
+                            people.firstOrNull { it.id == id && !it.isArchived }?.name
+                        }
+
+                        drawMoodTableRow(
+                            listOf(
+                                dateCell,
+                                moodTimeFormat.format(Date(mood.timestamp)),
+                                score,
+                                memberNames.joinToString(", "),
+                                mood.note
+                            )
                         )
                     }
                 }
