@@ -697,6 +697,9 @@ class MainActivity : BaseActivity() {
 
     private fun updateUI() {
         ColorHelper.applySettings(this)
+        findViewById<NavigationView>(R.id.navigationView)?.let {
+            updateNavigationMenu(it)
+        }
         findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardInfo)
             ?.setCardBackgroundColor(ColorHelper.getFrontColor(this))
         val textColor = ColorHelper.getTextColor(this)
