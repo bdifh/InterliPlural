@@ -71,20 +71,7 @@ class CalendarActivity : BaseActivity() {
     }
 
     private fun scheduleCalendarAlarm(event: CalendarEvent) {
-        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(this, NotificationReceiver::class.java).apply {
-            action = "CALENDAR_REMINDER"
-            putExtra("event_id", event.id)
-            putExtra("event_title", event.title)
-        }
-        val pendingIntent = PendingIntent.getBroadcast(this, event.id.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-
-        if (event.reminderTime != null && event.reminderTime!! > System.currentTimeMillis()) {
-            val receiver = NotificationReceiver()
-            receiver.scheduleAlarm(alarmManager, event.reminderTime!!, pendingIntent)
-        } else {
-            alarmManager.cancel(pendingIntent)
-        }
+        NotificationReceiver.scheduleCalendarReminder(this, event)
     }
 
     private fun setupUI() {

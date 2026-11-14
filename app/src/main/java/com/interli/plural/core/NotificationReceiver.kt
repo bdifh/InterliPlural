@@ -15,6 +15,7 @@ import com.interli.plural.CalendarEvent
 import com.interli.plural.features.mood.MoodActivity
 import com.interli.plural.features.todo.TodoActivity
 import com.interli.plural.features.calendar.CalendarActivity
+import com.interli.plural.features.calendar.CalendarRecurrenceHelper
 import com.interli.plural.R
 import com.interli.plural.TodoList
 import java.util.*
@@ -98,6 +99,13 @@ class NotificationReceiver : BroadcastReceiver() {
             NotificationManagerCompat.from(localizedContext).notify(notificationId, builder.build())
         } catch (_: SecurityException) {}
 
+        if (action == "CALENDAR_REMINDER") {
+            val eventId = intent.getStringExtra("event_id")
+            if (eventId != null) {
+                rescheduleCalendarReminder(context, eventId)
+            }
+        }
+
         if (action == "MOOD_REMINDER") {
             val index = intent.getIntExtra("mood_alarm_index", -1)
             val hour = intent.getIntExtra("mood_alarm_hour", -1)
@@ -141,23 +149,76 @@ class NotificationReceiver : BroadcastReceiver() {
             rescheduleCalendarAlarms(context)
         }
 
+        fun scheduleCalendarReminder(context: Context, event: CalendarEvent) {
+            val alarmManager =
+                context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+
+            val pendingIntent = calendarPendingIntent(context, event.id, event.title)
+            val nextReminder = CalendarRecurrenceHelper.nextReminderTime(
+                event,
+                System.currentTimeMillis()
+            )
+
+            if (nextReminder != null) {
+                NotificationReceiver().scheduleAlarm(
+                    alarmManager,
+                    nextReminder,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.cancel(pendingIntent)
+            }
+        }
+
+        private fun calendarPendingIntent(
+            context: Context,
+            eventId: String,
+            eventTitle: String
+        ): PendingIntent {
+            val intent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "CALENDAR_REMINDER"
+                putExtra("event_id", eventId)
+                putExtra("event_title", eventTitle)
+            }
+
+            return PendingIntent.getBroadcast(
+                context,
+                eventId.hashCode(),
+                intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+        }
+
+        private fun rescheduleCalendarReminder(context: Context, eventId: String) {
+            val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
+            val json = sharedPref.getString("calendar_events", "[]") ?: "[]"
+            val events: List<CalendarEvent> = try {
+                Gson().fromJson(
+                    json,
+                    object : TypeToken<List<CalendarEvent>>() {}.type
+                ) ?: emptyList()
+            } catch (_: Exception) {
+                emptyList()
+            }
+
+            val event = events.firstOrNull { it.id == eventId } ?: return
+            scheduleCalendarReminder(context, event)
+        }
+
         private fun rescheduleCalendarAlarms(context: Context) {
             val sharedPref = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
             val json = sharedPref.getString("calendar_events", "[]") ?: "[]"
-            val events: List<CalendarEvent> = Gson().fromJson(json, object : TypeToken<List<CalendarEvent>>() {}.type) ?: emptyList()
-            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-            val receiver = NotificationReceiver()
+            val events: List<CalendarEvent> = try {
+                Gson().fromJson(
+                    json,
+                    object : TypeToken<List<CalendarEvent>>() {}.type
+                ) ?: emptyList()
+            } catch (_: Exception) {
+                emptyList()
+            }
 
             events.forEach { event ->
-                if (event.reminderTime != null && event.reminderTime!! > System.currentTimeMillis()) {
-                    val intent = Intent(context, NotificationReceiver::class.java).apply {
-                        action = "CALENDAR_REMINDER"
-                        putExtra("event_id", event.id)
-                        putExtra("event_title", event.title)
-                    }
-                    val pendingIntent = PendingIntent.getBroadcast(context, event.id.hashCode(), intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                    receiver.scheduleAlarm(alarmManager, event.reminderTime!!, pendingIntent)
-                }
+                scheduleCalendarReminder(context, event)
             }
         }
 
