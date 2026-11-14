@@ -719,4 +719,12 @@
     <string name="backup_import_mode_title">Hoe wil je deze back-up importeren?</string>
     <string name="backup_import_replace">Gegevens uit deze back-up vervangen</string>
     <string name="backup_import_merge">Samenvoegen met bestaande gegevens</string>
+    <string name="pdf_front_table_fronter">Fronter</string>
+    <string name="pdf_front_table_start_date">Startdatum</string>
+    <string name="pdf_front_table_start_time">Starttijd</string>
+    <string name="pdf_front_table_end_date">Einddatum (indien anders)</string>
+    <string name="pdf_front_table_end_time">Eindtijd</string>
+    <string name="pdf_front_table_percentage">%</string>
+    <string name="pdf_front_table_label">Label</string>
+    <string name="pdf_front_table_note">Notitie</string>
 </resources>

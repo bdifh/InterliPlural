@@ -850,4 +850,12 @@
     <string name="backup_import_mode_title">How should this backup be imported?</string>
     <string name="backup_import_replace">Replace data included in this backup</string>
     <string name="backup_import_merge">Merge with existing data</string>
+    <string name="pdf_front_table_fronter">Fronter</string>
+    <string name="pdf_front_table_start_date">Start date</string>
+    <string name="pdf_front_table_start_time">Start time</string>
+    <string name="pdf_front_table_end_date">End date (if different)</string>
+    <string name="pdf_front_table_end_time">End time</string>
+    <string name="pdf_front_table_percentage">%</string>
+    <string name="pdf_front_table_label">Label</string>
+    <string name="pdf_front_table_note">Note</string>
 </resources>

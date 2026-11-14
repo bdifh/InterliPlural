@@ -9,6 +9,9 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.widget.Toast
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.interli.plural.DiaryNote
@@ -157,6 +160,21 @@ object PdfExportHelper {
                     pageCount++
                     pageInfo =
                         PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, pageCount).create()
+                    page = doc.startPage(pageInfo)
+                    canvas = page.canvas
+                    currentY = MARGIN
+                }
+
+                fun startNewLandscapePage() {
+                    doc.finishPage(page)
+                    pageCount++
+
+                    pageInfo = PdfDocument.PageInfo.Builder(
+                        PAGE_HEIGHT,
+                        PAGE_WIDTH,
+                        pageCount
+                    ).create()
+
                     page = doc.startPage(pageInfo)
                     canvas = page.canvas
                     currentY = MARGIN
@@ -355,37 +373,179 @@ object PdfExportHelper {
                     }
 
                     startNewPage()
-                    drawText(context.getString(R.string.timeline_front_title), headerPaint, 15f)
 
-                    sessions.sortedBy { it.startTime }.take(500).forEach { session ->
-                        val start = sdf.format(Date(session.startTime))
-                        val end = session.endTime?.let { sdf.format(Date(it)) }
-                            ?: context.getString(R.string.currently_active)
+                    val tableBottom = PAGE_HEIGHT - MARGIN
+                    val tableLeft = MARGIN
+                    val columnWidths = listOf(70f, 58f, 42f, 58f, 42f, 43f, 55f, 127f)
+                    val tableWidth = columnWidths.sum()
 
-                        drawText("${session.personName}: $start to $end", textPaint, 3f)
+                    val tableHeaderPaint = TextPaint().apply {
+                        textSize = 7.5f
+                        isFakeBoldText = true
+                        color = android.graphics.Color.BLACK
+                    }
+                    val tableBodyPaint = TextPaint().apply {
+                        textSize = 7.5f
+                        color = android.graphics.Color.BLACK
+                    }
+                    val tableBorderPaint = android.graphics.Paint(
+                        android.graphics.Paint.ANTI_ALIAS_FLAG
+                    ).apply {
+                        color = 0xFF888888.toInt()
+                        style = android.graphics.Paint.Style.STROKE
+                        strokeWidth = 0.6f
+                    }
+                    val tableHeaderBackgroundPaint = android.graphics.Paint(
+                        android.graphics.Paint.ANTI_ALIAS_FLAG
+                    ).apply {
+                        color = 0xFFE8E8E8.toInt()
+                        style = android.graphics.Paint.Style.FILL
+                    }
 
-                        val details = mutableListOf<String>()
-                        if (session.frontPercentage != null && session.frontPercentage != 100) {
-                            details.add("${session.frontPercentage}%")
+                    val tableHeaders = listOf(
+                        context.getString(R.string.pdf_front_table_fronter),
+                        context.getString(R.string.pdf_front_table_start_date),
+                        context.getString(R.string.pdf_front_table_start_time),
+                        context.getString(R.string.pdf_front_table_end_date),
+                        context.getString(R.string.pdf_front_table_end_time),
+                        context.getString(R.string.pdf_front_table_percentage),
+                        context.getString(R.string.pdf_front_table_label),
+                        context.getString(R.string.pdf_front_table_note)
+                    )
+
+                    fun drawFrontTableHeader() {
+                        drawText(context.getString(R.string.timeline_front_title), headerPaint, 8f)
+
+                        val layouts = tableHeaders.mapIndexed { index, text ->
+                            createStaticLayout(
+                                text,
+                                tableHeaderPaint,
+                                columnWidths[index].toInt() - 8
+                            )
                         }
-                        if (!session.frontRole.isNullOrBlank()) {
-                            details.add(session.frontRole!!)
+                        val rowHeight = maxOf(26f, layouts.maxOf { it.height.toFloat() } + 8f)
+
+                        canvas.drawRect(
+                            tableLeft,
+                            currentY,
+                            tableLeft + tableWidth,
+                            currentY + rowHeight,
+                            tableHeaderBackgroundPaint
+                        )
+
+                        var x = tableLeft
+                        layouts.forEachIndexed { index, layout ->
+                            val width = columnWidths[index]
+                            layout.draw(canvas, x + 4f, currentY + (rowHeight - layout.height) / 2f)
+                            canvas.drawRect(x, currentY, x + width, currentY + rowHeight, tableBorderPaint)
+                            x += width
                         }
-                        if (details.isNotEmpty()) {
-                            drawText(
-                                "  ${context.getString(R.string.front_role_label)} ${details.joinToString(" - ")}",
-                                textPaint,
-                                3f
+
+                        currentY += rowHeight
+                    }
+
+                    fun drawFrontTableRow(cells: List<String>) {
+                        val layouts = cells.mapIndexed { index, text ->
+                            createStaticLayout(
+                                text.ifEmpty { " " },
+                                tableBodyPaint,
+                                columnWidths[index].toInt() - 8
                             )
                         }
 
-                        if (!session.note.isNullOrBlank()) {
-                            drawText(
-                                "  ${context.getString(R.string.note)}: ${session.note}",
-                                textPaint,
-                                5f
-                            )
+                        val firstLayout = layouts.first()
+                        val lineHeight = (
+                                firstLayout.getLineBottom(0) - firstLayout.getLineTop(0)
+                                ).coerceAtLeast(1).toFloat() * 1.1f
+
+                        val maxLines = layouts.maxOf { it.lineCount }
+                        var firstLine = 0
+
+                        while (firstLine < maxLines) {
+                            if (currentY + lineHeight + 8f > tableBottom) {
+                                startNewPage()
+                                drawFrontTableHeader()
+                            }
+
+                            val linesThatFit = (
+                                    (tableBottom - currentY - 8f) / lineHeight
+                                    ).toInt().coerceAtLeast(1)
+                            val lastLine = minOf(maxLines, firstLine + linesThatFit)
+
+                            val contentHeight = layouts.maxOf { layout ->
+                                val from = minOf(firstLine, layout.lineCount)
+                                val until = minOf(lastLine, layout.lineCount)
+
+                                if (until > from) {
+                                    layout.getLineBottom(until - 1) - layout.getLineTop(from)
+                                } else {
+                                    0
+                                }
+                            }.coerceAtLeast(lineHeight.toInt())
+
+                            val rowHeight = contentHeight + 8f
+                            var x = tableLeft
+
+                            layouts.forEachIndexed { index, layout ->
+                                val width = columnWidths[index]
+                                val from = minOf(firstLine, layout.lineCount)
+                                val until = minOf(lastLine, layout.lineCount)
+
+                                canvas.drawRect(x, currentY, x + width, currentY + rowHeight, tableBorderPaint)
+
+                                if (until > from) {
+                                    drawClippedLayout(
+                                        layout,
+                                        canvas,
+                                        x + 4f,
+                                        currentY + 4f,
+                                        layout.getLineTop(from),
+                                        layout.getLineBottom(until - 1)
+                                    )
+                                }
+
+                                x += width
+                            }
+
+                            currentY += rowHeight
+                            firstLine = lastLine
                         }
+                    }
+
+                    drawFrontTableHeader()
+
+                    val tableDateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                    val tableTimeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+                    sessions.sortedBy { it.startTime }.forEach { session ->
+                        val startDate = tableDateFormat.format(Date(session.startTime))
+                        val endDate = session.endTime?.let { endTime ->
+                            tableDateFormat.format(Date(endTime))
+                                .takeIf { it != startDate }
+                                .orEmpty()
+                        }.orEmpty()
+
+                        val endTime = session.endTime?.let {
+                            tableTimeFormat.format(Date(it))
+                        } ?: context.getString(R.string.currently_active)
+
+                        val percentage = session.frontPercentage
+                            ?.takeIf { it != 100 }
+                            ?.let { "$it%" }
+                            .orEmpty()
+
+                        drawFrontTableRow(
+                            listOf(
+                                session.personName,
+                                startDate,
+                                tableTimeFormat.format(Date(session.startTime)),
+                                endDate,
+                                endTime,
+                                percentage,
+                                session.frontRole.orEmpty(),
+                                session.note.orEmpty()
+                            )
+                        )
                     }
                 }
 
