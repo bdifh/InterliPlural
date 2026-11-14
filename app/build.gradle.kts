@@ -104,6 +104,3 @@ tasks.register<Copy>("copyReleaseApk") {
         "InterliPlural-${versionDisplayed}.apk"
     }
 }
-tasks.named("assembleRelease") {
-    finalizedBy("copyReleaseApk")
-}
