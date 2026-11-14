@@ -870,4 +870,7 @@
     <string name="note_date_display_none">No date</string>
     <string name="note_created_date_label">Created: %1$s</string>
     <string name="note_assigned_date_label">Assigned: %1$s</string>
+    <string name="recurrence_interval_weeks">Repeat every how many weeks?</string>
+    <string name="recurrence_every_n_weeks">Every %1$d weeks</string>
+    <string name="recurrence_custom_every_n_weeks">%1$s (every %2$d weeks)</string>
 </resources>

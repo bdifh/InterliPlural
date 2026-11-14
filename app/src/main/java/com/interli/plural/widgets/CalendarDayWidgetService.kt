@@ -9,6 +9,7 @@ import com.google.gson.reflect.TypeToken
 import com.interli.plural.CalendarEvent
 import com.interli.plural.R
 import com.interli.plural.core.ColorHelper
+import com.interli.plural.features.calendar.CalendarRecurrenceHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -70,7 +71,15 @@ class CalendarRemoteViewsFactory(private val context: Context) : RemoteViewsServ
                         "WEEKLY" -> true
                         "MONTHLY" -> true
                         "YEARLY" -> true
-                        "CUSTOM" -> event.recurrenceDays?.contains(cal.get(Calendar.DAY_OF_WEEK).let { if (it == Calendar.SUNDAY) 7 else it - 1 }) == true
+                        "CUSTOM" -> event.recurrenceDays?.contains(
+                            cal.get(Calendar.DAY_OF_WEEK).let {
+                                if (it == Calendar.SUNDAY) 7 else it - 1
+                            }
+                        ) == true && CalendarRecurrenceHelper.matchesIntervalWeek(
+                            event.startTime,
+                            currentStart,
+                            event.recurrenceInterval
+                        )
                         else -> false
                     }
 
@@ -83,7 +92,10 @@ class CalendarRemoteViewsFactory(private val context: Context) : RemoteViewsServ
 
                     when (event.recurrence) {
                         "DAILY", "CUSTOM" -> cal.add(Calendar.DAY_OF_YEAR, 1)
-                        "WEEKLY" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+                        "WEEKLY" -> cal.add(
+                            Calendar.WEEK_OF_YEAR,
+                            event.recurrenceInterval?.coerceAtLeast(1) ?: 1
+                        )
                         "MONTHLY" -> cal.add(Calendar.MONTH, 1)
                         "YEARLY" -> cal.add(Calendar.YEAR, 1)
                         else -> break

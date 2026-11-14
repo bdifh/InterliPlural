@@ -168,19 +168,46 @@ class CalendarActivity : BaseActivity() {
         var selectedTodoListId = event?.linkedTodoListId
         var selectedRecurrence = event?.recurrence
         var selectedRecurrenceDays = event?.recurrenceDays?.toMutableList()
+        var selectedRecurrenceInterval =
+            event?.recurrenceInterval?.coerceAtLeast(1) ?: 1
 
         val btnRecurrence = view.findViewById<Button>(R.id.btnEventRecurrence)
         val updateRecurrenceUI = {
             btnRecurrence.text = when (selectedRecurrence) {
                 "DAILY" -> getString(R.string.recurrence_daily)
-                "WEEKLY" -> getString(R.string.recurrence_weekly)
+                "WEEKLY" -> if (selectedRecurrenceInterval == 1) {
+                    getString(R.string.recurrence_weekly)
+                } else {
+                    getString(R.string.recurrence_every_n_weeks, selectedRecurrenceInterval)
+                }
                 "MONTHLY" -> getString(R.string.recurrence_monthly)
                 "YEARLY" -> getString(R.string.recurrence_yearly)
                 "CUSTOM" -> {
                     val days = selectedRecurrenceDays ?: emptyList()
-                    if (days.isEmpty()) getString(R.string.recurrence_custom)
-                    else days.joinToString(",") { d ->
-                        when(d) { 1-> "Ma"; 2-> "Di"; 3-> "Wo"; 4-> "Do"; 5-> "Vr"; 6-> "Za"; else -> "Zo" }
+                    val dayText = if (days.isEmpty()) {
+                        getString(R.string.recurrence_custom)
+                    } else {
+                        days.joinToString(",") { day ->
+                            when (day) {
+                                1 -> "Ma"
+                                2 -> "Di"
+                                3 -> "Wo"
+                                4 -> "Do"
+                                5 -> "Vr"
+                                6 -> "Za"
+                                else -> "Zo"
+                            }
+                        }
+                    }
+
+                    if (selectedRecurrenceInterval > 1) {
+                        getString(
+                            R.string.recurrence_custom_every_n_weeks,
+                            dayText,
+                            selectedRecurrenceInterval
+                        )
+                    } else {
+                        dayText
                     }
                 }
                 else -> getString(R.string.recurrence_none)
@@ -190,27 +217,71 @@ class CalendarActivity : BaseActivity() {
 
         btnRecurrence.setOnClickListener {
             val options = arrayOf(
-                getString(R.string.recurrence_none), getString(R.string.recurrence_daily),
-                getString(R.string.recurrence_weekly), getString(R.string.recurrence_monthly),
-                getString(R.string.recurrence_yearly), getString(R.string.recurrence_custom)
+                getString(R.string.recurrence_none),
+                getString(R.string.recurrence_daily),
+                getString(R.string.recurrence_weekly),
+                getString(R.string.recurrence_monthly),
+                getString(R.string.recurrence_yearly),
+                getString(R.string.recurrence_custom)
             )
             val values = arrayOf(null, "DAILY", "WEEKLY", "MONTHLY", "YEARLY", "CUSTOM")
+
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle(R.string.label_recurrence)
                 .setItems(options) { _, which ->
                     val selected = values[which]
-                    if (selected == "CUSTOM") {
-                        showCustomRecurrenceDialog(selectedRecurrenceDays) { days ->
-                            selectedRecurrence = if (days.isEmpty()) null else "CUSTOM"
-                            selectedRecurrenceDays = days.toMutableList()
-                            updateRecurrenceUI()
+
+                    if (selected == "WEEKLY") {
+                        val intervalPicker = NumberPicker(this).apply {
+                            minValue = 1
+                            maxValue = 52
+                            value = selectedRecurrenceInterval
                         }
-                    } else {
-                        selectedRecurrence = selected
-                        selectedRecurrenceDays = null
-                        updateRecurrenceUI()
+
+                        androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle(R.string.recurrence_interval_weeks)
+                            .setView(intervalPicker)
+                            .setPositiveButton(R.string.save) { _, _ ->
+                                selectedRecurrence = "WEEKLY"
+                                selectedRecurrenceDays = null
+                                selectedRecurrenceInterval = intervalPicker.value
+                                updateRecurrenceUI()
+                            }
+                            .setNegativeButton(R.string.cancel, null)
+                            .show()
+                            .also { ColorHelper.styleAlertDialog(it, this) }
+                    } else if (selected == "CUSTOM") {
+                        showCustomRecurrenceDialog(selectedRecurrenceDays) { days ->
+                            if (days.isEmpty()) {
+                                selectedRecurrence = null
+                                selectedRecurrenceDays = mutableListOf()
+                                selectedRecurrenceInterval = 1
+                                updateRecurrenceUI()
+                            } else {
+                                val intervalPicker = NumberPicker(this).apply {
+                                    minValue = 1
+                                    maxValue = 52
+                                    value = selectedRecurrenceInterval
+                                }
+
+                                androidx.appcompat.app.AlertDialog.Builder(this)
+                                    .setTitle(R.string.recurrence_interval_weeks)
+                                    .setView(intervalPicker)
+                                    .setPositiveButton(R.string.save) { _, _ ->
+                                        selectedRecurrence = "CUSTOM"
+                                        selectedRecurrenceDays = days.toMutableList()
+                                        selectedRecurrenceInterval = intervalPicker.value
+                                        updateRecurrenceUI()
+                                    }
+                                    .setNegativeButton(R.string.cancel, null)
+                                    .show()
+                                    .also { ColorHelper.styleAlertDialog(it, this) }
+                            }
+                        }
                     }
-                }.show().also { ColorHelper.styleAlertDialog(it, this) }
+                }
+                .show()
+                .also { ColorHelper.styleAlertDialog(it, this) }
         }
 
         val colorContainer = view.findViewById<LinearLayout>(R.id.layoutEventColors)
@@ -303,6 +374,12 @@ class CalendarActivity : BaseActivity() {
                         target.linkedTodoListId = selectedTodoListId
                         target.recurrence = selectedRecurrence
                         target.recurrenceDays = selectedRecurrenceDays
+                        target.recurrenceInterval =
+                            if (selectedRecurrence == "WEEKLY" || selectedRecurrence == "CUSTOM") {
+                                selectedRecurrenceInterval
+                            } else {
+                                1
+                            }
                         target.isAllDay = view.findViewById<CheckBox>(R.id.cbAllDay).isChecked
                         target.hideInOverview = view.findViewById<CheckBox>(R.id.cbHideAgenda).isChecked
                         target.hideInDay = view.findViewById<CheckBox>(R.id.cbHideDay).isChecked
@@ -524,7 +601,15 @@ class CalendarActivity : BaseActivity() {
                         "WEEKLY" -> true
                         "MONTHLY" -> true
                         "YEARLY" -> true
-                        "CUSTOM" -> event.recurrenceDays?.contains(cal.get(Calendar.DAY_OF_WEEK).let { if (it == Calendar.SUNDAY) 7 else it - 1 }) == true
+                        "CUSTOM" -> event.recurrenceDays?.contains(
+                            cal.get(Calendar.DAY_OF_WEEK).let {
+                                if (it == Calendar.SUNDAY) 7 else it - 1
+                            }
+                        ) == true && CalendarRecurrenceHelper.matchesIntervalWeek(
+                            event.startTime,
+                            currentStart,
+                            event.recurrenceInterval
+                        )
                         else -> false
                     }
 
@@ -537,7 +622,10 @@ class CalendarActivity : BaseActivity() {
 
                     when (event.recurrence) {
                         "DAILY" -> cal.add(Calendar.DAY_OF_YEAR, 1)
-                        "WEEKLY" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+                        "WEEKLY" -> cal.add(
+                            Calendar.WEEK_OF_YEAR,
+                            event.recurrenceInterval?.coerceAtLeast(1) ?: 1
+                        )
                         "MONTHLY" -> cal.add(Calendar.MONTH, 1)
                         "YEARLY" -> cal.add(Calendar.YEAR, 1)
                         "CUSTOM" -> cal.add(Calendar.DAY_OF_YEAR, 1)

@@ -89,7 +89,15 @@ class CalendarYearView @JvmOverloads constructor(
                         "WEEKLY" -> true
                         "MONTHLY" -> true
                         "YEARLY" -> true
-                        "CUSTOM" -> event.recurrenceDays?.contains(cal.get(Calendar.DAY_OF_WEEK).let { if (it == Calendar.SUNDAY) 7 else it - 1 }) == true
+                        "CUSTOM" -> event.recurrenceDays?.contains(
+                            cal.get(Calendar.DAY_OF_WEEK).let {
+                                if (it == Calendar.SUNDAY) 7 else it - 1
+                            }
+                        ) == true && CalendarRecurrenceHelper.matchesIntervalWeek(
+                            event.startTime,
+                            currentStart,
+                            event.recurrenceInterval
+                        )
                         else -> false
                     }
 
@@ -99,7 +107,10 @@ class CalendarYearView @JvmOverloads constructor(
 
                     when (event.recurrence) {
                         "DAILY", "CUSTOM" -> cal.add(Calendar.DAY_OF_YEAR, 1)
-                        "WEEKLY" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+                        "WEEKLY" -> cal.add(
+                            Calendar.WEEK_OF_YEAR,
+                            event.recurrenceInterval?.coerceAtLeast(1) ?: 1
+                        )
                         "MONTHLY" -> cal.add(Calendar.MONTH, 1)
                         "YEARLY" -> cal.add(Calendar.YEAR, 1)
                         else -> break

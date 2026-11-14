@@ -11,6 +11,7 @@ import com.google.gson.reflect.TypeToken
 import com.interli.plural.CalendarEvent
 import com.interli.plural.R
 import com.interli.plural.core.ColorHelper
+import com.interli.plural.features.calendar.CalendarRecurrenceHelper
 import java.util.*
 
 class CalendarMonthWidgetService : RemoteViewsService() {
@@ -92,7 +93,15 @@ class CalendarMonthRemoteViewsFactory(private val context: Context) : RemoteView
                         "WEEKLY" -> true
                         "MONTHLY" -> true
                         "YEARLY" -> true
-                        "CUSTOM" -> event.recurrenceDays?.contains(cal.get(Calendar.DAY_OF_WEEK).let { if (it == Calendar.SUNDAY) 7 else it - 1 }) == true
+                        "CUSTOM" -> event.recurrenceDays?.contains(
+                            cal.get(Calendar.DAY_OF_WEEK).let {
+                                if (it == Calendar.SUNDAY) 7 else it - 1
+                            }
+                        ) == true && CalendarRecurrenceHelper.matchesIntervalWeek(
+                            event.startTime,
+                            currentStart,
+                            event.recurrenceInterval
+                        )
                         else -> false
                     }
                     val isExcluded = event.excludedDates?.any { it == currentStart } == true
@@ -102,7 +111,10 @@ class CalendarMonthRemoteViewsFactory(private val context: Context) : RemoteView
                     }
                     when (event.recurrence) {
                         "DAILY", "CUSTOM" -> cal.add(Calendar.DAY_OF_YEAR, 1)
-                        "WEEKLY" -> cal.add(Calendar.WEEK_OF_YEAR, 1)
+                        "WEEKLY" -> cal.add(
+                            Calendar.WEEK_OF_YEAR,
+                            event.recurrenceInterval?.coerceAtLeast(1) ?: 1
+                        )
                         "MONTHLY" -> cal.add(Calendar.MONTH, 1)
                         "YEARLY" -> cal.add(Calendar.YEAR, 1)
                         else -> break

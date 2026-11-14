@@ -739,4 +739,7 @@
     <string name="note_date_display_none">Geen datum</string>
     <string name="note_created_date_label">Aangemaakt: %1$s</string>
     <string name="note_assigned_date_label">Toegekend: %1$s</string>
+    <string name="recurrence_interval_weeks">Na hoeveel weken herhalen?</string>
+    <string name="recurrence_every_n_weeks">Elke %1$d weken</string>
+    <string name="recurrence_custom_every_n_weeks">%1$s (elke %2$d weken)</string>
 </resources>

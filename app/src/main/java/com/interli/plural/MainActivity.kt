@@ -199,6 +199,7 @@ data class CalendarEvent(
     var isAllDay: Boolean = false,
     var recurrence: String? = null, // "DAILY", "WEEKLY", "MONTHLY", "YEARLY"
     var recurrenceDays: List<Int>? = null,
+    var recurrenceInterval: Int? = 1,
     var linkedNoteId: String? = null,
     var linkedTodoListId: String? = null,
     var hideInOverview: Boolean = false,
