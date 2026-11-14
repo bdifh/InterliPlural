@@ -183,15 +183,24 @@ class SysmediaProfileActivity : BaseActivity() {
 
     private fun updateRecyclerView() {
         val rv = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvProfilePosts)
-        val displayPosts = if (currentProfileTab == 0) {
-            posts.filter { it.senderId == profileUserId }
-        } else {
-            posts.filter { (it.likedByMemberIds[profileUserId] ?: 0) > 0 }
+        val now = System.currentTimeMillis()
+
+        val displayPosts = posts.filter { post ->
+            val belongsOnTab = if (currentProfileTab == 0) {
+                post.senderId == profileUserId
+            } else {
+                (post.likedByMemberIds[profileUserId] ?: 0) > 0
+            }
+
+            val isPublished = post.scheduledTime?.let { it <= now } ?: true
+            belongsOnTab && isPublished
         }
 
-        val sorted = displayPosts.sortedWith(compareByDescending<com.interli.plural.SysmediaPost> {
-            it.id == profileUser.sysmediaProfile?.pinnedPostId
-        }.thenByDescending { it.timestamp })
+        val sorted = displayPosts.sortedWith(
+            compareByDescending<com.interli.plural.SysmediaPost> {
+                it.id == profileUser.sysmediaProfile?.pinnedPostId
+            }.thenByDescending { it.displayTimestamp }
+        )
 
         (rv.adapter as? ProfilePostAdapter)?.let {
             it.items = sorted

@@ -93,7 +93,7 @@ class SysmediaTimelineRemoteViewsFactory(
                     selectedAccountIds.contains("ALL") ||
                     selectedAccountIds.contains(post.senderId)
             !isScheduledFuture && matchesAccount
-        }.sortedByDescending { it.timestamp }
+        }.sortedByDescending { it.displayTimestamp }
 
         filtered.forEach { post ->
             val isReblog = !post.reblogOfId.isNullOrEmpty()
