@@ -829,19 +829,33 @@ object PdfExportHelper {
                 if (selections[2]) {
                     startNewPage()
                     drawText(context.getString(R.string.diary), headerPaint, 15f)
+
                     val notesJson = sharedPref.getString("diary_notes", "[]")
                     val allNotes: List<DiaryNote> =
-                        gson.fromJson(notesJson, object : TypeToken<List<DiaryNote>>() {}.type)
-                            ?: emptyList()
-                    val notes = allNotes.filter { it.timestamp in effectiveStart..effectiveEnd }
-                    notes.reversed().forEach { note ->
+                        gson.fromJson(
+                            notesJson,
+                            object : TypeToken<List<DiaryNote>>() {}.type
+                        ) ?: emptyList()
+
+                    val notes = allNotes
+                        .filter { note ->
+                            val noteDate = note.noteEditTimestamp ?: note.timestamp
+                            noteDate in effectiveStart..effectiveEnd
+                        }
+                        .sortedByDescending { note ->
+                            note.noteEditTimestamp ?: note.timestamp
+                        }
+
+                    notes.forEach { note ->
+                        val noteDate = note.noteEditTimestamp ?: note.timestamp
+
                         drawText(
                             "${context.getString(R.string.hint_note_title)}: ${note.title}",
                             headerPaint,
                             5f
                         )
                         drawText(
-                            "${context.getString(R.string.date)}: ${sdf.format(Date(note.timestamp))}",
+                            "${context.getString(R.string.date)}: ${sdf.format(Date(noteDate))}",
                             textPaint,
                             5f
                         )
