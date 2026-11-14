@@ -46,6 +46,25 @@ class DiaryActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_diary)
+        val toolbar = findViewById<com.google.android.material.appbar.MaterialToolbar>(
+            R.id.topAppBar
+        )
+
+        toolbar.menu.add(
+            0,
+            10001,
+            0,
+            R.string.note_date_display_setting
+        ).setShowAsAction(android.view.MenuItem.SHOW_AS_ACTION_NEVER)
+
+        toolbar.setOnMenuItemClickListener { item ->
+            if (item.itemId == 10001) {
+                showNoteDateDisplayDialog()
+                true
+            } else {
+                false
+            }
+        }
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.isAppearanceLightStatusBars = true
         markwon = Markwon.builder(this)
@@ -111,6 +130,33 @@ class DiaryActivity : BaseActivity() {
         if (selectTab >= 0 && tabLayout != null && selectTab < tabLayout.tabCount) {
             tabLayout.getTabAt(selectTab)?.select()
         }
+    }
+
+    private fun showNoteDateDisplayDialog() {
+        val preferences = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        val preferenceKey = "note_quick_date_display"
+        val modes = listOf("created", "assigned", "both", "none")
+        val labels = arrayOf(
+            getString(R.string.note_date_display_created),
+            getString(R.string.note_date_display_assigned),
+            getString(R.string.note_date_display_both),
+            getString(R.string.note_date_display_none)
+        )
+        val selectedMode = preferences.getString(preferenceKey, "created") ?: "created"
+        val selectedIndex = modes.indexOf(selectedMode).coerceAtLeast(0)
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.note_date_display_setting)
+            .setSingleChoiceItems(labels, selectedIndex) { dialog, which ->
+                preferences.edit()
+                    .putString(preferenceKey, modes[which])
+                    .apply()
+
+                adapter.notifyDataSetChanged()
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun showAddBundleDialog() {
@@ -375,12 +421,34 @@ class DiaryActivity : BaseActivity() {
                     holder.card.strokeColor = textColor and 0x33FFFFFF
                     holder.title.text = note.title
                     holder.title.setTextColor(textColor)
-                    holder.date.text = sdf.format(Date(note.timestamp))
-                    holder.date.setTextColor(textColor)
+                    val preferences = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+                    val dateMode = preferences.getString("note_quick_date_display", "created") ?: "created"
                     val customTimestamp = note.noteEditTimestamp
-                    holder.customDate.text = customTimestamp?.let { sdf.format(Date(it)) } ?: ""
-                    holder.customDate.visibility =
-                        if (customTimestamp != null && note.senderId == null) View.VISIBLE else View.GONE
+
+                    val createdDate = getString(
+                        R.string.note_created_date_label,
+                        sdf.format(Date(note.timestamp))
+                    )
+                    val assignedDate = customTimestamp?.let {
+                        getString(
+                            R.string.note_assigned_date_label,
+                            sdf.format(Date(it))
+                        )
+                    }
+
+                    val datesToShow = when (dateMode) {
+                        "assigned" -> listOfNotNull(assignedDate ?: createdDate)
+                        "both" -> listOfNotNull(createdDate, assignedDate)
+                        "none" -> emptyList()
+                        else -> listOf(createdDate)
+                    }
+
+                    holder.date.text = datesToShow.getOrNull(0).orEmpty()
+                    holder.date.visibility = if (datesToShow.isNotEmpty()) View.VISIBLE else View.GONE
+                    holder.date.setTextColor(textColor)
+
+                    holder.customDate.text = datesToShow.getOrNull(1).orEmpty()
+                    holder.customDate.visibility = if (datesToShow.size > 1) View.VISIBLE else View.GONE
                     holder.customDate.setTextColor(textColor)
                     val fromPrefixEn = "From: "
                     val fromPrefixNl = "Van: "

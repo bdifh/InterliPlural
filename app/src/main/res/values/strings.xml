@@ -863,4 +863,11 @@
     <string name="pdf_mood_table_score">Score</string>
     <string name="pdf_mood_table_members">Members</string>
     <string name="pdf_mood_table_note">Note</string>
+    <string name="note_date_display_setting">Date display</string>
+    <string name="note_date_display_created">Creation date</string>
+    <string name="note_date_display_assigned">Assigned date</string>
+    <string name="note_date_display_both">Both dates</string>
+    <string name="note_date_display_none">No date</string>
+    <string name="note_created_date_label">Created: %1$s</string>
+    <string name="note_assigned_date_label">Assigned: %1$s</string>
 </resources>

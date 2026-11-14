@@ -732,4 +732,11 @@
     <string name="pdf_mood_table_score">Score</string>
     <string name="pdf_mood_table_members">Leden</string>
     <string name="pdf_mood_table_note">Notitie</string>
+    <string name="note_date_display_setting">Datums weergeven</string>
+    <string name="note_date_display_created">Aanmaakdatum</string>
+    <string name="note_date_display_assigned">Toegekende datum</string>
+    <string name="note_date_display_both">Beide datums</string>
+    <string name="note_date_display_none">Geen datum</string>
+    <string name="note_created_date_label">Aangemaakt: %1$s</string>
+    <string name="note_assigned_date_label">Toegekend: %1$s</string>
 </resources>
