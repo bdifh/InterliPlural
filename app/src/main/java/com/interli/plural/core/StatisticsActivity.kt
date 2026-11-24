@@ -493,52 +493,97 @@ class StatisticsActivity : BaseActivity() {
 
     private fun renderMemberSwitchChart() {
         val chart = findViewById<MemberSwitchChartView>(R.id.memberSwitchChart)
-        chart.setData(filteredSessions, people)
-        val periodSwitches = filteredSessions.filter { it.startTime in currentPeriodStart..currentPeriodEnd }
+        val periodSwitches = filteredSessions.filter {
+            it.startTime in currentPeriodStart..currentPeriodEnd
+        }
         chart.setData(periodSwitches, people)
     }
 
     private fun renderFrontDensityChart() {
         val chart = findViewById<FrontDensityChartView>(R.id.frontDensityChart)
-        chart.setData(filteredSessions, people, currentPeriodStart, currentPeriodEnd)
-        chart.setHighlight(highlightedDensityMemberId)
-        val activeMembers = chart.getActiveMembers()
-        val legendContainer = findViewById<LinearLayout>(R.id.containerDensityLegend)
+
+        chart.setDataAsync(
+            filteredSessions,
+            people,
+            currentPeriodStart,
+            currentPeriodEnd
+        ) { activeMembers ->
+            if (isFinishing || isDestroyed) return@setDataAsync
+
+            chart.setHighlight(highlightedDensityMemberId)
+            renderFrontDensityLegend(chart, activeMembers)
+        }
+    }
+
+    private fun renderFrontDensityLegend(
+        chart: FrontDensityChartView,
+        activeMembers: List<FrontDensityChartView.MemberData>
+    ) {
+        val legendContainer =
+            findViewById<LinearLayout>(R.id.containerDensityLegend)
+
         legendContainer.removeAllViews()
 
         activeMembers.forEach { member ->
             val isHighlighted = highlightedDensityMemberId == member.id
+
             val legendItem = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = android.view.Gravity.CENTER_VERTICAL
                 setPadding(8.dpToPx(), 4.dpToPx(), 8.dpToPx(), 4.dpToPx())
                 isClickable = true
                 isFocusable = true
+
                 val typedValue = android.util.TypedValue()
-                theme.resolveAttribute(android.R.attr.selectableItemBackground, typedValue, true)
+                theme.resolveAttribute(
+                    android.R.attr.selectableItemBackground,
+                    typedValue,
+                    true
+                )
                 setBackgroundResource(typedValue.resourceId)
+
                 setOnClickListener {
-                    highlightedDensityMemberId = if (highlightedDensityMemberId == member.id) null else member.id
-                    renderFrontDensityChart()
+                    highlightedDensityMemberId =
+                        if (highlightedDensityMemberId == member.id) {
+                            null
+                        } else {
+                            member.id
+                        }
+
+                    chart.setHighlight(highlightedDensityMemberId)
+                    renderFrontDensityLegend(chart, activeMembers)
                 }
             }
+
             val colorDot = View(this).apply {
-                layoutParams = LinearLayout.LayoutParams(12.dpToPx(), 12.dpToPx())
-                setBackgroundColor(if (highlightedDensityMemberId != null && !isHighlighted) Color.LTGRAY else member.color)
+                layoutParams = LinearLayout.LayoutParams(
+                    12.dpToPx(),
+                    12.dpToPx()
+                )
+                setBackgroundColor(
+                    if (highlightedDensityMemberId != null && !isHighlighted) {
+                        Color.LTGRAY
+                    } else {
+                        member.color
+                    }
+                )
             }
-            val nameTv = TextView(this).apply {
+
+            val nameText = TextView(this).apply {
                 text = member.name
                 textSize = 11f
                 setPadding(6.dpToPx(), 0, 0, 0)
                 setTextColor(ColorHelper.getTextColor(this@StatisticsActivity))
+
                 if (highlightedDensityMemberId != null && !isHighlighted) {
                     alpha = 0.5f
                 } else if (isHighlighted) {
                     setTypeface(null, android.graphics.Typeface.BOLD)
                 }
             }
+
             legendItem.addView(colorDot)
-            legendItem.addView(nameTv)
+            legendItem.addView(nameText)
             legendContainer.addView(legendItem)
         }
     }

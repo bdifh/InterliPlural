@@ -19,55 +19,136 @@ class FrontDensityChartView(context: Context, attrs: AttributeSet?) : View(conte
     private var memberDataList: List<MemberData> = emptyList()
     private var maxMinutes: Float = 60f
     private var highlightedMemberId: String? = null
+    private var dataRequestVersion = 0
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val path = Path()
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
     }
-    fun setData(sessions: List<FrontSession>, people: List<Person>, startTime: Long, endTime: Long) {
-        val actualStart = if (startTime <= 0) sessions.minOfOrNull { it.startTime } ?: System.currentTimeMillis() else startTime
-        val actualEnd = if (endTime >= Long.MAX_VALUE / 2) System.currentTimeMillis() else endTime
+    fun setData(
+        sessions: List<FrontSession>,
+        people: List<Person>,
+        startTime: Long,
+        endTime: Long
+    ) {
+        dataRequestVersion++
+        memberDataList = calculateMemberData(sessions, people, startTime, endTime)
+        maxMinutes = 60f
+        invalidate()
+    }
+
+    fun setDataAsync(
+        sessions: List<FrontSession>,
+        people: List<Person>,
+        startTime: Long,
+        endTime: Long,
+        onDataReady: (List<MemberData>) -> Unit
+    ) {
+        val requestVersion = ++dataRequestVersion
+        val sessionsSnapshot = sessions.toList()
+        val peopleSnapshot = people.toList()
+
+        Thread {
+            val calculatedData = calculateMemberData(
+                sessionsSnapshot,
+                peopleSnapshot,
+                startTime,
+                endTime
+            )
+
+            post {
+                if (requestVersion != dataRequestVersion) {
+                    return@post
+                }
+
+                memberDataList = calculatedData
+                highlightedMemberId = null
+                maxMinutes = 60f
+                invalidate()
+                onDataReady(calculatedData)
+            }
+        }.start()
+    }
+
+    private fun calculateMemberData(
+        sessions: List<FrontSession>,
+        people: List<Person>,
+        startTime: Long,
+        endTime: Long
+    ): List<MemberData> {
+        val now = System.currentTimeMillis()
+
+        val actualStart = if (startTime <= 0) {
+            sessions.minOfOrNull { it.startTime } ?: now
+        } else {
+            startTime
+        }
+
+        val actualEnd = if (endTime >= Long.MAX_VALUE / 2) now else endTime
+
         val dayMs = 24L * 60 * 60 * 1000
         val durationMs = (actualEnd - actualStart).coerceAtLeast(1)
-        val numDays = (durationMs.toDouble() / dayMs).coerceAtLeast(1.0).toFloat()
+        val numDays = (durationMs.toDouble() / dayMs)
+            .coerceAtLeast(1.0)
+            .toFloat()
+
         val dataMap = mutableMapOf<String, FloatArray>()
         val nameToId = people.associate { it.name to it.id }
-        people.forEach { dataMap[it.id] = FloatArray(24) }
+
+        people.forEach { person ->
+            dataMap[person.id] = FloatArray(24)
+        }
+
         sessions.forEach { session ->
-            val memberId = session.personId ?: nameToId[session.personName] ?: return@forEach
+            val memberId = session.personId
+                ?: nameToId[session.personName]
+                ?: return@forEach
+
             val minutesArray = dataMap[memberId] ?: return@forEach
-            val sStart = session.startTime.coerceAtLeast(actualStart)
-            val sEnd = (session.endTime ?: System.currentTimeMillis()).coerceAtMost(actualEnd)
-            if (sStart >= sEnd) return@forEach
-            var current = sStart
-            while (current < sEnd) {
-                val cal = Calendar.getInstance()
-                cal.timeInMillis = current
-                val hour = cal.get(Calendar.HOUR_OF_DAY)
-                cal.set(Calendar.MINUTE, 0)
-                cal.set(Calendar.SECOND, 0)
-                cal.set(Calendar.MILLISECOND, 0)
-                cal.add(Calendar.HOUR_OF_DAY, 1)
-                val nextHourStart = cal.timeInMillis
-                val endInThisHour = Math.min(sEnd, nextHourStart)
-                val minutesInThisHour = (endInThisHour - current) / (1000f * 60f)
+            val sessionStart = session.startTime.coerceAtLeast(actualStart)
+            val sessionEnd = (session.endTime ?: now).coerceAtMost(actualEnd)
+
+            if (sessionStart >= sessionEnd) return@forEach
+
+            var current = sessionStart
+
+            while (current < sessionEnd) {
+                val calendar = Calendar.getInstance()
+                calendar.timeInMillis = current
+
+                val hour = calendar.get(Calendar.HOUR_OF_DAY)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                calendar.add(Calendar.HOUR_OF_DAY, 1)
+
+                val nextHourStart = calendar.timeInMillis
+                val endInThisHour = Math.min(sessionEnd, nextHourStart)
+                val minutesInThisHour =
+                    (endInThisHour - current) / (1000f * 60f)
+
                 minutesArray[hour] += minutesInThisHour
                 current = endInThisHour
             }
         }
-        var globalMax = 0f
-        memberDataList = people.map { person ->
+
+        return people.map { person ->
             val rawMinutes = dataMap[person.id] ?: FloatArray(24)
-            val avgMinutes = FloatArray(24) { i ->
-                val avg = (rawMinutes[i] / numDays).coerceIn(0f, 60f)
-                if (avg > globalMax) globalMax = avg
-                avg
+            val averageMinutes = FloatArray(24) { hour ->
+                (rawMinutes[hour] / numDays).coerceIn(0f, 60f)
             }
-            MemberData(person.id, person.name, person.profileColor, avgMinutes)
-        }.filter { data -> data.hourlyMinutes.any { it > 0.01f } }
-        maxMinutes = 60f
-        invalidate()
+
+            MemberData(
+                person.id,
+                person.name,
+                person.profileColor,
+                averageMinutes
+            )
+        }.filter { member ->
+            member.hourlyMinutes.any { it > 0.01f }
+        }
     }
+
     fun setHighlight(memberId: String?) {
         highlightedMemberId = if (highlightedMemberId == memberId) null else memberId
         invalidate()
