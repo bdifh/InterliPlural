@@ -30,6 +30,47 @@ class PersonAdapter(
     private val onGroupLongClicked: (Group) -> Unit,
     private val onFrontLongClicked: ((Person) -> Unit)? = null
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    private data class AdapterColors(
+        val background: Int,
+        val text: Int,
+        val button: Int,
+        val buttonText: Int
+    )
+
+    private var cachedColors: AdapterColors? = null
+
+    private fun readAdapterColors(): AdapterColors {
+        val preferences =
+            context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
+        val theme = ColorHelper.getEffectiveTheme(context)
+
+        fun parseColor(value: String?, fallback: String): Int {
+            return try {
+                (value ?: fallback).toColorInt()
+            } catch (_: Exception) {
+                fallback.toColorInt()
+            }
+        }
+
+        return AdapterColors(
+            background = parseColor(
+                theme?.bgColor ?: preferences.getString("bg_color", null),
+                "#FFFDF0"
+            ),
+            text = parseColor(
+                theme?.textColor ?: preferences.getString("text_color", null),
+                "#1A1811"
+            ),
+            button = parseColor(
+                theme?.btnColor ?: preferences.getString("btn_color", null),
+                "#7D4EBA"
+            ),
+            buttonText = parseColor(
+                theme?.btnTextColor ?: preferences.getString("btn_text_color", null),
+                "#D2B8F5"
+            )
+        )
+    }
     private var items: List<MainItem> = listOf()
     private var filterQuery: String = ""
     init {
@@ -37,9 +78,12 @@ class PersonAdapter(
     }
     fun filter(query: String) {
         filterQuery = query
-        updateItems()
+        updateItems(refreshColors = false)
     }
-    fun updateItems() {
+    fun updateItems(refreshColors: Boolean = true) {
+        if (refreshColors || cachedColors == null) {
+            cachedColors = readAdapterColors()
+        }
         val newList = mutableListOf<MainItem>()
         val filteredPeople = if (filterQuery.isBlank()) {
             people.filter { !it.isSysmediaOnly && !it.isArchived }
@@ -105,13 +149,15 @@ class PersonAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val context = holder.itemView.context
         val item = items[position]
+        val colors = cachedColors
+            ?: readAdapterColors().also { cachedColors = it }
         if ((holder is GroupViewHolder) && (item is MainItem.GroupHeader)) {
             val group = item.group
             holder.nameText.text = group.name
-            holder.nameText.setTextColor(ColorHelper.getTextColor(context))
+            holder.nameText.setTextColor(colors.text)
             holder.expandIcon.rotation = if (group.isExpanded) 0f else -90f
-            holder.expandIcon.setColorFilter(ColorHelper.getTextColor(context))
-            holder.card.setCardBackgroundColor(ColorHelper.getBgColor(context))
+            holder.expandIcon.setColorFilter(colors.text)
+            holder.card.setCardBackgroundColor(colors.background)
             holder.card.strokeWidth = 0 
             val params = holder.card.layoutParams as ViewGroup.MarginLayoutParams
             params.marginStart = (item.depth * 24 * context.resources.displayMetrics.density).toInt() + (8 * context.resources.displayMetrics.density).toInt()
@@ -128,11 +174,11 @@ class PersonAdapter(
             val person = item.person
             val originalIndex = item.originalIndex
             holder.nameText.text = person.name
-            holder.nameText.setTextColor(ColorHelper.getTextColor(context))
+            holder.nameText.setTextColor(colors.text)
             holder.card.strokeColor = person.profileColor
-            holder.card.setCardBackgroundColor(ColorHelper.getBgColor(context))
-            val baseBtnColor = ColorHelper.getBtnColor(context)
-            val btnTextColor = ColorHelper.getBtnTextColor(context)
+            holder.card.setCardBackgroundColor(colors.background)
+            val baseBtnColor = colors.button
+            val btnTextColor = colors.buttonText
             if (person.isFront) {
                 holder.frontButton.text = context.getString(R.string.unfront_arrow)
                 holder.frontButton.setBackgroundColor(btnTextColor)
@@ -147,7 +193,7 @@ class PersonAdapter(
             val params = holder.card.layoutParams as ViewGroup.MarginLayoutParams
             params.marginStart = (item.depth * 24 * context.resources.displayMetrics.density).toInt() + (8 * context.resources.displayMetrics.density).toInt()
             holder.card.layoutParams = params
-            holder.smallImageCard.setCardBackgroundColor(ColorHelper.getBgColor(context))
+            holder.smallImageCard.setCardBackgroundColor(colors.background)
             val avatarUri = person.profilePictureUri
             if (avatarUri != null) {
                 holder.smallImage.load(avatarUri) {
