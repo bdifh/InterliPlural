@@ -117,8 +117,9 @@ class PluralSpaceImporter(private val context: Context) {
         MemberHelper.savePeople(context, people)
 
         val groupsImported = importGroups(root, people)
+        val customFieldImages = extractCustomFieldImages(uri, root)
         val customFieldsImported =
-            importCustomFields(root, people, sourceMemberToPerson)
+            importCustomFields(root, people, sourceMemberToPerson, customFieldImages)
         MemberHelper.savePeople(context, people)
 
         val frontsImported = importFronts(root, people, sourceMemberToPerson)
@@ -220,6 +221,285 @@ class PluralSpaceImporter(private val context: Context) {
         }
     }
 
+    private fun extractCustomFieldImages(
+        uri: Uri,
+        root: JsonObject
+    ): Map<String, String> {
+        val wantedMediaIds = mutableSetOf<String>()
+
+        root.array("members").forEach memberLoop@ { member ->
+            member.array("custom_field_values").forEach valueLoop@ { fieldValue ->
+                val rawValue = fieldValue.string("value")
+                if (rawValue.isBlank()) return@valueLoop
+
+                val editorData = try {
+                    JsonParser.parseString(rawValue)
+                } catch (_: Exception) {
+                    return@valueLoop
+                }
+
+                if (!editorData.isJsonObject) return@valueLoop
+
+                editorData.asJsonObject.array("blocks").forEach { block ->
+                    val data = block.obj("data")
+
+                    val imageFiles = when (block.string("type")) {
+                        "image" -> listOf(data.obj("file"))
+                        "gallery" -> data.array("images").map { it.obj("file") }
+                        else -> emptyList()
+                    }
+
+                    imageFiles.forEach { fileData ->
+                        val mediaId = customFieldMediaId(fileData)
+                        if (mediaId.isNotBlank()) {
+                            wantedMediaIds.add(mediaId)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (wantedMediaIds.isEmpty()) return emptyMap()
+
+        val extractedImages = mutableMapOf<String, String>()
+
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            ZipInputStream(input).use { zip ->
+                var entry = zip.nextEntry
+
+                while (entry != null && extractedImages.size < wantedMediaIds.size) {
+                    if (!entry.isDirectory) {
+                        val fileName = entry.name
+                            .substringAfterLast('/')
+                            .substringAfterLast('\\')
+
+                        val prefix = "system-library-"
+                        if (fileName.startsWith(prefix, ignoreCase = true)) {
+                            val suffix = fileName.substring(prefix.length)
+                            val dotIndex = suffix.lastIndexOf('.')
+
+                            if (dotIndex > 0 && dotIndex < suffix.lastIndex) {
+                                val mediaId = suffix.substring(0, dotIndex)
+                                val extension = suffix.substring(dotIndex + 1)
+                                    .lowercase(Locale.ROOT)
+
+                                if (mediaId in wantedMediaIds) {
+                                    val bytes = zip.readBytes()
+
+                                    if (bytes.size <= 20 * 1024 * 1024) {
+                                        val safeId = mediaId.replace(
+                                            Regex("[^A-Za-z0-9_-]"),
+                                            "_"
+                                        )
+                                        val safeExtension = extension.replace(
+                                            Regex("[^A-Za-z0-9]"),
+                                            ""
+                                        ).ifBlank { "img" }
+
+                                        val imageFile = File(
+                                            context.filesDir,
+                                            "pluralspace_library_${safeId}.$safeExtension"
+                                        )
+                                        imageFile.writeBytes(bytes)
+                                        extractedImages[mediaId] =
+                                            Uri.fromFile(imageFile).toString()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    zip.closeEntry()
+                    entry = zip.nextEntry
+                }
+            }
+        }
+
+        return extractedImages
+    }
+
+    private fun customFieldMediaId(fileData: JsonObject): String {
+        val url = fileData.string("url")
+        val idFromUrl = Regex("/libraries/([^/]+)/")
+            .find(url)
+            ?.groupValues
+            ?.getOrNull(1)
+            .orEmpty()
+
+        return idFromUrl.ifBlank { fileData.string("media_id") }
+    }
+
+    private fun editorJsToMarkdown(
+        rawValue: String,
+        localImages: Map<String, String>
+    ): String {
+        val editorData = try {
+            JsonParser.parseString(rawValue)
+        } catch (_: Exception) {
+            return rawValue
+        }
+
+        if (!editorData.isJsonObject) return rawValue
+
+        val blocks = editorData.asJsonObject.array("blocks")
+        if (blocks.size() == 0) return rawValue
+
+        return blocks.mapNotNull { block ->
+            val data = block.obj("data")
+
+            when (block.string("type")) {
+                "paragraph" -> data.string("text").takeIf { it.isNotBlank() }
+
+                "header" -> {
+                    val text = data.string("text")
+                    if (text.isBlank()) {
+                        null
+                    } else {
+                        val level = data.string("level")
+                            .toIntOrNull()
+                            ?.coerceIn(1, 6)
+                            ?: 2
+                        "${"#".repeat(level)} $text"
+                    }
+                }
+
+                "image" -> {
+                    val fileData = data.obj("file")
+                    val url = fileData.string("url")
+                    val mediaId = customFieldMediaId(fileData)
+                    val imageUrl = localImages[mediaId] ?: url
+
+                    if (imageUrl.isBlank()) {
+                        null
+                    } else {
+                        val caption = data.string("caption")
+                            .replace("[", "\\[")
+                            .replace("]", "\\]")
+                        "![$caption]($imageUrl)"
+                    }
+                }
+
+                "gallery" -> {
+                    data.array("images")
+                        .mapNotNull { image ->
+                            val fileData = image.obj("file")
+                            val url = fileData.string("url")
+                            val mediaId = customFieldMediaId(fileData)
+                            val imageUrl = localImages[mediaId] ?: url
+
+                            if (imageUrl.isBlank()) {
+                                null
+                            } else {
+                                val caption = image.string("caption")
+                                    .replace("[", "\\[")
+                                    .replace("]", "\\]")
+                                "![$caption]($imageUrl)"
+                            }
+                        }
+                        .takeIf { it.isNotEmpty() }
+                        ?.joinToString("\n")
+                }
+
+                "list" -> {
+                    val ordered = data.string("style")
+                        .equals("ordered", ignoreCase = true)
+
+                    data.array("items")
+                        .mapIndexedNotNull { index, item ->
+                            val text = item.string("content")
+                                .ifBlank { item.asPlainText() }
+                            if (text.isBlank()) {
+                                null
+                            } else if (ordered) {
+                                "${index + 1}. $text"
+                            } else {
+                                "- $text"
+                            }
+                        }
+                        .takeIf { it.isNotEmpty() }
+                        ?.joinToString("\n")
+                }
+
+                "checklist" -> {
+                    data.array("items")
+                        .mapNotNull { item ->
+                            val text = item.string("text")
+                            if (text.isBlank()) {
+                                null
+                            } else {
+                                val check = if (item.boolean("checked")) "x" else " "
+                                "- [$check] $text"
+                            }
+                        }
+                        .takeIf { it.isNotEmpty() }
+                        ?.joinToString("\n")
+                }
+
+                "quote" -> {
+                    val text = data.string("text")
+                        .ifBlank { data.string("quote") }
+                    val caption = data.string("caption")
+                    if (text.isBlank()) {
+                        null
+                    } else {
+                        buildString {
+                            append("> ")
+                            append(text.replace("\n", "\n> "))
+                            if (caption.isNotBlank()) {
+                                append("\n>\n> — ")
+                                append(caption)
+                            }
+                        }
+                    }
+                }
+
+                "delimiter" -> "---"
+
+                "code" -> {
+                    val code = data.string("code")
+                    if (code.isBlank()) null else "```\n$code\n```"
+                }
+
+                "raw" -> data.string("html").takeIf { it.isNotBlank() }
+
+                "warning" -> {
+                    val title = data.string("title")
+                    val message = data.string("message")
+                    listOf(title, message)
+                        .filter { it.isNotBlank() }
+                        .joinToString("\n\n")
+                        .takeIf { it.isNotBlank() }
+                }
+
+                else -> {
+                    data.string("text")
+                        .ifBlank { data.string("caption") }
+                        .takeIf { it.isNotBlank() }
+                }
+            }
+        }.joinToString("\n\n")
+            .ifBlank { rawValue }
+    }
+
+    private fun JsonElement.obj(key: String): JsonObject =
+        try {
+            takeIf { it.isJsonObject }
+                ?.asJsonObject
+                ?.get(key)
+                ?.takeIf { it.isJsonObject }
+                ?.asJsonObject
+                ?: JsonObject()
+        } catch (_: Exception) {
+            JsonObject()
+        }
+
+    private fun JsonElement.asPlainText(): String =
+        try {
+            if (isJsonPrimitive && !asJsonPrimitive.isBoolean) asString else ""
+        } catch (_: Exception) {
+            ""
+        }
+
     private fun importGroups(root: JsonObject, people: MutableList<Person>): Int {
         val prefs = context.getSharedPreferences("my_app", Context.MODE_PRIVATE)
         val existing = readList<Group>(prefs.getString("groups_list", "[]"))
@@ -267,7 +547,8 @@ class PluralSpaceImporter(private val context: Context) {
     private fun importCustomFields(
         root: JsonObject,
         people: MutableList<Person>,
-        peopleBySourceId: Map<String, Person>
+        peopleBySourceId: Map<String, Person>,
+        customFieldImages: Map<String, String>
     ): Int {
         val prefs = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
 
@@ -310,9 +591,12 @@ class PluralSpaceImporter(private val context: Context) {
 
             sourceMember.array("custom_field_values").forEach valueLoop@ { sourceValue ->
                 val fieldName = sourceValue.string("field_name").trim()
-                val value = sourceValue.string("value")
+                val rawValue = sourceValue.string("value")
 
-                if (fieldName.isBlank() || value.isBlank()) return@valueLoop
+                if (fieldName.isBlank() || rawValue.isBlank()) return@valueLoop
+
+                val value = editorJsToMarkdown(rawValue, customFieldImages)
+                if (value.isBlank()) return@valueLoop
 
                 val key = fieldName.lowercase(Locale.ROOT)
                 val matchingDefinitions = definitionsByName[key]
