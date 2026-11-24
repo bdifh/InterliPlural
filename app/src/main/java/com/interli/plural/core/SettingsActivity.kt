@@ -2556,31 +2556,45 @@ private var pendingPdfSelections: BooleanArray? = null
             getString(R.string.delete_todo),
             getString(R.string.module_relations),
             getString(R.string.delete_settings),
-            getString(R.string.physical_health_title)
+            getString(R.string.physical_health_title),
+            getString(R.string.delete_subsystems),
+            getString(R.string.delete_calendar)
         )
-        val checked = BooleanArray(labels.size) { false }
+
+        val checked = BooleanArray(labels.size)
+        val requiredConfirmations = 8
+
         val dialog = AlertDialog.Builder(this)
             .setTitle(R.string.delete_all_warning_title)
             .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
                 checked[which] = isChecked
             }
-            .setPositiveButton(getString(R.string.delete) + " (8)", null)
+            .setPositiveButton(
+                getString(R.string.delete) + " ($requiredConfirmations)",
+                null
+            )
             .setNegativeButton(R.string.cancel, null)
             .create()
+
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
+
         var confirmClicks = 0
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { button ->
             if (checked.none { it }) {
                 Toast.makeText(this, "Select at least one item", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
             confirmClicks++
-            if (confirmClicks >= 8) {
+
+            if (confirmClicks >= requiredConfirmations) {
                 performBulkDelete(checked)
                 dialog.dismiss()
             } else {
-                (it as? Button)?.text = "${getString(R.string.delete)} (${8 - confirmClicks})"
+                (button as? Button)?.text =
+                    "${getString(R.string.delete)} (${requiredConfirmations - confirmClicks})"
             }
         }
     }
@@ -2589,6 +2603,7 @@ private var pendingPdfSelections: BooleanArray? = null
         val spApp = getSharedPreferences("my_app", MODE_PRIVATE)
         val spSettings = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val spHealth = getSharedPreferences("health_prefs", MODE_PRIVATE)
+
         spApp.edit().apply {
             if (checked[0]) { // Members & Groups
                 remove("people_list")
@@ -2596,14 +2611,35 @@ private var pendingPdfSelections: BooleanArray? = null
                 remove("groups_list")
                 remove("identity_groups")
                 remove("collapsed_mood_groups")
+
+                val subsystemJson = spApp.getString("subsystem_data", "[]")
+                val subsystemType =
+                    object : TypeToken<MutableList<com.interli.plural.features.subsystem.SubsystemGroup>>() {}.type
+
+                val subsystemGroups:
+                        MutableList<com.interli.plural.features.subsystem.SubsystemGroup> =
+                    try {
+                        Gson().fromJson(subsystemJson, subsystemType) ?: mutableListOf()
+                    } catch (_: Exception) {
+                        mutableListOf()
+                    }
+
+                subsystemGroups.forEach { group ->
+                    group.members.clear()
+                }
+
+                putString("subsystem_data", Gson().toJson(subsystemGroups))
             }
-            if (checked[1]) { // History
+
+            if (checked[1]) { // Fronting history
                 remove("sessions_list")
             }
+
             if (checked[2]) { // Mood
                 remove("mood_entries")
                 spSettings.edit().remove("saved_mood_themes").apply()
             }
+
             if (checked[3]) { // Notes
                 remove("diary_notes")
                 remove("sysmedia_posts")
@@ -2611,21 +2647,53 @@ private var pendingPdfSelections: BooleanArray? = null
                 remove("sysmedia_dms")
                 remove("sysmedia_chat_groups")
             }
+
             if (checked[4]) { // Todo
                 remove("todo_lists")
                 remove("todo_bundles")
             }
-            if (checked[5]) { // relationships
+
+            if (checked[5]) { // Relationships
                 remove("relations_environments")
                 remove("relations_data")
             }
+
+            if (checked[8]) { // Subsystems
+                remove("subsystem_data")
+                remove("subsystem_sessions")
+            }
+
+            if (checked[9]) { // Calendar
+                val calendarJson = spApp.getString("calendar_events", "[]")
+                val calendarType =
+                    object : TypeToken<List<com.interli.plural.CalendarEvent>>() {}.type
+
+                val calendarEvents: List<com.interli.plural.CalendarEvent> =
+                    try {
+                        Gson().fromJson(calendarJson, calendarType) ?: emptyList()
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+
+                calendarEvents.forEach { event ->
+                    NotificationReceiver.scheduleCalendarReminder(
+                        this@SettingsActivity,
+                        event.copy(reminderTime = null)
+                    )
+                }
+
+                remove("calendar_events")
+            }
         }.apply()
-        if (checked[6]) { // settings
+
+        if (checked[6]) { // Settings
             spSettings.edit().clear().apply()
         }
-        if (checked.size > 7 && checked[7]) { // health
+
+        if (checked[7]) { // Health
             spHealth.edit().clear().apply()
         }
+
         Toast.makeText(this, "Selected data deleted", Toast.LENGTH_SHORT).show()
         recreate()
     }

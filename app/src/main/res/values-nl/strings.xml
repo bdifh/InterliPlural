@@ -744,4 +744,6 @@
     <string name="recurrence_custom_every_n_weeks">%1$s (elke %2$d weken)</string>
     <string name="import_plural_space_success">PluralSpace-import voltooid. %1$d gegevens geïmporteerd.</string>
     <string name="import_plural_space_error">PluralSpace-import mislukt: %1$s</string>
+    <string name="delete_subsystems">Subsystems</string>
+    <string name="delete_calendar">Agenda-afspraken</string>
 </resources>
