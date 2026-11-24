@@ -17,6 +17,11 @@ import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
+import android.content.SharedPreferences
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.interli.plural.Person
@@ -38,6 +43,21 @@ class HealthActivity : BaseActivity() {
     private val selectedMemberIds: MutableList<String> = mutableListOf()
     private val selectedMemberNames: MutableList<String> = mutableListOf()
     private var isMemberSelectionInitialized = false
+    private var memberDataDirty = true
+    private var memberDataLoaded = false
+    private var memberLoadInProgress = false
+    private lateinit var memberPreferences: SharedPreferences
+
+    private val memberPreferencesListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (
+                key == "people_list" ||
+                key == "sysmedia_people_list" ||
+                key == "subsystem_data"
+            ) {
+                memberDataDirty = true
+            }
+        }
 
     private val activeMemberIdString: String?
         get() = if (selectedMemberIds.isNotEmpty()) selectedMemberIds.joinToString(",") else null
@@ -48,6 +68,10 @@ class HealthActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_health)
+        memberPreferences = getSharedPreferences("my_app", MODE_PRIVATE)
+        memberPreferences.registerOnSharedPreferenceChangeListener(
+            memberPreferencesListener
+        )
         setupNavigationDrawer()
 
         container = findViewById(R.id.healthContainer)
@@ -61,21 +85,63 @@ class HealthActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
-        loadActiveMember()
+
         renderHealthPage()
+
+        if (memberDataDirty) {
+            loadActiveMemberAsync()
+        }
     }
 
-    private fun loadActiveMember() {
-        systemMembers = MemberHelper.loadAllPeople(this).filter { !it.isArchived }
+    override fun onDestroy() {
+        if (::memberPreferences.isInitialized) {
+            memberPreferences.unregisterOnSharedPreferenceChangeListener(
+                memberPreferencesListener
+            )
+        }
+        super.onDestroy()
+    }
 
-        if (!isMemberSelectionInitialized) {
-            isMemberSelectionInitialized = true
-            val frontingMembers = systemMembers.filter { it.isFront }
-            if (frontingMembers.isNotEmpty()) {
-                selectedMemberIds.clear()
-                selectedMemberIds.addAll(frontingMembers.map { it.id })
-                selectedMemberNames.clear()
-                selectedMemberNames.addAll(frontingMembers.map { it.name })
+    private fun loadActiveMemberAsync() {
+        if (memberLoadInProgress || !memberDataDirty) return
+
+        memberDataDirty = false
+        memberLoadInProgress = true
+
+        lifecycleScope.launch {
+            try {
+                val loadedMembers = withContext(Dispatchers.IO) {
+                    MemberHelper.loadAllPeople(this@HealthActivity)
+                        .filter { !it.isArchived }
+                }
+
+                systemMembers = loadedMembers
+
+                if (!isMemberSelectionInitialized) {
+                    isMemberSelectionInitialized = true
+
+                    val frontingMembers = systemMembers.filter { it.isFront }
+                    if (frontingMembers.isNotEmpty()) {
+                        selectedMemberIds.clear()
+                        selectedMemberIds.addAll(frontingMembers.map { it.id })
+
+                        selectedMemberNames.clear()
+                        selectedMemberNames.addAll(frontingMembers.map { it.name })
+                    }
+                }
+
+                memberDataLoaded = true
+
+                container.findViewWithTag<View>("health_member_header")
+                    ?.let { container.removeView(it) }
+
+                renderActiveMemberHeader()
+            } finally {
+                memberLoadInProgress = false
+            }
+
+            if (memberDataDirty) {
+                loadActiveMemberAsync()
             }
         }
     }
@@ -340,13 +406,18 @@ class HealthActivity : BaseActivity() {
         textContainer.addView(tvLabel)
         textContainer.addView(tvActiveNames)
 
-        val btnSwitch = createStyledButton(getString(R.string.select_member), primary = false).apply {
+        val btnSwitch = createStyledButton(
+            getString(R.string.select_member),
+            primary = false
+        ).apply {
+            isEnabled = memberDataLoaded
             setOnClickListener { showMemberSelectDialog() }
         }
 
         layout.addView(textContainer)
         layout.addView(btnSwitch)
-        container.addView(layout)
+        layout.tag = "health_member_header"
+        container.addView(layout, 0)
     }
 
     private fun showMemberSelectDialog() {

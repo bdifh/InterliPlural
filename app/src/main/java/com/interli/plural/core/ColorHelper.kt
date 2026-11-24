@@ -27,6 +27,26 @@ import com.interli.plural.Person
 import com.interli.plural.R
 
 object ColorHelper {
+    private data class EffectiveThemeCacheKey(
+        val peopleJson: String?,
+        val sessionsJson: String?,
+        val savedThemesJson: String?,
+        val coFrontThemesJson: String?,
+        val defaultThemeId: String?,
+        val multiFrontThemeId: String?,
+        val themePriority: String?
+    )
+
+    private data class EffectiveThemeCacheEntry(
+        val key: EffectiveThemeCacheKey,
+        val theme: AppTheme?
+    )
+
+    private val effectiveThemeCacheLock = Any()
+
+    @Volatile
+    private var effectiveThemeCache: EffectiveThemeCacheEntry? = null
+
     fun applySettings(activity: Activity) {
         val effectiveTheme = getEffectiveTheme(activity)
         val sharedPref = activity.getSharedPreferences("settings_prefs", Activity.MODE_PRIVATE)
@@ -259,7 +279,48 @@ object ColorHelper {
         val darkness = 1 - (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255
         return darkness >= 0.5
     }
+
     fun getEffectiveTheme(context: android.content.Context): AppTheme? {
+        val appPreferences = context.getSharedPreferences(
+            "my_app",
+            android.content.Context.MODE_PRIVATE
+        )
+        val settingsPreferences = context.getSharedPreferences(
+            "settings_prefs",
+            android.content.Context.MODE_PRIVATE
+        )
+
+        val key = EffectiveThemeCacheKey(
+            peopleJson = appPreferences.getString("people_list", null),
+            sessionsJson = appPreferences.getString("sessions_list", null),
+            savedThemesJson = settingsPreferences.getString("saved_themes", "[]"),
+            coFrontThemesJson = settingsPreferences.getString("co_front_themes", "[]"),
+            defaultThemeId = settingsPreferences.getString("default_theme_id", null),
+            multiFrontThemeId = settingsPreferences.getString("multi_front_theme_id", null),
+            themePriority = settingsPreferences.getString("theme_priority", "newest")
+        )
+
+        val cachedEntry = synchronized(effectiveThemeCacheLock) {
+            effectiveThemeCache?.takeIf { it.key == key }
+        }
+
+        if (cachedEntry != null) {
+            return cachedEntry.theme
+        }
+
+        val calculatedTheme = computeEffectiveTheme(context)
+
+        synchronized(effectiveThemeCacheLock) {
+            effectiveThemeCache = EffectiveThemeCacheEntry(
+                key = key,
+                theme = calculatedTheme
+            )
+        }
+
+        return calculatedTheme
+    }
+
+    private fun computeEffectiveTheme(context: android.content.Context): AppTheme? {
         val sp = context.getSharedPreferences("my_app", android.content.Context.MODE_PRIVATE)
         val settingsSp = context.getSharedPreferences("settings_prefs", android.content.Context.MODE_PRIVATE)
         val peopleJson = sp.getString("people_list", null) ?: return null
