@@ -390,17 +390,42 @@ object DialogHelper {
             text = "\n" + context.getString(R.string.note)
             setTextColor(ColorHelper.getTextColor(context))
         }
+
         container.addView(noteLabel)
         val etNote = EditText(context).apply {
             setText(session.note)
             hint = context.getString(R.string.note)
             setTextColor(ColorHelper.getTextColor(context))
+
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                    android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+                    android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            setHorizontallyScrolling(false)
+            minLines = 3
+            maxLines = 5
+            isVerticalScrollBarEnabled = true
         }
+
         container.addView(etNote)
+
+        val dialogContentScroll = ScrollView(context).apply {
+            isFillViewport = true
+            addView(
+                container,
+                android.widget.FrameLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+            )
+        }
+
         SilentUi.disableSoundEffects(container)
+        SilentUi.disableSoundEffects(dialogContentScroll)
+
         val dialog = AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.dialog_edit_front_title))
-            .setView(container)
+            .setView(dialogContentScroll)
             .setPositiveButton(R.string.save, null)
             .setNeutralButton(context.getString(R.string.delete), null)
             .setNegativeButton(R.string.cancel, null)
@@ -470,6 +495,9 @@ object DialogHelper {
             }
         }
         dialog.show()
+        dialog.window?.setSoftInputMode(
+            android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
         ColorHelper.styleAlertDialog(dialog, context)
     }
     private fun showDatePicker(context: Context, cal: Calendar, onSelected: (Calendar) -> Unit) {

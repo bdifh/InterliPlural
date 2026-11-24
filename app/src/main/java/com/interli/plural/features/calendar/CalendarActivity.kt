@@ -266,6 +266,12 @@ class CalendarActivity : BaseActivity() {
                             }
                         }
                     }
+                    else {
+                        selectedRecurrence = selected
+                        selectedRecurrenceDays = null
+                        selectedRecurrenceInterval = 1
+                        updateRecurrenceUI()
+                    }
                 }
                 .show()
                 .also { ColorHelper.styleAlertDialog(it, this) }
