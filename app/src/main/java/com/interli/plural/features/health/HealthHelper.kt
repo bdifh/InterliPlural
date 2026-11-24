@@ -377,6 +377,21 @@ object HealthHelper {
         sp.edit().putLong("rest_start_ts", ts).apply()
     }
 
+    fun getRestReminderTime(context: Context): Long {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return sp.getLong("rest_reminder_ts", 0L)
+    }
+
+    fun setRestReminderTime(context: Context, ts: Long) {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sp.edit().putLong("rest_reminder_ts", ts).apply()
+    }
+
+    fun clearRestReminderTime(context: Context) {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sp.edit().remove("rest_reminder_ts").apply()
+    }
+    
     fun loadEatenRecords(context: Context): MutableList<EatenMealRecord> {
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val json = sp.getString("eaten_records", "[]") ?: "[]"

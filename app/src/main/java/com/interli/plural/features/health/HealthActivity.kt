@@ -25,6 +25,7 @@ import com.interli.plural.core.BaseActivity
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.features.member.MemberHelper
 import com.interli.plural.features.member.WhoAmIActivity
+import com.interli.plural.core.NotificationReceiver
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Calendar
@@ -288,7 +289,7 @@ class HealthActivity : BaseActivity() {
                 "eaten" -> if (settings.showEatenCheck) renderEatenCard(todayLogs)
                 "nutrition" -> if (settings.showNutritionSchedule) renderNutritionCard(todayLogs)
                 "energy" -> if (settings.showEnergySlider) renderEnergyCard(todayLogs)
-                "rest" -> if (settings.showRest) renderRestCard(todayLogs)
+                "rest" -> if (settings.showRest) renderRestCard(allLogs)
                 "weight" -> if (settings.showWeight) renderWeightCard(todayLogs)
                 "medication" -> if (settings.showMedication) renderMedicationCard(todayLogs)
                 "sensations" -> if (settings.showSensations) renderSensationsCard(todayLogs)
@@ -2469,71 +2470,282 @@ class HealthActivity : BaseActivity() {
         }
     }
 
+    private fun isRestLog(log: HealthLogEntry): Boolean {
+        return log.type == getString(R.string.rest_title) ||
+                log.type == "Pause / Rest" ||
+                log.type == "Pauze / Rust"
+    }
+
     private fun renderRestCard(logs: List<HealthLogEntry>) {
         val card = createCard()
         val cardLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(20, 20, 20, 20)
         }
-        val titleKey = getString(R.string.rest_title)
+
+        val restLogs = logs.filter { isRestLog(it) }
+            .sortedByDescending { it.timestamp }
+
         val title = TextView(this).apply {
-            text = titleKey
+            text = getString(R.string.rest_title)
             textSize = 16f
             setTypeface(null, android.graphics.Typeface.BOLD)
             setTextColor(ColorHelper.getTextColor(this@HealthActivity))
         }
-        val subtitle = getLastLogSubtitle(titleKey, logs)
+
+        val latestLog = restLogs.firstOrNull()
+        val subtitleText = if (latestLog != null) {
+            val time = SimpleDateFormat("HH:mm", Locale.getDefault())
+                .format(Date(latestLog.timestamp))
+            val member = latestLog.memberName
+                ?: getString(R.string.unnamed_field)
+            getString(R.string.label_last_logged, time, member)
+        } else {
+            getString(R.string.label_never_logged)
+        }
+
+        val subtitle = TextView(this).apply {
+            text = subtitleText
+            textSize = 12f
+            alpha = 0.7f
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            setPadding(0, 2, 0, 12)
+        }
 
         val startTs = HealthHelper.getRestStartTime(this)
+
+        val timerLabel = TextView(this).apply {
+            text = getString(R.string.rest_timer_elapsed)
+            textSize = 13f
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            visibility = if (startTs > 0L) View.VISIBLE else View.GONE
+        }
+
+        val timer = Chronometer(this).apply {
+            textSize = 20f
+            setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+            visibility = if (startTs > 0L) View.VISIBLE else View.GONE
+
+            if (startTs > 0L) {
+                val elapsedBeforeDisplay =
+                    System.currentTimeMillis() - startTs
+                base = android.os.SystemClock.elapsedRealtime() -
+                        elapsedBeforeDisplay.coerceAtLeast(0L)
+                start()
+            }
+            gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        }
+
         val btnToggle = createStyledButton(
-            if (startTs > 0) getString(R.string.btn_stop_rest) else getString(R.string.btn_start_rest),
+            if (startTs > 0L) {
+                getString(R.string.btn_stop_rest)
+            } else {
+                getString(R.string.btn_start_rest)
+            },
             primary = true
         ).apply {
             setOnClickListener {
                 val now = System.currentTimeMillis()
-                if (startTs > 0) {
-                    val durationMin = ((now - startTs) / 60000).toInt()
+
+                if (startTs > 0L) {
+                    val durationMinutes = (
+                            (now - startTs + 59_999L) / 60_000L
+                            ).toInt().coerceAtLeast(1)
+
                     HealthHelper.setRestStartTime(this@HealthActivity, 0L)
-                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberIdString,
-                        memberName = activeMemberNameString,
-                        type = titleKey,
-                        value = "$durationMin min"
-                    ))
+
+                    HealthHelper.saveOrUpdateLogEntry(
+                        this@HealthActivity,
+                        HealthLogEntry(
+                            memberId = activeMemberIdString,
+                            memberName = activeMemberNameString,
+                            type = getString(R.string.rest_title),
+                            timestamp = now,
+                            startTimestamp = startTs,
+                            value = "$durationMinutes min"
+                        )
+                    )
                 } else {
                     HealthHelper.setRestStartTime(this@HealthActivity, now)
+                    NotificationReceiver.cancelRestReminder(this@HealthActivity)
                 }
+
                 renderHealthPage()
             }
         }
 
-        val quickRestLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf(15, 30, 60).forEach { mins ->
-            val btnQuick = createStyledButton(getString(R.string.btn_log_rest, mins), primary = false).apply {
-                textSize = 10f
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(4,0,4,0) }
+        val btnCustomLog = createStyledButton(
+            getString(R.string.rest_log_custom),
+            primary = false
+        ).apply {
+            setOnClickListener {
+                showCustomRestLogDialog()
+            }
+        }
+
+        val btnSchedule = createStyledButton(
+            getString(R.string.rest_schedule),
+            primary = false
+        ).apply {
+            setOnClickListener {
+                showRestScheduleDialog()
+            }
+        }
+
+        val scheduledTime = HealthHelper.getRestReminderTime(this)
+        if (scheduledTime > System.currentTimeMillis()) {
+            val formattedTime = SimpleDateFormat(
+                "dd MMM yyyy HH:mm",
+                Locale.getDefault()
+            ).format(Date(scheduledTime))
+
+            cardLayout.addView(TextView(this).apply {
+                text = getString(R.string.rest_scheduled_for, formattedTime)
+                textSize = 12f
+                setTextColor(ColorHelper.getTextColor(this@HealthActivity))
+                setPadding(0, 8, 0, 4)
+            })
+
+            cardLayout.addView(createStyledButton(
+                getString(R.string.rest_cancel_schedule),
+                primary = false
+            ).apply {
                 setOnClickListener {
-                    HealthHelper.addLogEntry(this@HealthActivity, HealthLogEntry(
-                        memberId = activeMemberIdString,
-                        memberName = activeMemberNameString,
-                        type = titleKey,
-                        value = "$mins min"
-                    ))
+                    NotificationReceiver.cancelRestReminder(this@HealthActivity)
                     renderHealthPage()
                 }
+            })
+        }
+
+        val btnHistory = createStyledButton(
+            getString(R.string.rest_history),
+            primary = false
+        ).apply {
+            setOnClickListener {
+                startActivity(
+                    android.content.Intent(
+                        this@HealthActivity,
+                        RestHistoryActivity::class.java
+                    )
+                )
             }
-            quickRestLayout.addView(btnQuick)
         }
 
         cardLayout.addView(title)
         cardLayout.addView(subtitle)
+        cardLayout.addView(timerLabel)
+        cardLayout.addView(timer)
         cardLayout.addView(btnToggle)
-        cardLayout.addView(quickRestLayout)
-
-        renderCardLogs(cardLayout, logs) { it.type == titleKey }
+        cardLayout.addView(btnCustomLog)
+        cardLayout.addView(btnSchedule)
+        cardLayout.addView(btnHistory)
 
         card.addView(cardLayout)
         container.addView(card)
+    }
+
+    private fun showRestHistoryDialog(restLogs: List<HealthLogEntry>) {
+        if (restLogs.isEmpty()) {
+            Toast.makeText(
+                this,
+                R.string.rest_no_history,
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val dateFormat = SimpleDateFormat(
+            "dd-MM-yyyy HH:mm",
+            Locale.getDefault()
+        )
+
+        val labels = restLogs.map { log ->
+            val date = dateFormat.format(Date(log.timestamp))
+            val value = log.value.orEmpty()
+            val member = log.memberName?.takeIf { it.isNotBlank() }
+
+            buildString {
+                append(date)
+                if (value.isNotBlank()) append(" · ").append(value)
+                if (member != null) append(" · ").append(member)
+            }
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle(R.string.rest_history)
+            .setItems(labels) { _, which ->
+                showEditLogEntryDialog(restLogs[which])
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+            .let { ColorHelper.styleAlertDialog(it, this) }
+    }
+
+    private fun showCustomRestLogDialog() {
+        RestLogEditorDialog.show(
+            context = this,
+            memberId = activeMemberIdString,
+            memberName = activeMemberNameString
+        ) {
+            renderHealthPage()
+        }
+    }
+
+    private fun showRestScheduleDialog() {
+        val initialTime = System.currentTimeMillis() + 60 * 60 * 1000L
+
+        showRestDateTimePicker(initialTime) { selectedTime ->
+            if (selectedTime <= System.currentTimeMillis()) {
+                Toast.makeText(
+                    this,
+                    R.string.rest_schedule_must_be_future,
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                NotificationReceiver.scheduleRestReminder(this, selectedTime)
+                renderHealthPage()
+            }
+        }
+    }
+
+    private fun showRestDateTimePicker(
+        initialTimestamp: Long,
+        onSelected: (Long) -> Unit
+    ) {
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = initialTimestamp
+        }
+
+        android.app.DatePickerDialog(
+            this,
+            { _, year, month, day ->
+                calendar.set(Calendar.YEAR, year)
+                calendar.set(Calendar.MONTH, month)
+                calendar.set(Calendar.DAY_OF_MONTH, day)
+
+                android.app.TimePickerDialog(
+                    this,
+                    { _, hour, minute ->
+                        calendar.set(Calendar.HOUR_OF_DAY, hour)
+                        calendar.set(Calendar.MINUTE, minute)
+                        calendar.set(Calendar.SECOND, 0)
+                        calendar.set(Calendar.MILLISECOND, 0)
+                        onSelected(calendar.timeInMillis)
+                    },
+                    calendar.get(Calendar.HOUR_OF_DAY),
+                    calendar.get(Calendar.MINUTE),
+                    DateFormat.is24HourFormat(this)
+                ).show()
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
     }
 
     private fun renderWeightCard(logs: List<HealthLogEntry>) {

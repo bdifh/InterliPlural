@@ -18,6 +18,8 @@ import com.interli.plural.features.calendar.CalendarActivity
 import com.interli.plural.features.calendar.CalendarRecurrenceHelper
 import com.interli.plural.R
 import com.interli.plural.TodoList
+import com.interli.plural.features.health.HealthActivity
+import com.interli.plural.features.health.HealthHelper
 import java.util.*
 
 class NotificationReceiver : BroadcastReceiver() {
@@ -30,11 +32,14 @@ class NotificationReceiver : BroadcastReceiver() {
             return
         }
 
-        val sharedPref = context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE)
+        if (action == "REST_REMINDER") {
+            HealthHelper.clearRestReminderTime(context)
+        }
 
         val channelId = when (action) {
             "TODO_REMINDER" -> "TODO_CHANNEL"
             "CALENDAR_REMINDER" -> "CALENDAR_CHANNEL"
+            "REST_REMINDER" -> "REST_CHANNEL"
             else -> "MOOD_CHANNEL_V3"
         }
 
@@ -42,20 +47,30 @@ class NotificationReceiver : BroadcastReceiver() {
             val name = when (action) {
                 "TODO_REMINDER" -> localizedContext.getString(R.string.todo)
                 "CALENDAR_REMINDER" -> localizedContext.getString(R.string.calendar)
+                "REST_REMINDER" -> localizedContext.getString(R.string.rest_title)
                 else -> localizedContext.getString(R.string.mood_tracker)
             }
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(channelId, name, importance).apply {
+
+            val channel = NotificationChannel(
+                channelId,
+                name,
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
                 enableLights(true)
                 lightColor = 0xFF800080.toInt()
             }
-            val nm = localizedContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
+
+            val notificationManager =
+                localizedContext.getSystemService(Context.NOTIFICATION_SERVICE)
+                        as NotificationManager
+
+            notificationManager.createNotificationChannel(channel)
         }
 
         val nextIntent = when (action) {
             "TODO_REMINDER" -> Intent(localizedContext, TodoActivity::class.java)
             "CALENDAR_REMINDER" -> Intent(localizedContext, CalendarActivity::class.java)
+            "REST_REMINDER" -> Intent(localizedContext, HealthActivity::class.java)
             else -> Intent(localizedContext, MoodActivity::class.java)
         }.apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -63,21 +78,46 @@ class NotificationReceiver : BroadcastReceiver() {
 
         val pendingIntent = PendingIntent.getActivity(
             localizedContext,
-            (intent.getStringExtra("todo_id") ?: intent.getStringExtra("event_id") ?: "0").hashCode(),
+            (
+                    intent.getStringExtra("todo_id")
+                        ?: intent.getStringExtra("event_id")
+                        ?: "0"
+                    ).hashCode(),
             nextIntent,
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val title = when (action) {
-            "TODO_REMINDER" -> intent.getStringExtra("todo_title") ?: localizedContext.getString(R.string.todo)
-            "CALENDAR_REMINDER" -> intent.getStringExtra("event_title") ?: localizedContext.getString(R.string.calendar)
-            else -> localizedContext.getString(R.string.notification_mood_title)
+            "TODO_REMINDER" ->
+                intent.getStringExtra("todo_title")
+                    ?: localizedContext.getString(R.string.todo)
+
+            "CALENDAR_REMINDER" ->
+                intent.getStringExtra("event_title")
+                    ?: localizedContext.getString(R.string.calendar)
+
+            "REST_REMINDER" ->
+                localizedContext.getString(R.string.rest_notification_title)
+
+            else ->
+                localizedContext.getString(R.string.notification_mood_title)
         }
 
         val message = when (action) {
             "TODO_REMINDER" -> localizedContext.getString(R.string.todo)
             "CALENDAR_REMINDER" -> localizedContext.getString(R.string.calendar)
-            else -> localizedContext.getString(R.string.notification_mood_text)
+            "REST_REMINDER" ->
+                localizedContext.getString(R.string.rest_notification_text)
+
+            else ->
+                localizedContext.getString(R.string.notification_mood_text)
+        }
+
+        val notificationId = when (action) {
+            "TODO_REMINDER" -> intent.getStringExtra("todo_id")?.hashCode() ?: 100
+            "CALENDAR_REMINDER" -> intent.getStringExtra("event_id")?.hashCode() ?: 200
+            "REST_REMINDER" -> 3
+            else -> 2
         }
 
         val builder = NotificationCompat.Builder(localizedContext, channelId)
@@ -89,15 +129,11 @@ class NotificationReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
 
-        val notificationId = when (action) {
-            "TODO_REMINDER" -> (intent.getStringExtra("todo_id")?.hashCode() ?: 100)
-            "CALENDAR_REMINDER" -> (intent.getStringExtra("event_id")?.hashCode() ?: 200)
-            else -> 2
-        }
-
         try {
-            NotificationManagerCompat.from(localizedContext).notify(notificationId, builder.build())
-        } catch (_: SecurityException) {}
+            NotificationManagerCompat.from(localizedContext)
+                .notify(notificationId, builder.build())
+        } catch (_: SecurityException) {
+        }
 
         if (action == "CALENDAR_REMINDER") {
             val eventId = intent.getStringExtra("event_id")
@@ -110,7 +146,10 @@ class NotificationReceiver : BroadcastReceiver() {
             val index = intent.getIntExtra("mood_alarm_index", -1)
             val hour = intent.getIntExtra("mood_alarm_hour", -1)
             val minute = intent.getIntExtra("mood_alarm_minute", -1)
-            if (index != -1) rescheduleNextMoodAlarm(localizedContext, index, hour, minute)
+
+            if (index != -1) {
+                rescheduleNextMoodAlarm(localizedContext, index, hour, minute)
+            }
         }
     }
 
@@ -147,6 +186,66 @@ class NotificationReceiver : BroadcastReceiver() {
             rescheduleMoodAlarms(context)
             rescheduleTodoAlarms(context)
             rescheduleCalendarAlarms(context)
+            rescheduleRestAlarm(context)
+        }
+
+        private const val REST_REMINDER_REQUEST_CODE = 7331
+
+        fun scheduleRestReminder(context: Context, triggerAtMillis: Long) {
+            HealthHelper.setRestReminderTime(context, triggerAtMillis)
+
+            val alarmManager =
+                context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+
+            val intent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "REST_REMINDER"
+            }
+
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                REST_REMINDER_REQUEST_CODE,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            NotificationReceiver().scheduleAlarm(
+                alarmManager,
+                triggerAtMillis,
+                pendingIntent
+            )
+        }
+
+        fun cancelRestReminder(context: Context) {
+            val alarmManager =
+                context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+
+            val intent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "REST_REMINDER"
+            }
+
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                REST_REMINDER_REQUEST_CODE,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_NO_CREATE
+            )
+
+            if (pendingIntent != null) {
+                alarmManager.cancel(pendingIntent)
+                pendingIntent.cancel()
+            }
+
+            HealthHelper.clearRestReminderTime(context)
+        }
+
+        private fun rescheduleRestAlarm(context: Context) {
+            val reminderTime = HealthHelper.getRestReminderTime(context)
+
+            if (reminderTime > System.currentTimeMillis()) {
+                scheduleRestReminder(context, reminderTime)
+            } else {
+                HealthHelper.clearRestReminderTime(context)
+            }
         }
 
         fun scheduleCalendarReminder(context: Context, event: CalendarEvent) {

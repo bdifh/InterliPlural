@@ -83,6 +83,7 @@ data class NutritionScheduleEntry(
 data class HealthLogEntry(
     val id: String = UUID.randomUUID().toString(),
     var timestamp: Long = System.currentTimeMillis(),
+    var startTimestamp: Long? = null,
     var memberId: String? = null,
     var memberName: String? = null,
     var type: String = "",

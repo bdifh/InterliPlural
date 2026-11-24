@@ -881,4 +881,25 @@
     <string name="action_remove_read_more">Remove read-more line</string>
     <string name="action_read_more">Read more</string>
     <string name="action_read_less">Show less</string>
+    <string name="rest_timer_elapsed">Pause timer</string>
+    <string name="rest_log_custom">Log a custom pause</string>
+    <string name="rest_duration_hint">Duration in minutes</string>
+    <string name="rest_duration_invalid">Enter a duration greater than zero.</string>
+    <string name="rest_history">View pause history</string>
+    <string name="rest_no_history">No pause logs yet.</string>
+    <string name="rest_schedule">Schedule a pause reminder</string>
+    <string name="rest_cancel_schedule">Cancel scheduled reminder</string>
+    <string name="rest_scheduled_for">Reminder scheduled for %1$s</string>
+    <string name="rest_schedule_must_be_future">Choose a future date and time.</string>
+    <string name="rest_notification_title">Pause reminder</string>
+    <string name="rest_notification_text">It is time for your planned pause.</string>
+    <string name="rest_start_time">Start: %1$s</string>
+    <string name="rest_end_time">End: %1$s</string>
+    <string name="rest_not_set">Not set</string>
+    <string name="rest_clear">Clear</string>
+    <string name="rest_duration_fallback_hint">If you do not enter both times, enter the duration in minutes.</string>
+    <string name="rest_edit_log">Edit pause log</string>
+    <string name="rest_end_must_follow_start">The end time must be after the start time.</string>
+    <string name="rest_history_entry">Start: %1$s · End: %2$s</string>
+    <string name="rest_history_duration">Duration: %1$s</string>
 </resources>

@@ -750,4 +750,25 @@
     <string name="action_remove_read_more">Leesmeer-lijn verwijderen</string>
     <string name="action_read_more">Lees meer</string>
     <string name="action_read_less">Minder tonen</string>
+    <string name="rest_timer_elapsed">Looptijd van de pauze</string>
+    <string name="rest_log_custom">Pauze met eigen duur loggen</string>
+    <string name="rest_duration_hint">Duur in minuten</string>
+    <string name="rest_duration_invalid">Vul een duur groter dan nul in.</string>
+    <string name="rest_history">Bekijk pauzegeschiedenis</string>
+    <string name="rest_no_history">Er zijn nog geen pauzes gelogd.</string>
+    <string name="rest_schedule">Pauzeherinnering inplannen</string>
+    <string name="rest_cancel_schedule">Geplande herinnering annuleren</string>
+    <string name="rest_scheduled_for">Herinnering gepland voor %1$s</string>
+    <string name="rest_schedule_must_be_future">Kies een datum en tijd in de toekomst.</string>
+    <string name="rest_notification_title">Pauzeherinnering</string>
+    <string name="rest_notification_text">Het is tijd voor je ingeplande pauze.</string>
+    <string name="rest_start_time">Start: %1$s</string>
+    <string name="rest_end_time">Einde: %1$s</string>
+    <string name="rest_not_set">Niet ingesteld</string>
+    <string name="rest_clear">Wissen</string>
+    <string name="rest_duration_fallback_hint">Vul de duur in minuten in als je niet beide tijden invult.</string>
+    <string name="rest_edit_log">Pauzelog bewerken</string>
+    <string name="rest_end_must_follow_start">De eindtijd moet na de starttijd liggen.</string>
+    <string name="rest_history_entry">Start: %1$s · Einde: %2$s</string>
+    <string name="rest_history_duration">Duur: %1$s</string>
 </resources>

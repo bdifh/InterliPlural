@@ -289,6 +289,12 @@
             android:exported="false" />
 
         <activity
+                android:name=".features.health.RestHistoryActivity"
+                android:label="@string/rest_history"
+                android:parentActivityName=".features.health.HealthActivity"
+                android:exported="false" />
+
+        <activity
             android:name=".features.health.HealthSettingsActivity"
             android:exported="false" />
 
