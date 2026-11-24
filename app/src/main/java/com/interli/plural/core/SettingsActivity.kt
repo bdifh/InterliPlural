@@ -1113,17 +1113,40 @@ private var pendingPdfSelections: BooleanArray? = null
             try {
                 var isZip = false
                 var hasDataJsonInZip = false
+                var isPluralSpaceZip = false
+
                 try {
                     contentResolver.openInputStream(uri)?.use { input ->
                         java.util.zip.ZipInputStream(input).use { zis ->
                             var entry = zis.nextEntry
+
                             while (entry != null) {
                                 isZip = true
-                                val fileName = entry.name.substringAfterLast('/').substringAfterLast('\\')
+                                val fileName = entry.name
+                                    .substringAfterLast('/')
+                                    .substringAfterLast('\\')
+
                                 if (fileName.equals("data.json", ignoreCase = true) && !entry.isDirectory) {
                                     hasDataJsonInZip = true
+
+                                    val jsonText = zis.readBytes().toString(Charsets.UTF_8)
+                                    val root = try {
+                                        Gson().fromJson(
+                                            jsonText,
+                                            object : TypeToken<Map<String, Any>>() {}.type
+                                        ) as? Map<String, Any>
+                                    } catch (_: Exception) {
+                                        null
+                                    }
+
+                                    isPluralSpaceZip =
+                                        root?.containsKey("members") == true &&
+                                                root.containsKey("fronts") &&
+                                                root.containsKey("member_relationships")
+
                                     break
                                 }
+
                                 zis.closeEntry()
                                 entry = zis.nextEntry
                             }
@@ -1135,7 +1158,11 @@ private var pendingPdfSelections: BooleanArray? = null
 
                 if (isZip) {
                     if (hasDataJsonInZip) {
-                        importFromPluralStar(uri)
+                        if (isPluralSpaceZip) {
+                            importFromPluralSpace(uri)
+                        } else {
+                            importFromPluralStar(uri)
+                        }
                     } else {
                         importSpAvatars(uri)
                     }
@@ -1885,6 +1912,31 @@ private var pendingPdfSelections: BooleanArray? = null
         runOnUiThread {
             processFrontHistory(historyEntries, people)
         }
+    }
+
+    private fun importFromPluralSpace(uri: Uri) {
+        Thread {
+            try {
+                val result = PluralSpaceImporter(this).import(uri)
+
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.import_plural_space_success, result.total),
+                        Toast.LENGTH_LONG
+                    ).show()
+                    recreate()
+                }
+            } catch (e: Exception) {
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.import_plural_space_error, e.message ?: "Unknown error"),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        }.start()
     }
 
     private fun importFromPluralStar(uri: Uri) {

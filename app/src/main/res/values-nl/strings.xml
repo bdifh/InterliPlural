@@ -742,4 +742,6 @@
     <string name="recurrence_interval_weeks">Na hoeveel weken herhalen?</string>
     <string name="recurrence_every_n_weeks">Elke %1$d weken</string>
     <string name="recurrence_custom_every_n_weeks">%1$s (elke %2$d weken)</string>
+    <string name="import_plural_space_success">PluralSpace-import voltooid. %1$d gegevens geïmporteerd.</string>
+    <string name="import_plural_space_error">PluralSpace-import mislukt: %1$s</string>
 </resources>
