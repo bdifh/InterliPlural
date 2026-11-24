@@ -10,6 +10,11 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.edit
 import androidx.core.graphics.toColorInt
+import android.os.Build
+import android.view.Gravity
+import android.widget.FrameLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.interli.plural.AppTheme
@@ -37,6 +42,7 @@ object ColorHelper {
             activity.window.decorView.setBackgroundColor(bgColor)
             val controller = androidx.core.view.WindowInsetsControllerCompat(activity.window, activity.window.decorView)
             controller.isAppearanceLightStatusBars = !isDark(bgColor)
+            applyStatusBarBackground(activity, bgColor)
             val root = activity.findViewById<View>(android.R.id.content)
             val colorKey = "$bgHex|$btnHex|$btnTextHex|$textHex|v3"
             if (root != null) {
@@ -56,6 +62,58 @@ object ColorHelper {
             }
         } catch (_: Exception) {}
     }
+
+    private fun applyStatusBarBackground(activity: Activity, color: Int) {
+        if (Build.VERSION.SDK_INT < 35) {
+            activity.window.statusBarColor = color
+            return
+        }
+
+        val content = activity.findViewById<FrameLayout>(android.R.id.content)
+            ?: return
+
+        var backgroundView =
+            content.findViewById<View>(R.id.status_bar_background)
+
+        if (backgroundView == null) {
+            backgroundView = View(activity).apply {
+                id = R.id.status_bar_background
+                isClickable = false
+                isFocusable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                setBackgroundColor(color)
+            }
+
+            content.addView(
+                backgroundView,
+                FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    0,
+                    Gravity.TOP
+                )
+            )
+        } else {
+            backgroundView.setBackgroundColor(color)
+        }
+
+        val statusBarBackground = backgroundView
+
+        ViewCompat.setOnApplyWindowInsetsListener(content) { _, insets ->
+            val statusBarHeight =
+                insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+
+            val params = statusBarBackground.layoutParams
+            if (params.height != statusBarHeight) {
+                params.height = statusBarHeight
+                statusBarBackground.layoutParams = params
+            }
+
+            insets
+        }
+
+        ViewCompat.requestApplyInsets(content)
+    }
+
     fun applyTheme(context: android.content.Context, theme: AppTheme) {
         val sharedPref = context.getSharedPreferences("settings_prefs", android.content.Context.MODE_PRIVATE)
         sharedPref.edit(commit = true) {

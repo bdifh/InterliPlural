@@ -5,4 +5,5 @@
     <item name="action_add_person" type="id" />
     <item name="action_add_group" type="id" />
     <item name="envSpinner" type="id" />
+    <item name="status_bar_background" type="id" />
 </resources>

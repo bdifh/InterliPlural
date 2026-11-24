@@ -904,6 +904,51 @@ class TodoActivity : BaseActivity() {
         indentRow.addView(btnIndentMore)
         dialogView.addView(indentRow)
 
+        val moveRow = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, 12.dpToPx())
+        }
+
+        val btnMoveUp = Button(context).apply {
+            text = getString(R.string.action_move_up)
+            textSize = 12f
+            layoutParams =
+                LinearLayout.LayoutParams(0, -2, 1f).apply {
+                    marginEnd = 6.dpToPx()
+                }
+            setBackgroundColor(btnColor)
+            setTextColor(btnTextColor)
+            if (this is com.google.android.material.button.MaterialButton) {
+                strokeWidth = 0
+            }
+        }
+
+        val btnMoveDown = Button(context).apply {
+            text = getString(R.string.action_move_down)
+            textSize = 12f
+            layoutParams =
+                LinearLayout.LayoutParams(0, -2, 1f).apply {
+                    marginStart = 6.dpToPx()
+                }
+            setBackgroundColor(btnColor)
+            setTextColor(btnTextColor)
+            if (this is com.google.android.material.button.MaterialButton) {
+                strokeWidth = 0
+            }
+        }
+
+        val taskPosition = list.tasks.indexOf(task)
+        btnMoveUp.isEnabled = taskPosition > 0
+        btnMoveUp.alpha = if (btnMoveUp.isEnabled) 1f else 0.35f
+        btnMoveDown.isEnabled =
+            taskPosition >= 0 && taskPosition < list.tasks.lastIndex
+        btnMoveDown.alpha = if (btnMoveDown.isEnabled) 1f else 0.35f
+
+        moveRow.addView(btnMoveUp)
+        moveRow.addView(btnMoveDown)
+        dialogView.addView(moveRow)
+
         var deleteClicks = 8
         val deleteTextBase = getString(R.string.action_delete_task)
 
@@ -936,6 +981,37 @@ class TodoActivity : BaseActivity() {
         val dialog = builder.create()
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, context)
+
+        fun moveTask(offset: Int) {
+            val fromIndex = list.tasks.indexOf(task)
+            val toIndex = fromIndex + offset
+
+            if (fromIndex < 0 || toIndex !in list.tasks.indices) {
+                return
+            }
+
+            val newTitle = editTitle.text.toString().trim()
+            if (newTitle.isNotEmpty()) {
+                task.title = newTitle
+            }
+            task.status = selectedStatus
+            task.indentLevel = currentIndent
+
+            val movingTask = list.tasks.removeAt(fromIndex)
+            list.tasks.add(toIndex, movingTask)
+
+            saveData()
+            renderLists()
+            dialog.dismiss()
+        }
+
+        btnMoveUp.setOnClickListener {
+            moveTask(-1)
+        }
+
+        btnMoveDown.setOnClickListener {
+            moveTask(1)
+        }
 
         btnDelete.setOnClickListener {
             deleteClicks--
