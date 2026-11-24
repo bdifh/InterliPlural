@@ -211,7 +211,12 @@ class SysmediaPostDetailActivity : BaseActivity() {
         val handle = profile?.handle ?: sender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: sender?.manualId ?: "unknown"
         tvHandle.text = "@$handle"
         tvHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
-        markwon.setMarkdown(tvContent, post.content.replace("\n", "  \n"))
+
+        markwon.setMarkdown(
+            tvContent,
+            SysmediaReadMore.removeMarker(post.content).replace("\n", "  \n")
+        )
+
         tvContent.setTextColor(textColor)
         tvTime.text = sdf.format(Date(post.displayTimestamp))
         tvTime.setTextColor(textColor and 0x88FFFFFF.toInt())
@@ -282,7 +287,11 @@ class SysmediaPostDetailActivity : BaseActivity() {
                 layout.findViewById<TextView>(R.id.tvOriginalName).text = origProfile?.displayName ?: originalSender?.name ?: "Unknown"
                 val origHandle = origProfile?.handle ?: originalSender?.name?.replace(" ", "_")?.lowercase() ?: originalSender?.manualId ?: "unknown"
                 layout.findViewById<TextView>(R.id.tvOriginalHandle).text = "@$origHandle"
-                markwon.setMarkdown(layout.findViewById(R.id.tvOriginalContent), originalPost.content.replace("\n", "  \n"))
+                markwon.setMarkdown(
+                    layout.findViewById(R.id.tvOriginalContent),
+                    SysmediaReadMore.removeMarker(originalPost.content).replace("\n", "  \n")
+                )
+
                 val origAvatar = origProfile?.profilePictureUri ?: originalSender?.profilePictureUri
                 if (origAvatar != null) layout.findViewById<ImageView>(R.id.ivOriginalAvatar).load(origAvatar)
                 else layout.findViewById<ImageView>(R.id.ivOriginalAvatar).setImageDrawable(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this)))
@@ -498,7 +507,11 @@ class SysmediaPostDetailActivity : BaseActivity() {
                         holder.tvOriginalName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
                         val parentHandle = parentProfile?.handle ?: parentSender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: parentSender?.manualId ?: "unknown"
                         holder.tvOriginalHandle.text = "@$parentHandle"
-                        markwon.setMarkdown(holder.tvOriginalContent, originalPost.content.replace("\n", "  \n"))
+                        markwon.setMarkdown(
+                            holder.tvOriginalContent,
+                            SysmediaReadMore.removeMarker(originalPost.content).replace("\n", "  \n")
+                        )
+
                         val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
                         if (parentAvatar != null) holder.ivOriginalAvatar.load(parentAvatar)
                         else holder.ivOriginalAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaPostDetailActivity)))
@@ -520,7 +533,11 @@ class SysmediaPostDetailActivity : BaseActivity() {
                 val handle = profile?.handle ?: sender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: sender?.manualId ?: "unknown"
                 holder.tvHandle.text = "@$handle"
                 holder.tvHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
-                markwon.setMarkdown(holder.tvContent, item.content.replace("\n", "  \n"))
+                markwon.setMarkdown(
+                    holder.tvContent,
+                    SysmediaReadMore.removeMarker(item.content).replace("\n", "  \n")
+                )
+
                 holder.tvContent.setTextColor(textColor)
                 val avatarUri = profile?.profilePictureUri ?: sender?.profilePictureUri
                 if (avatarUri != null) holder.ivAvatar.load(avatarUri)

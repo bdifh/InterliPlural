@@ -877,4 +877,8 @@
     <string name="import_plural_space_error">PluralSpace import failed: %1$s</string>
     <string name="delete_subsystems">Subsystems</string>
     <string name="delete_calendar">Calendar events</string>
+    <string name="action_insert_read_more">Insert read-more line</string>
+    <string name="action_remove_read_more">Remove read-more line</string>
+    <string name="action_read_more">Read more</string>
+    <string name="action_read_less">Show less</string>
 </resources>

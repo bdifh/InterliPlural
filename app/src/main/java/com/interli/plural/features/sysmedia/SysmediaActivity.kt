@@ -50,6 +50,8 @@ class SysmediaActivity : BaseActivity() {
     private var editingPerson: Person? = null
     private var searchQuery: String = ""
     private lateinit var markwon: io.noties.markwon.Markwon
+    private val expandedReadMorePostIds = mutableSetOf<String>()
+
     private val searchWatcher = object : android.text.TextWatcher {
         override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
         override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -510,6 +512,7 @@ class SysmediaActivity : BaseActivity() {
             val tvHandle: TextView = view.findViewById(R.id.tvHandle)
             val tvTime: TextView = view.findViewById(R.id.tvTimeBottom)
             val tvContent: TextView = view.findViewById(R.id.tvContent)
+            val btnReadMore: MaterialButton = view.findViewById(R.id.btnReadMore)
             val tvLikes: TextView = view.findViewById(R.id.tvLikes)
             val tvRetweets: TextView = view.findViewById(R.id.tvRetweets)
             val tvReplies: TextView = view.findViewById(R.id.tvReplies)
@@ -552,7 +555,10 @@ class SysmediaActivity : BaseActivity() {
                     val parentSender = people.find { it.id == parentPost.senderId }
                     val parentProfile = parentSender?.sysmediaProfile
                     holder.tvParentName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
-                    holder.tvParentContent.text = parentPost.content
+
+                    holder.tvParentContent.text =
+                        SysmediaReadMore.removeMarker(parentPost.content)
+
                     val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
                     if (parentAvatar != null) {
                         holder.ivParentAvatar.load(parentAvatar) {
@@ -580,7 +586,10 @@ class SysmediaActivity : BaseActivity() {
                     holder.tvOriginalName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
                     val parentHandle = parentProfile?.handle ?: parentSender?.name?.replace(" ", "_")?.lowercase() ?: parentSender?.manualId ?: "unknown"
                     holder.tvOriginalHandle.text = "@$parentHandle"
-                    markwon.setMarkdown(holder.tvOriginalContent, originalPost.content.replace("\n", "  \n"))
+                    markwon.setMarkdown(
+                        holder.tvOriginalContent,
+                        SysmediaReadMore.removeMarker(originalPost.content).replace("\n", "  \n")
+                    )
                     val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
                     if (parentAvatar != null) {
                         holder.ivOriginalAvatar.load(parentAvatar) {
@@ -640,7 +649,36 @@ class SysmediaActivity : BaseActivity() {
             holder.tvHandle.text = "@$handle"
             holder.tvTime.text = sdf.format(Date(post.displayTimestamp))
             val content = post.content ?: ""
-            markwon.setMarkdown(holder.tvContent, content.replace("\n", "  \n"))
+            val readMoreParts = SysmediaReadMore.split(content)
+            val isExpanded = post.id in expandedReadMorePostIds
+
+            val contentToRender = when {
+                readMoreParts == null -> SysmediaReadMore.removeMarker(content)
+                isExpanded -> SysmediaReadMore.removeMarker(content)
+                else -> readMoreParts.first
+            }
+
+            markwon.setMarkdown(holder.tvContent, contentToRender.replace("\n", "  \n"))
+
+            holder.btnReadMore.visibility =
+                if (readMoreParts == null) View.GONE else View.VISIBLE
+
+            holder.btnReadMore.setText(
+                if (isExpanded) R.string.action_read_less else R.string.action_read_more
+            )
+
+            holder.btnReadMore.setOnClickListener {
+                val adapterPosition = holder.bindingAdapterPosition
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    if (post.id in expandedReadMorePostIds) {
+                        expandedReadMorePostIds.remove(post.id)
+                    } else {
+                        expandedReadMorePostIds.add(post.id)
+                    }
+                    this@SysmediaAdapter.notifyItemChanged(adapterPosition)
+                }
+            }
+
             val text = holder.tvContent.text
             val spannable = if (text is android.text.Spannable) text else android.text.SpannableStringBuilder(text)
             val matcher = java.util.regex.Pattern.compile("#([A-Za-z0-9_]+)").matcher(spannable)
@@ -968,7 +1006,10 @@ class SysmediaActivity : BaseActivity() {
                         val parentSender = people.find { it.id == originalPost.senderId }
                         val parentProfile = parentSender?.sysmediaProfile
                         sysmediaHolder.tvParentName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
-                        sysmediaHolder.tvParentContent.text = originalPost.content
+
+                        sysmediaHolder.tvParentContent.text =
+                            SysmediaReadMore.removeMarker(originalPost.content)
+
                         val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
                         val pColor = parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaActivity)
                         val pDrawable = android.graphics.drawable.ColorDrawable(pColor)

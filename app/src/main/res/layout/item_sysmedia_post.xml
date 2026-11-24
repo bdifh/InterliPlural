@@ -150,6 +150,18 @@
                 android:textSize="15sp"
                 android:lineSpacingExtra="2dp" />
 
+            <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnReadMore"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="0dp"
+                    android:minWidth="0dp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="0dp"
+                    android:text="@string/action_read_more"
+                    android:visibility="gone" />
+
             <!-- Reblog nested card (ONLY for actual reblogs) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardOriginalPost"

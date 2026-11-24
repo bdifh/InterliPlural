@@ -40,6 +40,7 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.regex.Pattern
+import com.google.android.material.button.MaterialButton
 
 class CreatePostActivity : BaseActivity() {
     data class SuggestionItem(val display: String, val value: String, val type: String)
@@ -81,6 +82,51 @@ class CreatePostActivity : BaseActivity() {
         editPostId = intent.getStringExtra("edit_post_id")
         val ivAvatar = findViewById<ImageView>(R.id.ivAvatar)
         val etContent = findViewById<EditText>(R.id.etContent)
+
+        val btnReadMore = findViewById<MaterialButton>(R.id.btnReadMore)
+
+        btnReadMore.setOnClickListener {
+            val currentText = etContent.text.toString()
+            val cursor = etContent.selectionStart.coerceAtLeast(0)
+
+            val markerIndex = currentText.indexOf(SysmediaReadMore.MARKER)
+
+            if (markerIndex >= 0) {
+                val updatedText = currentText.removeRange(
+                    markerIndex,
+                    markerIndex + SysmediaReadMore.MARKER.length
+                )
+                val adjustedCursor =
+                    cursor - if (markerIndex < cursor) SysmediaReadMore.MARKER.length else 0
+
+                etContent.setText(updatedText)
+                etContent.setSelection(adjustedCursor.coerceIn(0, updatedText.length))
+                btnReadMore.setText(R.string.action_insert_read_more)
+            } else {
+                val insertAt = cursor.coerceIn(0, currentText.length)
+                val before = currentText.substring(0, insertAt)
+                val after = currentText.substring(insertAt)
+
+                val lineBefore =
+                    if (before.isNotEmpty() && !before.endsWith("\n")) "\n" else ""
+                val lineAfter =
+                    if (after.isNotEmpty() && !after.startsWith("\n")) "\n" else ""
+
+                val markerText =
+                    lineBefore + SysmediaReadMore.MARKER + lineAfter
+
+                val updatedText =
+                    before + markerText + after
+
+                etContent.setText(updatedText)
+                etContent.setSelection(
+                    (insertAt + lineBefore.length + SysmediaReadMore.MARKER.length)
+                        .coerceIn(0, updatedText.length)
+                )
+                btnReadMore.setText(R.string.action_remove_read_more)
+            }
+        }
+
         val btnPost = findViewById<Button>(R.id.btnPostAction)
         val btnSwitch = findViewById<ImageButton>(R.id.btnSwitchUser)
         updateAvatar(ivAvatar)
@@ -160,7 +206,16 @@ class CreatePostActivity : BaseActivity() {
             val typePosts = object : TypeToken<List<SysmediaPost>>() {}.type
             val posts: List<SysmediaPost> = Gson().fromJson(postsJson, typePosts) ?: emptyList()
             val post = posts.find { it.id == editPostId }
-            etContent.setText(post?.content ?: "")
+            val existingContent = post?.content ?: ""
+            etContent.setText(existingContent)
+            btnReadMore.setText(
+                if (existingContent.contains(SysmediaReadMore.MARKER)) {
+                    R.string.action_remove_read_more
+                } else {
+                    R.string.action_insert_read_more
+                }
+            )
+
             btnPost.text = getString(R.string.save)
             post?.imageUri?.let {
                 selectedImageUri = Uri.parse(it)

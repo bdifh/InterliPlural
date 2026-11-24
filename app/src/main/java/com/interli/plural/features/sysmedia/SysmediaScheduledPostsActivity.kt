@@ -94,7 +94,9 @@ class SysmediaScheduledPostsActivity : BaseActivity() {
             val handle = profile?.handle ?: sender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: sender?.manualId ?: "unknown"
             holder.tvHandle.text = "@$handle"
             holder.tvHandle.setTextColor(textColor and 0x88FFFFFF.toInt())
-            holder.tvContent.text = post.content
+            holder.tvContent.text =
+                SysmediaReadMore.removeMarker(post.content)
+
             holder.tvContent.setTextColor(textColor)
             val dateStr = sdf.format(Date(post.scheduledTime!!))
             holder.tvTime.text = getString(R.string.scheduled_for_format, dateStr)

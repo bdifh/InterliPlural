@@ -746,4 +746,8 @@
     <string name="import_plural_space_error">PluralSpace-import mislukt: %1$s</string>
     <string name="delete_subsystems">Subsystems</string>
     <string name="delete_calendar">Agenda-afspraken</string>
+    <string name="action_insert_read_more">Leesmeer-lijn invoegen</string>
+    <string name="action_remove_read_more">Leesmeer-lijn verwijderen</string>
+    <string name="action_read_more">Lees meer</string>
+    <string name="action_read_less">Minder tonen</string>
 </resources>

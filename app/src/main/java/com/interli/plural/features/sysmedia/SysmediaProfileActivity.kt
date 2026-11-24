@@ -49,6 +49,7 @@ class SysmediaProfileActivity : BaseActivity() {
     private val gson = Gson()
     private val sdf = SimpleDateFormat("dd MMM yy", Locale.getDefault())
     private var currentProfileTab = 0
+    private val expandedReadMorePostIds = mutableSetOf<String>()
     private val pickImage = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri: android.net.Uri? ->
         uri?.let {
             val internalUri = saveSourceImage(it)
@@ -567,6 +568,7 @@ class SysmediaProfileActivity : BaseActivity() {
             val tvName: TextView = view.findViewById(R.id.tvName)
             val tvHandle: TextView = view.findViewById(R.id.tvHandle)
             val tvContent: TextView = view.findViewById(R.id.tvContent)
+            val btnReadMore: MaterialButton = view.findViewById(R.id.btnReadMore)
             val tvTime: TextView = view.findViewById(R.id.tvTimeBottom)
             val ivContentImage: ImageView? = view.findViewById(R.id.ivPostImagePreview)
             val mediaEmbedContainer: LinearLayout = view.findViewById(R.id.mediaEmbedContainer)
@@ -612,7 +614,8 @@ class SysmediaProfileActivity : BaseActivity() {
                     val parentSender = people.find { it.id == parentPost.senderId }
                     val parentProfile = parentSender?.sysmediaProfile
                     holder.tvParentName.text = parentProfile?.displayName ?: parentSender?.name ?: "Unknown"
-                    holder.tvParentContent.text = parentPost.content
+                    holder.tvParentContent.text =
+                        SysmediaReadMore.removeMarker(parentPost.content)
                     val parentAvatar = parentProfile?.profilePictureUri ?: parentSender?.profilePictureUri
                     val pColor = parentSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)
                     if (parentAvatar != null) holder.ivParentAvatar.load(parentAvatar) { error(android.graphics.drawable.ColorDrawable(pColor)) }
@@ -636,7 +639,11 @@ class SysmediaProfileActivity : BaseActivity() {
                     holder.tvOriginalName.text = origProfile?.displayName ?: originalSender?.name ?: "Unknown"
                     val origHandle = origProfile?.handle ?: originalSender?.name?.replace(" ", "_")?.lowercase()?.replace(Regex("[^a-z0-9_]"), "") ?: "unknown"
                     holder.tvOriginalHandle.text = "@$origHandle"
-                    markwon.setMarkdown(holder.tvOriginalContent, originalPost.content.replace("\n", "  \n"))
+                    markwon.setMarkdown(
+                        holder.tvOriginalContent,
+                        SysmediaReadMore.removeMarker(originalPost.content).replace("\n", "  \n")
+                    )
+
                     val origAvatar = origProfile?.profilePictureUri ?: originalSender?.profilePictureUri
                     if (origAvatar != null) holder.ivOriginalAvatar.load(origAvatar) { placeholder(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity))) }
                     else holder.ivOriginalAvatar.setImageDrawable(android.graphics.drawable.ColorDrawable(originalSender?.profileColor ?: ColorHelper.getBtnColor(this@SysmediaProfileActivity)))
@@ -656,10 +663,38 @@ class SysmediaProfileActivity : BaseActivity() {
                 setTextColor(textColor and 0x88FFFFFF.toInt())
             }
 
+            val readMoreParts = SysmediaReadMore.split(post.content)
+            val isExpanded = post.id in expandedReadMorePostIds
+
+            val contentToRender = when {
+                readMoreParts == null -> SysmediaReadMore.removeMarker(post.content)
+                isExpanded -> SysmediaReadMore.removeMarker(post.content)
+                else -> readMoreParts.first
+            }
+
             holder.tvContent.apply {
-                markwon.setMarkdown(this, post.content.replace("\n", "  \n"))
+                markwon.setMarkdown(this, contentToRender.replace("\n", "  \n"))
                 setTextColor(textColor)
                 setOnClickListener { holder.itemView.performClick() }
+            }
+
+            holder.btnReadMore.visibility =
+                if (readMoreParts == null) View.GONE else View.VISIBLE
+
+            holder.btnReadMore.setText(
+                if (isExpanded) R.string.action_read_less else R.string.action_read_more
+            )
+
+            holder.btnReadMore.setOnClickListener {
+                val adapterPosition = holder.bindingAdapterPosition
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    if (post.id in expandedReadMorePostIds) {
+                        expandedReadMorePostIds.remove(post.id)
+                    } else {
+                        expandedReadMorePostIds.add(post.id)
+                    }
+                    this@ProfilePostAdapter.notifyItemChanged(adapterPosition)
+                }
             }
 
             holder.tvTime.apply {
