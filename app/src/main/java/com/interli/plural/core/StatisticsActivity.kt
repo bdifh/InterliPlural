@@ -245,6 +245,7 @@ class StatisticsActivity : BaseActivity() {
 
         val sessionKey = intent.getStringExtra("session_key") ?: "sessions_list"
         val filterIds = intent.getStringArrayListExtra("filter_member_ids")
+        val subsystemGroupId = intent.getStringExtra("subsystem_group_id")
 
         val sessionsJson = sharedPref.getString(sessionKey, "[]")
         val peopleJson = sharedPref.getString("people_list", "[]")
@@ -262,15 +263,49 @@ class StatisticsActivity : BaseActivity() {
                     emptyList()
                 }
 
+                val selectedSubsystemGroup = subGroups.firstOrNull {
+                    it.id == subsystemGroupId
+                }
+
+                val selectedSubsystemMemberIds =
+                    selectedSubsystemGroup?.members
+                        ?.map { it.personId ?: it.id }
+                        ?.toSet()
+                        ?: emptySet()
+
+                val selectedSubsystemColor = selectedSubsystemGroup?.profileColor
+
+                val statsPeople = rawPeople.map { person ->
+                    if (person.id in selectedSubsystemMemberIds && selectedSubsystemColor != null) {
+                        person.copy(profileColor = selectedSubsystemColor)
+                    } else {
+                        person
+                    }
+                }
+
+                val subsystemMemberPeople = selectedSubsystemGroup?.members?.map { member ->
+                    Person(
+                        id = member.personId ?: member.id,
+                        name = member.name,
+                        profileColor = selectedSubsystemColor ?: member.profileColor
+                    )
+                } ?: emptyList()
+
+                val defaultSubsystemColor =
+                    android.graphics.Color.parseColor("#8E24AA")
+
                 val subPeople = subGroups.map { group ->
                     Person(
                         id = "subsystem_${group.id}",
                         name = group.name,
-                        profileColor = android.graphics.Color.parseColor("#8E24AA")
+                        profileColor = group.profileColor ?: defaultSubsystemColor
                     )
                 }
 
-                val combinedPeople = (rawPeople + subPeople).toMutableList()
+                val combinedPeople =
+                    (statsPeople + subsystemMemberPeople + subPeople)
+                        .distinctBy { it.id }
+                        .toMutableList()
 
                 rawSessions.forEach { s ->
                     val pId = s.personId
@@ -284,7 +319,7 @@ class StatisticsActivity : BaseActivity() {
                             Person(
                                 id = pId,
                                 name = displayName,
-                                profileColor = android.graphics.Color.parseColor("#8E24AA")
+                                profileColor = defaultSubsystemColor
                             )
                         )
                     }

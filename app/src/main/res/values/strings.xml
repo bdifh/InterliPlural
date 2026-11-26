@@ -907,4 +907,6 @@
     <string name="notification_channel_sysmail_description">Notifications for Sysmail recipients</string>
     <string name="notification_sysmail_title">New Sysmail</string>
     <string name="notification_sysmail_text">For: %1$s</string>
+    <string name="subsystem_change_color">Change color</string>
+    <string name="subsystem_color">Subsystem color</string>
 </resources>

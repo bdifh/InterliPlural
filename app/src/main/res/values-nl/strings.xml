@@ -776,4 +776,6 @@
     <string name="notification_channel_sysmail_description">Meldingen voor ontvangers van Sysmail</string>
     <string name="notification_sysmail_title">Nieuwe Sysmail</string>
     <string name="notification_sysmail_text">Voor: %1$s</string>
+    <string name="subsystem_change_color">Kleur wijzigen</string>
+    <string name="subsystem_color">Subsystemkleur</string>
 </resources>

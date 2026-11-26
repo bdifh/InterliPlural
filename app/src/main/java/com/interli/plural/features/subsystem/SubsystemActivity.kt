@@ -19,6 +19,8 @@ import coil.load
 import com.google.android.material.card.MaterialCardView
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import android.widget.HorizontalScrollView
+import com.interli.plural.core.DialogHelper
 import com.interli.plural.R
 import com.interli.plural.core.BaseActivity
 import com.interli.plural.core.ColorHelper
@@ -38,7 +40,8 @@ data class SubsystemGroup(
     val id: String = java.util.UUID.randomUUID().toString(),
     var name: String,
     val members: MutableList<SubsystemMember> = mutableListOf(),
-    var isBodyFronting: Boolean = false
+    var isBodyFronting: Boolean = false,
+    var profileColor: Int? = null
 )
 
 class SubsystemMemberAdapter(
@@ -127,6 +130,13 @@ class SubsystemGroupAdapter(
         val textColor = ColorHelper.getTextColor(context)
 
         holder.groupCard.setCardBackgroundColor(ColorHelper.getBgColor(context))
+        if (group.profileColor != null) {
+            holder.groupCard.strokeColor = group.profileColor!!
+            holder.groupCard.strokeWidth =
+                (3 * context.resources.displayMetrics.density).toInt()
+        } else {
+            holder.groupCard.strokeWidth = 0
+        }
         holder.tvName.text = group.name
         holder.tvName.setTextColor(textColor)
         holder.btnToggleGroupBodyFront.text = if (group.isBodyFronting) context.getString(R.string.unfront_arrow) else context.getString(R.string.front_arrow)
@@ -157,6 +167,7 @@ class SubsystemGroupAdapter(
             intent.putStringArrayListExtra("filter_member_ids", ArrayList(memberIds))
             intent.putExtra("session_key", "subsystem_sessions")
             intent.putExtra("is_subsystem", true)
+            intent.putExtra("subsystem_group_id", group.id)
             context.startActivity(intent)
         }
 
@@ -294,16 +305,67 @@ class SubsystemActivity : BaseActivity() {
     }
 
     fun showGroupOptionsDialog(group: SubsystemGroup) {
-        val options = arrayOf(getString(R.string.edit), getString(R.string.delete))
+        val options = arrayOf(
+            getString(R.string.edit),
+            getString(R.string.subsystem_change_color),
+            getString(R.string.delete)
+        )
+
         val dialog = AlertDialog.Builder(this)
             .setTitle(group.name)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> showRenameGroupDialog(group)
-                    1 -> showDeleteGroupConfirmationDialog(group)
+                    1 -> showGroupColorDialog(group)
+                    2 -> showDeleteGroupConfirmationDialog(group)
                 }
             }
             .create()
+
+        dialog.show()
+        ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun showGroupColorDialog(group: SubsystemGroup) {
+        var selectedColor =
+            group.profileColor ?: android.graphics.Color.parseColor("#8E24AA")
+
+        val colorContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            val padding = (16 * resources.displayMetrics.density).toInt()
+            setPadding(padding, padding, padding, padding)
+
+            addView(HorizontalScrollView(this@SubsystemActivity).apply {
+                addView(colorContainer)
+            })
+        }
+
+        DialogHelper.setupColorPicker(
+            this,
+            colorContainer,
+            selectedColor,
+            includeDefault = false
+        ) { color ->
+            if (color != null) {
+                selectedColor = color
+            }
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.subsystem_color)
+            .setView(content)
+            .setPositiveButton(R.string.save) { _, _ ->
+                group.profileColor = selectedColor
+                saveData()
+                groupAdapter.notifyDataSetChanged()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .create()
+
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
     }

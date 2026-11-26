@@ -277,9 +277,9 @@ data class SubsystemGroup(
     val id: String = java.util.UUID.randomUUID().toString(),
     var name: String,
     val memberIds: MutableList<String> = mutableListOf(),
-    var isBodyFronting: Boolean = false
+    var isBodyFronting: Boolean = false,
+    var profileColor: Int? = null
 )
-
 data class SubsystemMember(
     val id: String = java.util.UUID.randomUUID().toString(),
     var name: String,
