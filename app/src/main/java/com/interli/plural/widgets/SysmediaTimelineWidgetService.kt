@@ -19,6 +19,7 @@ import com.interli.plural.R
 import com.interli.plural.SysmediaPost
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.features.member.MemberHelper
+import com.interli.plural.features.sysmedia.SysmediaReadMore
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -130,6 +131,9 @@ class SysmediaTimelineRemoteViewsFactory(
             val color = authorPerson?.profileColor ?: -6934396
 
             val rawContent = targetPost.content
+            val readMoreParts = SysmediaReadMore.split(rawContent)
+            val widgetContent = readMoreParts?.first ?: SysmediaReadMore.removeMarker(rawContent)
+
             val hasImage = !targetPost.imageUri.isNullOrEmpty() || rawContent.contains("![")
             val hasLink = rawContent.contains("http://") ||
                     rawContent.contains("https://") ||
@@ -139,7 +143,7 @@ class SysmediaTimelineRemoteViewsFactory(
             val poll = targetPost.poll
             val hasPoll = poll != null && poll.options.isNotEmpty()
 
-            var cleanedContent = rawContent
+            var cleanedContent = widgetContent
                 .replace(Regex("!\\[.*?\\]\\(.*?\\)"), "")
                 .replace(Regex("\\[(.*?)\\]\\(.*?\\)"), "$1")
                 .trim()
@@ -148,6 +152,14 @@ class SysmediaTimelineRemoteViewsFactory(
             if (hasImage) indicators.add("📷")
             if (hasLink) indicators.add("🔗")
             if (hasPoll) indicators.add("📊")
+
+            if (readMoreParts != null) {
+                cleanedContent = if (cleanedContent.isBlank()) {
+                    context.getString(R.string.action_read_more)
+                } else {
+                    "$cleanedContent\n… ${context.getString(R.string.action_read_more)}"
+                }
+            }
 
             if (indicators.isNotEmpty()) {
                 cleanedContent = if (cleanedContent.isEmpty()) {
