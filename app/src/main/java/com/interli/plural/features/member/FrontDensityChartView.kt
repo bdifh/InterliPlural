@@ -7,6 +7,7 @@ import android.view.View
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.FrontSession
 import com.interli.plural.Person
+import com.interli.plural.core.FontHelper
 import java.util.Calendar
 
 class FrontDensityChartView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
@@ -156,6 +157,7 @@ class FrontDensityChartView(context: Context, attrs: AttributeSet?) : View(conte
     fun getActiveMembers(): List<MemberData> = memberDataList
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        textPaint.typeface = FontHelper.typeface(context)
         val density = resources.displayMetrics.density
         val paddingLeft = 45f * density
         val paddingRight = 20f * density

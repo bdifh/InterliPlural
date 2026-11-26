@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import android.graphics.Typeface
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationCompat
@@ -29,6 +32,47 @@ import com.interli.plural.features.subsystem.SubsystemActivity
 import com.interli.plural.features.health.HealthActivity
 
 abstract class BaseActivity : AppCompatActivity() {
+
+    private val fontWatchedRecyclerViews =
+        java.util.WeakHashMap<RecyclerView, Boolean>()
+
+    private fun watchRecyclerViews(view: View) {
+        if (view is RecyclerView && !fontWatchedRecyclerViews.containsKey(view)) {
+            fontWatchedRecyclerViews[view] = true
+
+            view.addOnChildAttachStateChangeListener(
+                object : RecyclerView.OnChildAttachStateChangeListener {
+                    override fun onChildViewAttachedToWindow(child: View) {
+                        applySelectedFont(child)
+                        watchRecyclerViews(child)
+                    }
+
+                    override fun onChildViewDetachedFromWindow(view: View) = Unit
+                }
+            )
+        }
+
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                watchRecyclerViews(view.getChildAt(index))
+            }
+        }
+    }
+
+    private fun applySelectedFont(view: View) {
+        FontHelper.applyTo(view)
+    }
+
+    protected fun applySelectedFontToScreen() {
+        val content = findViewById<ViewGroup>(android.R.id.content) ?: return
+        applySelectedFont(content)
+        watchRecyclerViews(content)
+    }
+
+    protected fun applySelectedFontToView(view: View) {
+        FontHelper.applyTo(view)
+    }
+
     private fun applyFixedDisplayScale(context: android.content.Context): android.content.Context {
         val res = context.resources
         val dm = res.displayMetrics
@@ -63,6 +107,7 @@ abstract class BaseActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         ColorHelper.applySettings(this)
+        applySelectedFontToScreen()
     }
 
     protected fun setupNavigationDrawer() {
@@ -359,21 +404,29 @@ abstract class BaseActivity : AppCompatActivity() {
         }
 
         menu.add(5, R.id.action_settings, Menu.NONE, getString(R.string.settings))
+
+        navigationView.post {
+            applySelectedFont(navigationView)
+            watchRecyclerViews(navigationView)
+        }
     }
 
     override fun setContentView(@LayoutRes layoutResID: Int) {
         super.setContentView(layoutResID)
         SilentUi.disableSoundEffects(window?.decorView)
+        applySelectedFontToScreen()
     }
 
     override fun setContentView(view: View?) {
         super.setContentView(view)
         SilentUi.disableSoundEffects(window?.decorView)
+        applySelectedFontToScreen()
     }
 
     override fun setContentView(view: View?, params: ViewGroup.LayoutParams?) {
         super.setContentView(view, params)
         SilentUi.disableSoundEffects(window?.decorView)
+        applySelectedFontToScreen()
     }
 
     protected fun showUnsavedChangesDialog(onConfirm: () -> Unit) {

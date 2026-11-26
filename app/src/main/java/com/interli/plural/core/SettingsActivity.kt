@@ -150,6 +150,7 @@ class SettingsActivity : BaseActivity() {
         }
         findViewById<Button>(R.id.btnChangeLanguage).setOnClickListener { showLanguageDialog() }
         findViewById<Button>(R.id.btnChangeFontSize).setOnClickListener { showFontSizeDialog() }
+        findViewById<Button>(R.id.btnChangeFont).setOnClickListener { showFontFamilyDialog() }
         findViewById<Button>(R.id.btnChangeStartPage).setOnClickListener { showStartPageDialog() }
         findViewById<Button>(R.id.btnManagePages).setOnClickListener { showManagePagesDialog() }
         findViewById<Button>(R.id.btnManageNotifications).setOnClickListener { showNotificationSettingsDialog() }
@@ -2528,6 +2529,36 @@ private var pendingPdfSelections: BooleanArray? = null
             .create()
         dialog.show()
         ColorHelper.styleAlertDialog(dialog, this)
+    }
+
+    private fun showFontFamilyDialog() {
+        val preferenceName = "font_family"
+        val values = arrayOf("system", "sans", "serif", "monospace", "condensed")
+        val options = arrayOf(
+            getString(R.string.font_family_system),
+            getString(R.string.font_family_sans),
+            getString(R.string.font_family_serif),
+            getString(R.string.font_family_monospace),
+            getString(R.string.font_family_condensed)
+        )
+
+        val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
+        val savedValue = sharedPref.getString(preferenceName, "system") ?: "system"
+        val selectedIndex = values.indexOf(savedValue).takeIf { it >= 0 } ?: 0
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.font_family_title)
+            .setSingleChoiceItems(options, selectedIndex) { dialog, which ->
+                sharedPref.edit()
+                    .putString(preferenceName, values[which])
+                    .apply()
+
+                dialog.dismiss()
+                recreate()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+            .also { ColorHelper.styleAlertDialog(it, this) }
     }
 
     private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()

@@ -13,6 +13,7 @@ import coil.request.ImageRequest
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.FrontSession
 import com.interli.plural.Person
+import com.interli.plural.core.FontHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -133,6 +134,11 @@ class TimelineChartView(context: Context, attrs: AttributeSet?) : View(context, 
     }
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        textPaint.typeface = FontHelper.typeface(context)
+        headerPaint.typeface = FontHelper.typeface(
+            context,
+            android.graphics.Typeface.BOLD
+        )
         if (uniqueMembers.isEmpty()) return
         val currentRowHeight = if (isExportMode) 24f else rowHeight
         val currentBarHeight = if (isExportMode) 14f else barHeight

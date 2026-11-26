@@ -910,4 +910,11 @@
     <string name="subsystem_change_color">Change color</string>
     <string name="subsystem_color">Subsystem color</string>
     <string name="sysmedia_replying_to">Replying to %1$s</string>
+    <string name="action_change_font">Change Font</string>
+    <string name="font_family_title">Choose Font</string>
+    <string name="font_family_system">Phone default</string>
+    <string name="font_family_sans">Sans-serif</string>
+    <string name="font_family_serif">Serif</string>
+    <string name="font_family_monospace">Monospace</string>
+    <string name="font_family_condensed">Sans-serif condensed</string>
 </resources>

@@ -779,4 +779,11 @@
     <string name="subsystem_change_color">Kleur wijzigen</string>
     <string name="subsystem_color">Subsystemkleur</string>
     <string name="sysmedia_replying_to">Je antwoordt op %1$s</string>
+    <string name="action_change_font">Lettertype wijzigen</string>
+    <string name="font_family_title">Kies een lettertype</string>
+    <string name="font_family_system">Standaard van telefoon</string>
+    <string name="font_family_sans">Schreefloos</string>
+    <string name="font_family_serif">Met schreef</string>
+    <string name="font_family_monospace">Monospace</string>
+    <string name="font_family_condensed">Schreefloos smal</string>
 </resources>

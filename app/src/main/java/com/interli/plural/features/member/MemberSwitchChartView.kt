@@ -11,6 +11,7 @@ import com.interli.plural.core.ColorHelper
 import com.interli.plural.FrontSession
 import com.interli.plural.Person
 import com.interli.plural.R
+import com.interli.plural.core.FontHelper
 import java.util.Calendar
 
 class MemberSwitchChartView(context: Context, attrs: AttributeSet?) : View(context, attrs) {
@@ -96,6 +97,7 @@ class MemberSwitchChartView(context: Context, attrs: AttributeSet?) : View(conte
     }
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        textPaint.typeface = FontHelper.typeface(context)
         if (hourData.all { it.isEmpty() }) return
         val density = resources.displayMetrics.density
         val padding = 8f * density

@@ -294,8 +294,16 @@
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="24dp"
+                        android:layout_marginBottom="8dp"
                         android:text="@string/action_change_font_size" />
+
+                    <Button
+                            android:id="@+id/btnChangeFont"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="24dp"
+                            android:text="@string/action_change_font" />
 
                     <Button
                         android:id="@+id/btnManageNotifications"

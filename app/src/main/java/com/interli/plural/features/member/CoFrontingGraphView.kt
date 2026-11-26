@@ -10,6 +10,7 @@ import coil.imageLoader
 import coil.request.ImageRequest
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.Person
+import com.interli.plural.core.FontHelper
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -94,6 +95,10 @@ class CoFrontingGraphView(context: Context, attrs: AttributeSet?) : View(context
     }
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        textPaint.typeface = FontHelper.typeface(
+            context,
+            android.graphics.Typeface.BOLD
+        )
         if (nodes.isEmpty()) return
         val centerX = width / 2f
         val centerY = height / 2f

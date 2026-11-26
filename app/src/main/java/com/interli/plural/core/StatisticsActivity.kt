@@ -356,6 +356,7 @@ class StatisticsActivity : BaseActivity() {
         renderFrontDensityChart()
         renderMemberSwitchChart()
         renderAverageDuration()
+        applySelectedFontToScreen()
     }
 
     private fun renderMiniTimelineSection() {
@@ -621,6 +622,7 @@ class StatisticsActivity : BaseActivity() {
             legendItem.addView(nameText)
             legendContainer.addView(legendItem)
         }
+        applySelectedFontToView(legendContainer)
     }
     private fun renderAverageDuration() {
         val container = findViewById<LinearLayout>(R.id.containerAverageDuration) ?: return

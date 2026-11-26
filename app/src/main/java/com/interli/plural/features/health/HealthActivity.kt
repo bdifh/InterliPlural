@@ -363,6 +363,7 @@ class HealthActivity : BaseActivity() {
                 "sliders" -> if (settings.showCustomSliders) renderCustomSlidersCards(todayLogs)
             }
         }
+        applySelectedFontToScreen()
     }
 
 

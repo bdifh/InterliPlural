@@ -229,6 +229,7 @@ class MoodStatsActivity : BaseActivity() {
         findViewById<MoodChartView>(R.id.moodAverageChart).setData(allEntries, MoodChartView.Mode.SEVEN_DAY_AVERAGE)
         renderMoodCounts(allEntries)
         renderActivityInfluence(allEntries, excludedActivities)
+        applySelectedFontToScreen()
     }
     private fun renderMoodCounts(entries: List<MoodActivity.MoodEntry>) {
         val container = findViewById<LinearLayout>(R.id.containerMoodCounts) ?: return

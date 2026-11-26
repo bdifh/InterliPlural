@@ -252,6 +252,7 @@ class MemberMoodCorrelationActivity : BaseActivity() {
         renderRecentFrontingActivity(filtered)
         renderMemberMoodAverages(filtered)
         renderMemberActivityMatrix(filtered)
+        applySelectedFontToScreen()
     }
 
     private fun getSafeStringSet(
@@ -597,6 +598,7 @@ class MemberMoodCorrelationActivity : BaseActivity() {
                     ellipsize = android.text.TextUtils.TruncateAt.END
                 })
                 tableNames.addView(rowNames)
+                applySelectedFontToView(rowNames)
                 val rowData = TableRow(this@MemberMoodCorrelationActivity).apply { minimumHeight = rowHeight }
                 targetActivities.forEach { activity ->
                     val scores = statsMap["${person.id}|$activity"]
@@ -633,6 +635,7 @@ class MemberMoodCorrelationActivity : BaseActivity() {
                     rowData.addView(cellLayout)
                 }
                 tableData.addView(rowData)
+                applySelectedFontToView(rowData)
 
                 memberIdx++
                 renderedInThisBatch++

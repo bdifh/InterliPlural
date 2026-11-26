@@ -13,6 +13,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.interli.plural.core.ColorHelper
 import com.interli.plural.features.mood.MoodActivity
+import com.interli.plural.core.FontHelper
 import com.interli.plural.Person
 import com.interli.plural.R
 import java.text.SimpleDateFormat
@@ -123,7 +124,7 @@ class MoodChartView(context: Context, attrs: AttributeSet?) : View(context, attr
         labelPaint.color = if (exportStartTime != null) Color.BLACK else textColor
         labelPaint.textSize = if (exportStartTime != null) 14f else 24f
         labelPaint.textAlign = Paint.Align.RIGHT
-        labelPaint.typeface = Typeface.DEFAULT
+        labelPaint.typeface = FontHelper.typeface(context)
         paint.color = if (exportStartTime != null) Color.LTGRAY else (textColor and 0x33FFFFFF) or 0x33000000
         paint.strokeWidth = 1f
         paint.style = Paint.Style.STROKE
