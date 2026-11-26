@@ -902,4 +902,9 @@
     <string name="rest_end_must_follow_start">The end time must be after the start time.</string>
     <string name="rest_history_entry">Start: %1$s · End: %2$s</string>
     <string name="rest_history_duration">Duration: %1$s</string>
+    <string name="notification_sysmail_toggle">Sysmail: new messages</string>
+    <string name="notification_channel_sysmail_name">Sysmail</string>
+    <string name="notification_channel_sysmail_description">Notifications for Sysmail recipients</string>
+    <string name="notification_sysmail_title">New Sysmail</string>
+    <string name="notification_sysmail_text">For: %1$s</string>
 </resources>

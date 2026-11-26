@@ -772,6 +772,7 @@ class SettingsActivity : BaseActivity() {
         val sharedPref = getSharedPreferences("settings_prefs", MODE_PRIVATE)
         val frontEnabled = sharedPref.getBoolean("front_notif_enabled", true)
         val todoEnabled = sharedPref.getBoolean("todo_notif_enabled", true)
+        val sysmailEnabled = sharedPref.getBoolean("sysmail_notif_enabled", true)
         val sysmediaNotisEnabled = sharedPref.getBoolean("sysmedia_notif_enabled", true)
         val sysmediaDmsEnabled = sharedPref.getBoolean("sysmedia_dm_notif_enabled", true)
         val moodEnabled = sharedPref.getBoolean("mood_notif_enabled", false)
@@ -816,6 +817,7 @@ class SettingsActivity : BaseActivity() {
             ).apply { bottomMargin = 24 }
         }
         layout.addView(swSysmediaNotis)
+
         val swSysmediaDms = SwitchCompat(this).apply {
             text = getString(R.string.notification_sysmedia_dm_toggle)
             isChecked = sysmediaDmsEnabled
@@ -825,6 +827,17 @@ class SettingsActivity : BaseActivity() {
             ).apply { bottomMargin = 24 }
         }
         layout.addView(swSysmediaDms)
+
+        val swSysmail = SwitchCompat(this).apply {
+            text = getString(R.string.notification_sysmail_toggle)
+            isChecked = sysmailEnabled
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 24 }
+        }
+        layout.addView(swSysmail)
+
         val swMood = SwitchCompat(this).apply {
             text = getString(R.string.notification_mood_toggle)
             isChecked = moodEnabled
@@ -834,11 +847,13 @@ class SettingsActivity : BaseActivity() {
             ).apply { bottomMargin = 16 }
         }
         layout.addView(swMood)
+
         val timesContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             visibility = if (moodEnabled) View.VISIBLE else View.GONE
         }
         layout.addView(timesContainer)
+
         fun refreshTimes() {
             timesContainer.removeAllViews()
             val label = TextView(this).apply {
@@ -899,6 +914,7 @@ class SettingsActivity : BaseActivity() {
                 sharedPref.edit {
                     putBoolean("front_notif_enabled", swFront.isChecked)
                     putBoolean("todo_notif_enabled", swTodo.isChecked)
+                    putBoolean("sysmail_notif_enabled", swSysmail.isChecked)
                     putBoolean("sysmedia_notif_enabled", swSysmediaNotis.isChecked)
                     putBoolean("sysmedia_dm_notif_enabled", swSysmediaDms.isChecked)
                     putBoolean("mood_notif_enabled", swMood.isChecked)

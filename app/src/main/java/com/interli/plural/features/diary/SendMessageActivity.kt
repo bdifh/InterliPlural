@@ -16,6 +16,7 @@ import com.interli.plural.core.ColorHelper
 import com.interli.plural.core.DialogHelper
 import com.interli.plural.DiaryNote
 import com.interli.plural.features.member.MemberHelper
+import com.interli.plural.features.diary.SysmailNotificationHelper
 import com.interli.plural.Group
 import com.interli.plural.Person
 import com.interli.plural.R
@@ -205,6 +206,15 @@ class SendMessageActivity : BaseActivity() {
         }
         allNotes.add(newNote)
         prefs.edit { putString("diary_notes", gson.toJson(allNotes)) }
+        val recipientNames = people
+            .filter { newNote.linkedMemberIds.contains(it.id) && !it.isArchived }
+            .map { it.name }
+
+        SysmailNotificationHelper.notifyRecipients(
+            this,
+            newNote.id,
+            recipientNames
+        )
         Toast.makeText(this, getString(R.string.message_sent), Toast.LENGTH_SHORT).show()
         finish()
     }
