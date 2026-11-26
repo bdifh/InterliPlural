@@ -1114,9 +1114,10 @@ class MainActivity : BaseActivity() {
     }
 
     private fun showQuickUnfrontDialog() {
-        val frontPeople = people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly }
-            .distinctBy { it.id }
-            .let { MemberHelper.getSortedPeople(it, groups) }
+        val frontPeople = MemberHelper.getSortedPeople(
+            people.filter { it.isFront && !it.isArchived && !it.isSysmediaOnly },
+            groups
+        ).distinctBy { it.id }
         if (frontPeople.isEmpty()) {
             quickUnfrontDialog?.dismiss()
             quickUnfrontDialog = null
