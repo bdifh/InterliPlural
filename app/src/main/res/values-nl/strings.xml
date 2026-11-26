@@ -778,4 +778,5 @@
     <string name="notification_sysmail_text">Voor: %1$s</string>
     <string name="subsystem_change_color">Kleur wijzigen</string>
     <string name="subsystem_color">Subsystemkleur</string>
+    <string name="sysmedia_replying_to">Je antwoordt op %1$s</string>
 </resources>

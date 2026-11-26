@@ -909,4 +909,5 @@
     <string name="notification_sysmail_text">For: %1$s</string>
     <string name="subsystem_change_color">Change color</string>
     <string name="subsystem_color">Subsystem color</string>
+    <string name="sysmedia_replying_to">Replying to %1$s</string>
 </resources>

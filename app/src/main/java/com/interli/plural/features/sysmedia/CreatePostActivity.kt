@@ -23,6 +23,11 @@ import androidx.core.content.edit
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
+import io.noties.markwon.Markwon
+import io.noties.markwon.linkify.LinkifyPlugin
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
+import io.noties.markwon.image.coil.CoilImagesPlugin
+import com.interli.plural.core.MarkdownHighlight
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -46,6 +51,7 @@ class CreatePostActivity : BaseActivity() {
     data class SuggestionItem(val display: String, val value: String, val type: String)
     private lateinit var people: List<Person>
     private lateinit var currentUser: Person
+    private lateinit var markwon: Markwon
     private var reblogOfId: String? = null
     private var replyToId: String? = null
     private var editPostId: String? = null
@@ -74,6 +80,12 @@ class CreatePostActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_create_post)
+        markwon = Markwon.builder(this)
+            .usePlugin(LinkifyPlugin.create())
+            .usePlugin(StrikethroughPlugin.create())
+            .usePlugin(CoilImagesPlugin.create(this))
+            .usePlugin(MarkdownHighlight.create(this))
+            .build()
         loadData()
         val currentUserId = intent.getStringExtra("current_user_id")
         currentUser = people.find { it.id == currentUserId } ?: people.firstOrNull { it.isFront } ?: people.first()
@@ -229,6 +241,7 @@ class CreatePostActivity : BaseActivity() {
             showReblogPreview()
         } else if (replyToId != null) {
             btnPost.text = getString(R.string.action_reply)
+            showReplyContext()
         }
         btnPost.setOnClickListener {
             val content = etContent.text.toString().trim()
@@ -269,6 +282,49 @@ class CreatePostActivity : BaseActivity() {
         val avatar = sender?.sysmediaProfile?.profilePictureUri ?: sender?.profilePictureUri
         if (avatar != null) findViewById<ImageView>(R.id.ivOriginalAvatar).load(avatar)
     }
+
+    private fun showReplyContext() {
+        val sharedPref = getSharedPreferences("my_app", MODE_PRIVATE)
+        val postsJson = sharedPref.getString("sysmedia_posts", "[]")
+        val posts: List<SysmediaPost> = try {
+            Gson().fromJson(
+                postsJson,
+                object : TypeToken<List<SysmediaPost>>() {}.type
+            ) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+
+        val originalPost = posts.find { it.id == replyToId } ?: return
+        val sender = people.find { it.id == originalPost.senderId }
+
+        val textColor = ColorHelper.getTextColor(this)
+        val card = findViewById<com.google.android.material.card.MaterialCardView>(
+            R.id.cardReplyContext
+        )
+
+        card.visibility = View.VISIBLE
+        card.setCardBackgroundColor(ColorHelper.getBgColor(this))
+        card.strokeColor = textColor and 0x33FFFFFF
+
+        findViewById<TextView>(R.id.tvReplyContextLabel).apply {
+            text = getString(
+                R.string.sysmedia_replying_to,
+                sender?.sysmediaProfile?.displayName ?: sender?.name ?: "Unknown"
+            )
+            setTextColor(textColor)
+        }
+
+        findViewById<TextView>(R.id.tvReplyContextContent).apply {
+            setTextColor(textColor)
+            markwon.setMarkdown(
+                this,
+                SysmediaReadMore.removeMarker(originalPost.content)
+                    .replace("\n", "  \n")
+            )
+        }
+    }
+
     private fun updateAvatar(iv: ImageView) {
         val avatarUri = currentUser.sysmediaProfile?.profilePictureUri ?: currentUser.profilePictureUri
         if (avatarUri != null) iv.load(avatarUri)
